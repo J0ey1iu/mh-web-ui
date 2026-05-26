@@ -19,6 +19,11 @@ const emit = defineEmits<{
 const { t } = useI18nStore()
 const input = ref("")
 const listRef = ref<HTMLDivElement | null>(null)
+const isAtBottom = ref(true)
+
+const showScrollBtn = computed(
+  () => !isAtBottom.value && props.streaming.isStreaming
+)
 
 const streamingMessage = computed<Message | null>(() => {
   if (!props.streaming.isStreaming) return null
@@ -34,6 +39,19 @@ const streamingMessage = computed<Message | null>(() => {
   }
 })
 
+function onScroll() {
+  if (!listRef.value) return
+  const { scrollTop, scrollHeight, clientHeight } = listRef.value
+  isAtBottom.value = scrollTop + clientHeight >= scrollHeight - 20
+}
+
+function scrollToBottom() {
+  if (listRef.value) {
+    listRef.value.scrollTop = listRef.value.scrollHeight
+    isAtBottom.value = true
+  }
+}
+
 watch(
   [
     () => props.messages.length,
@@ -42,7 +60,7 @@ watch(
   ],
   async () => {
     await nextTick()
-    if (listRef.value) {
+    if (listRef.value && isAtBottom.value) {
       listRef.value.scrollTop = listRef.value.scrollHeight
     }
   },
@@ -70,7 +88,7 @@ function onKeydown(e: KeyboardEvent) {
 
 <template>
   <div class="chat-view">
-    <div ref="listRef" class="message-list">
+    <div ref="listRef" class="message-list" @scroll="onScroll">
       <MessageBubble
         v-for="msg in messages"
         :key="msg.id"
@@ -88,6 +106,25 @@ function onKeydown(e: KeyboardEvent) {
         <p class="empty-text">{{ t("start_conversation") }}</p>
       </div>
     </div>
+    <button
+      v-if="showScrollBtn"
+      class="scroll-to-bottom"
+      @click="scrollToBottom"
+    >
+      <svg
+        width="14"
+        height="14"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <polyline points="6 9 12 15 18 9" />
+      </svg>
+      {{ t("scroll_to_bottom") }}
+    </button>
     <div class="input-bar">
       <button
         class="btn-new-chat"
@@ -122,6 +159,7 @@ function onKeydown(e: KeyboardEvent) {
   background: var(--page-bg);
   min-width: 0;
   min-height: 0;
+  position: relative;
 }
 .message-list {
   flex: 1;
@@ -211,5 +249,28 @@ function onKeydown(e: KeyboardEvent) {
 }
 .btn-cancel:hover {
   background: var(--danger-hover) !important;
+}
+.scroll-to-bottom {
+  position: absolute;
+  bottom: 76px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  background: var(--surface-raised);
+  color: var(--text-secondary);
+  font-size: 13px;
+  cursor: pointer;
+}
+.scroll-to-bottom:hover {
+  background: var(--accent-dim);
+  color: var(--accent);
+  border-color: var(--accent);
 }
 </style>

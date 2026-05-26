@@ -5,6 +5,9 @@ import ReasoningBlock from "./ReasoningBlock.vue"
 import ToolCallRenderer from "./ToolCallRenderer.vue"
 import AgentAnswer from "./AgentAnswer.vue"
 import { FOLDABLE_COLLAPSED_KEY } from "../toolContext"
+import { useI18nStore } from "../stores/i18n"
+
+const { t } = useI18nStore()
 
 const props = defineProps<{
   message: Message
@@ -14,6 +17,8 @@ const props = defineProps<{
 const collapsed = ref(
   props.message.freshlyStreamed ? false : !props.isStreaming
 )
+const hovered = ref(false)
+const hoveredIndex = ref<number | null>(null)
 
 const hasNoContent = computed(() => {
   if (props.message.orderedItems?.length) return false
@@ -33,6 +38,20 @@ watch(() => props.isStreaming, (val) => {
 })
 
 provide(FOLDABLE_COLLAPSED_KEY, collapsed)
+
+async function copy(text: string) {
+  if (!text) return
+  try {
+    await navigator.clipboard.writeText(text)
+  } catch {
+    const textarea = document.createElement("textarea")
+    textarea.value = text
+    document.body.appendChild(textarea)
+    textarea.select()
+    document.execCommand("copy")
+    document.body.removeChild(textarea)
+  }
+}
 </script>
 
 <template>
@@ -49,9 +68,31 @@ provide(FOLDABLE_COLLAPSED_KEY, collapsed)
           />
           <div
             v-else-if="item.type === 'content'"
-            class="content-segment"
+            class="content-segment copyable"
+            @mouseenter="hoveredIndex = i"
+            @mouseleave="hoveredIndex = null"
           >
             <AgentAnswer :content="item.text ?? ''" />
+            <button
+              v-show="hoveredIndex === i"
+              class="copy-btn"
+              :title="t('copy')"
+              @click="copy(item.text ?? '')"
+            >
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+              </svg>
+            </button>
           </div>
           <ToolCallRenderer
             v-else-if="
@@ -71,7 +112,34 @@ provide(FOLDABLE_COLLAPSED_KEY, collapsed)
             :tool="tc"
           />
         </div>
-        <AgentAnswer v-if="message.content" :content="message.content" />
+        <div
+          v-if="message.content"
+          class="copyable"
+          @mouseenter="hovered = true"
+          @mouseleave="hovered = false"
+        >
+          <AgentAnswer :content="message.content" />
+          <button
+            v-show="hovered"
+            class="copy-btn"
+            :title="t('copy')"
+            @click="copy(message.content)"
+          >
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+            </svg>
+          </button>
+        </div>
       </template>
 
       <div
@@ -137,6 +205,28 @@ provide(FOLDABLE_COLLAPSED_KEY, collapsed)
 }
 .content-segment:last-child {
   margin-bottom: 0;
+}
+.copyable {
+  position: relative;
+}
+.copy-btn {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  padding: 4px;
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  line-height: 0;
+  opacity: 0.7;
+  transition: opacity 0.15s;
+}
+.copy-btn:hover {
+  opacity: 1;
+  color: var(--accent);
+  border-color: var(--accent);
 }
 .thinking {
   padding: 8px 0;
