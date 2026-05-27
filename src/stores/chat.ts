@@ -111,6 +111,9 @@ export const useChatStore = defineStore("chat", () => {
         break
 
       case SSE_EVENTS.LLM_END:
+        if (data.error) {
+          console.warn("LLM ended with error:", data.error)
+        }
         if (data.reasoning_content && !pending.reasoning) {
           pending.reasoning = data.reasoning_content
           appendOrUpdateItem("reasoning", data.reasoning_content)
@@ -124,16 +127,16 @@ export const useChatStore = defineStore("chat", () => {
           displayName: data.display_name ?? data.tool_call?.function?.name ?? "unknown",
           status: "running",
         }
-        streaming.value.toolCalls.push(tc)
-        streaming.value.orderedItems.push({
+        pending.toolCalls.push(tc)
+        pending.orderedItems.push({
           type: "tool_call",
-          toolCallIndex: streaming.value.toolCalls.length - 1,
+          toolCallIndex: pending.toolCalls.length - 1,
         })
         break
       }
 
       case SSE_EVENTS.TOOL_PROGRESS: {
-        const tc = streaming.value.toolCalls.find(
+        const tc = pending.toolCalls.find(
           (t) => t.id === data.tool_call?.id,
         )
         if (tc && data.chunk) {
@@ -147,7 +150,7 @@ export const useChatStore = defineStore("chat", () => {
       }
 
       case SSE_EVENTS.TOOL_END: {
-        const tc = streaming.value.toolCalls.find(
+        const tc = pending.toolCalls.find(
           (t) => t.id === data.tool_call?.id,
         )
         if (tc) {
@@ -166,6 +169,17 @@ export const useChatStore = defineStore("chat", () => {
                 ? data.meta
                 : JSON.stringify(data.meta)
           }
+        } else {
+          console.warn(
+            `ToolEnd with no matching ToolStart: id=${data.tool_call?.id}, ` +
+            `available IDs: [${pending.toolCalls.map((t) => t.id).join(", ")}]`,
+          )
+          for (const t of pending.toolCalls) {
+            if (t.status === "running") {
+              t.status = "error"
+              t.result = "Tool ended without a matching start event"
+            }
+          }
         }
         break
       }
@@ -178,6 +192,15 @@ export const useChatStore = defineStore("chat", () => {
         break
 
       case SSE_EVENTS.AGENT_END:
+        if (data.error) {
+          console.error("Agent ended with error:", data.error)
+        }
+        for (const tc of pending.toolCalls) {
+          if (tc.status === "running") {
+            tc.status = "error"
+            tc.result = tc.result || "Agent completed before tool finished"
+          }
+        }
         flushImmediately()
         finalizeStream()
         break
