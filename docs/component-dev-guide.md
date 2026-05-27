@@ -27,7 +27,7 @@ mh-application/frontend/component/  ← The "plugin" (standalone component libra
 
 1. **Runtime plugin loading** — Tool components are loaded at runtime via `<script>` injection (`toolComponentLoader.ts`), not imported at build time. The portal never needs rebuild when adding new tool components.
 
-2. **Global registry contract** — The only coupling point is `window.__MH_TOOL_REGISTRY__`, which exposes `register(name, component)` and `get(name)`. The portal initializes it; the plugin calls it.
+2. **Global registry contract** — The only coupling point is `window.__MH_TOOL_REGISTRY__`, which exposes `register(name, component, options?)` and `get(name)`. The portal initializes it; the plugin calls it. The optional `options` parameter can include `{ autoCollapsible: boolean }` (see [Auto-Collapse Opt-Out](#auto-collapse-opt-out)).
 
 3. **Externalized Vue** — The UMD bundle declares `vue` as external. At runtime it expects Vue's API surface on `window.Vue`, which the portal exposes in `main.ts`. This keeps the bundle tiny and avoids duplicate Vue instances.
 
@@ -119,7 +119,7 @@ Each entry is `output-filename:relative-source-directory`. Bundles are copied to
 
 Each UMD bundle must:
 
-1. **Register components** via `window.__MH_TOOL_REGISTRY__.register(toolName, component)`.
+1. **Register components** via `window.__MH_TOOL_REGISTRY__.register(toolName, component, options?)`. The optional `options` parameter accepts `{ autoCollapsible?: boolean }` — set to `false` to prevent auto-collapse when the response finishes.
 2. **Externalize `vue`** — the portal exposes `Vue` on `window.Vue`; the bundle should use `rollupOptions.external: ["vue"]` with `output.globals: { vue: "Vue" }`.
 3. **Be a UMD module** — use `formats: ["umd"]` in Vite's `build.lib` config.
 4. **Not include `BaseToolCard`** — the portal's `ToolCallRenderer` wraps your component automatically.
@@ -207,6 +207,12 @@ import YourTool from "./<tool_name>/index.vue"
 
 // ...
 registry.register("<tool_name>", YourTool as ToolComponent)
+```
+
+If your component should **not** auto-collapse when the response finishes, pass `{ autoCollapsible: false }` as the third argument:
+
+```ts
+registry.register("<tool_name>", YourTool as ToolComponent, { autoCollapsible: false })
 ```
 
 ### 3. Provide demo mock data (required)
@@ -309,6 +315,18 @@ Your component only renders the **body content** inside the card. Do not include
 - Messages loaded from history (not freshly streamed) start collapsed immediately with no delay
 
 No extra code needed in your component. The 1-second delay is managed by `MessageBubble` via the `freshlyStreamed` flag on the message.
+
+### Auto-Collapse Opt-Out
+
+If your component should **not** auto-collapse when the response finishes (e.g., a visualization viewer), pass `{ autoCollapsible: false }` as the third argument when registering:
+
+```ts
+registry.register("general_visualization", GeneralViz, { autoCollapsible: false })
+```
+
+The portal's `BaseToolCard` checks this flag per-tool and will ignore the collapse signal for that component. The user can still manually collapse/expand via the header chevron.
+
+The default is `true` — all components auto-collapse unless explicitly opted out.
 
 ## Available CSS Classes
 
@@ -458,7 +476,7 @@ If your component throws during render, the error boundary in `ToolCallRenderer`
 6. **Use CSS variables for colors** — the app supports multiple themes (Dark, Light, Forest, Sepia). Reference theme variables like `var(--text-primary)`, `var(--text-secondary)`, `var(--surface-raised)`, `var(--border)`, `var(--accent)`, `var(--success)`, `var(--error)` instead of hardcoded hex values. See `docs/theme-dev-guide.md` for the full variable reference.
 7. **Keep it focused** — each component handles one tool, one visual
 8. **Name directory exactly** — the directory name becomes the tool name (e.g., `discover_agents/` → `"discover_agents"`)
-9. **Do not add a chevron** — `FoldableWrapper` injects one automatically
+10. **Opt out of auto-collapse when needed** — Components that display persistent content (e.g., a rendered HTML viewer) should pass `{ autoCollapsible: false }` during registration to prevent the 1-second auto-collapse. The default (`true` or omitted) collapses automatically. The user can always manually toggle via the header chevron.
 
 ## Fallback Behavior
 

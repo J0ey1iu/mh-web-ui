@@ -2,11 +2,15 @@
 import { computed, inject } from "vue"
 import type { ToolCallComponentProps } from "../types"
 import { FOLDABLE_COLLAPSED_KEY } from "../toolContext"
+import { isToolAutoCollapsible } from "../toolCallRegistry"
 import FoldableWrapper from "./FoldableWrapper.vue"
 
 const props = defineProps<ToolCallComponentProps>()
 
 const collapsed = inject(FOLDABLE_COLLAPSED_KEY, computed(() => false))
+const effectiveCollapsed = computed(() => {
+  return isToolAutoCollapsible(props.tool.name) ? collapsed.value : false
+})
 
 const statusIcon = computed(() => {
   switch (props.tool.status) {
@@ -19,7 +23,7 @@ const statusIcon = computed(() => {
 
 <template>
   <div :class="['tool-card', tool.status]">
-    <FoldableWrapper :collapsed="collapsed">
+    <FoldableWrapper :collapsed="effectiveCollapsed">
       <template #header>
         <div class="tool-header">
           <slot name="header">

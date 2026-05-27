@@ -8,6 +8,7 @@ type ToolCallComponent = Component<ToolCallComponentProps>
 interface RegistryEntry {
   component: ToolCallComponent
   sourceId: string
+  autoCollapsible: boolean
 }
 
 export interface ComponentDemoMock {
@@ -31,9 +32,22 @@ function currentScriptSourceId(): string | null {
   return document.currentScript?.getAttribute("data-component-source") ?? null
 }
 
-export function registerToolCallComponent(name: string, component: ToolCallComponent, sourceId?: string) {
+export interface ToolComponentOptions {
+  autoCollapsible?: boolean
+}
+
+export function registerToolCallComponent(
+  name: string,
+  component: ToolCallComponent,
+  options?: ToolComponentOptions,
+  sourceId?: string,
+) {
   const src = sourceId ?? pendingSourceId ?? currentScriptSourceId() ?? "unknown"
-  registry.set(name, { component, sourceId: src })
+  registry.set(name, {
+    component,
+    sourceId: src,
+    autoCollapsible: options?.autoCollapsible ?? true,
+  })
   registryVersion.value++
 }
 
@@ -91,6 +105,10 @@ export function getAllRegisteredComponents(): RegisteredComponentInfo[] {
     result.push({ name, sourceId: entry.sourceId })
   })
   return result
+}
+
+export function isToolAutoCollapsible(name: string): boolean {
+  return registry.get(name)?.autoCollapsible ?? true
 }
 
 ;(window as any).__MH_TOOL_REGISTRY__ = {

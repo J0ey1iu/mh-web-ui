@@ -7,12 +7,12 @@ import GeneralViz, { demoMock as generalVizMock } from "./general_viz/index.vue"
 
 type ToolComponent = Component<{ tool: ToolCallDisplay }>
 
-const registry = (window as any).__MH_TOOL_REGISTRY__ as
-  | {
-      register: (name: string, component: ToolComponent) => void
-      registerMock?: (name: string, mock: Record<string, unknown>) => void
-    }
-  | undefined
+interface RegistryAPI {
+  register: (name: string, component: ToolComponent, options?: { autoCollapsible?: boolean }) => void
+  registerMock?: (name: string, mock: Record<string, unknown>) => void
+}
+
+const registry = (window as any).__MH_TOOL_REGISTRY__ as RegistryAPI | undefined
 
 if (registry) {
   registry.register("calculator", Calculate as ToolComponent)
@@ -24,7 +24,7 @@ if (registry) {
   registry.register("show_ui_meta", ShowUiMeta as ToolComponent)
   registry.registerMock?.("show_ui_meta", showUiMetaMock)
 
-  registry.register("general_visualization", GeneralViz as ToolComponent)
+  registry.register("general_visualization", GeneralViz as ToolComponent, { autoCollapsible: false })
   registry.registerMock?.("general_visualization", generalVizMock)
 } else {
   console.error(
