@@ -46,6 +46,7 @@ export const demoMockError = {
 
 <script setup lang="ts">
 import { computed, ref, onMounted, onUnmounted } from "vue"
+import html2canvas from "html2canvas"
 import type { ToolCallDisplay } from "../types"
 import { useToolI18n } from "../composables/useToolI18n"
 import messages from "./locales"
@@ -71,6 +72,11 @@ const htmlContent = computed(() => meta.value?.html ?? "")
 
 const wrapRef = ref<HTMLElement | null>(null)
 const isFullscreen = ref(false)
+const iframeLoaded = ref(false)
+
+function onIframeLoad() {
+  iframeLoaded.value = true
+}
 
 function toggleFullscreen() {
   if (isFullscreen.value) {
@@ -96,6 +102,39 @@ const progressMessage = computed(() => {
   return props.tool.progress
 })
 
+async function downloadPNG() {
+  const iframe = wrapRef.value?.querySelector<HTMLIFrameElement>(".gviz-iframe")
+  if (!iframe) return
+
+  if (!iframeLoaded.value) {
+    await new Promise<void>((resolve) => {
+      iframe.addEventListener("load", () => resolve(), { once: true })
+    })
+  }
+
+  const doc = iframe.contentDocument
+  if (!doc?.body) return
+
+  const canvas = await html2canvas(doc.body, {
+    backgroundColor: "#ffffff",
+    scale: 2,
+    useCORS: true,
+    logging: false,
+  })
+
+  canvas.toBlob((blob) => {
+    if (!blob) return
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement("a")
+    a.href = url
+    a.download = "visualization.png"
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+  }, "image/png")
+}
+
 onMounted(() => {
   document.addEventListener("fullscreenchange", onFullscreenChange)
 })
@@ -116,15 +155,19 @@ onUnmounted(() => {
 
     <template v-else-if="tool.status === 'success' && htmlContent">
       <div ref="wrapRef" class="gviz-iframe-wrap">
-        <button class="gviz-fullscreen-btn" @click="toggleFullscreen">
-          <template v-if="isFullscreen">✕</template>
-          <template v-else>⛶</template>
-        </button>
+        <div class="gviz-actions">
+          <button class="gviz-btn" @click="downloadPNG" :aria-label="t('download')">⬇</button>
+          <button class="gviz-btn" @click="toggleFullscreen">
+            <template v-if="isFullscreen">✕</template>
+            <template v-else>⛶</template>
+          </button>
+        </div>
         <iframe
           :srcdoc="htmlContent"
           class="gviz-iframe"
-          sandbox="allow-scripts"
+          sandbox="allow-scripts allow-same-origin"
           title="visualization"
+          @load="onIframeLoad"
         />
       </div>
     </template>
@@ -147,10 +190,11 @@ onUnmounted(() => {
 .gviz.success .gviz-iframe-wrap { border-color: color-mix(in srgb, var(--accent) 30%, transparent); }
 .gviz-iframe-wrap:fullscreen { border-radius: 0; background: #000; padding: 0; }
 .gviz-iframe-wrap:fullscreen .gviz-iframe { height: 100vh; }
-.gviz-fullscreen-btn { position: absolute; top: 8px; right: 8px; z-index: 10; width: 28px; height: 28px; border: none; border-radius: 6px; background: color-mix(in srgb, var(--surface-bg) 80%, transparent); color: var(--text-secondary); font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity var(--transition-duration), background var(--transition-duration); }
-.gviz-iframe-wrap:hover .gviz-fullscreen-btn,
-.gviz-iframe-wrap:fullscreen .gviz-fullscreen-btn { opacity: 1; }
-.gviz-fullscreen-btn:hover { background: var(--surface-bg); color: var(--text-primary); }
+.gviz-actions { position: absolute; top: 8px; right: 8px; z-index: 10; display: flex; gap: 6px; opacity: 0; transition: opacity var(--transition-duration); }
+.gviz-iframe-wrap:hover .gviz-actions,
+.gviz-iframe-wrap:fullscreen .gviz-actions { opacity: 1; }
+.gviz-btn { width: 28px; height: 28px; border: none; border-radius: 6px; background: color-mix(in srgb, var(--surface-bg) 80%, transparent); color: var(--text-secondary); font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background var(--transition-duration), color var(--transition-duration); }
+.gviz-btn:hover { background: var(--surface-bg); color: var(--text-primary); }
 .gviz.success .gviz-iframe-wrap { border-color: color-mix(in srgb, var(--accent) 30%, transparent); }
 .gviz-iframe { width: 100%; height: 360px; border: none; display: block; }
 .gviz-fallback { font-size: 13px; color: var(--text-secondary); padding: 8px 0; }
