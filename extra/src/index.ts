@@ -3,6 +3,7 @@ import type { ToolCallDisplay } from "./types"
 import Calculate, { demoMock as calculateMock } from "./calculate/index.vue"
 import GetCurrentTime, { demoMock as getCurrentTimeMock } from "./get_current_time/index.vue"
 import ShowUiMeta, { demoMock as showUiMetaMock } from "./show_ui_meta/index.vue"
+import GeneralViz, { demoMock as generalVizMock } from "./general_viz/index.vue"
 
 type ToolComponent = Component<{ tool: ToolCallDisplay }>
 
@@ -22,6 +23,9 @@ if (registry) {
 
   registry.register("show_ui_meta", ShowUiMeta as ToolComponent)
   registry.registerMock?.("show_ui_meta", showUiMetaMock)
+
+  registry.register("general_visualization", GeneralViz as ToolComponent)
+  registry.registerMock?.("general_visualization", generalVizMock)
 } else {
   console.error(
     "[MH Extra Tool Components] __MH_TOOL_REGISTRY__ not found on window. " +
