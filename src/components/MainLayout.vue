@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, watch, provide } from "vue"
+import { computed, ref, onMounted, watch, provide } from "vue"
 import { useRoute, useRouter } from "vue-router"
 import { storeToRefs } from "pinia"
 import { useChatStore } from "../stores/chat"
@@ -43,6 +43,13 @@ const {
 const authStore = useAuthStore()
 const { user: authUser } = storeToRefs(authStore)
 const { checkAuth } = authStore
+
+const hasEvalPermission = computed(() => {
+  if (!appConfig.enableEval) return false
+  const perms = authUser.value?.permissions
+  if (!perms) return false
+  return perms.some(p => p === "use:eval:*" || p === "*")
+})
 
 provide(TOOL_CONTEXT_KEY, { streaming, currentSessionId })
 
@@ -267,6 +274,14 @@ function handleLogout() {
               <div style="margin-top:4px"><SkeletonBlock width="40%" height="11px" /></div>
             </template>
           </div>
+          <div class="dropdown-divider"></div>
+          <button
+            v-if="authUser && hasEvalPermission"
+            class="dropdown-item"
+            @click="router.push('/eval'); menuOpen = false"
+          >
+            {{ t("evaluation") }}
+          </button>
           <button
             v-if="authUser"
             class="dropdown-item dropdown-logout"

@@ -1,4 +1,4 @@
-import type { AgentInfo, MessageItem, ScenarioDetail, ScenarioInfo, SessionInfo, UserInfo, SSEEventName } from "../types"
+import type { AgentInfo, EvalJob, EvalJobConfig, MessageItem, ScenarioDetail, ScenarioInfo, SessionInfo, UserInfo, SSEEventName } from "../types"
 import { appConfig } from "../config"
 
 function fillUrl(template: string, params?: Record<string, string>): string {
@@ -119,4 +119,23 @@ export function streamChat(memoryId: string, message: string, onEvent: SSEEventC
     })
 
   return controller
+}
+
+export async function fetchEvalJobs(): Promise<EvalJob[]> {
+  return request<EvalJob[]>(appConfig.apiEvalJobs)
+}
+
+export async function createEvalJob(config: EvalJobConfig): Promise<{ job_id: string; status: string }> {
+  return request(appConfig.apiEvalJobs, {
+    method: "POST",
+    body: JSON.stringify(config),
+  })
+}
+
+export async function fetchEvalJob(jobId: string): Promise<EvalJob> {
+  return request<EvalJob>(fillUrl(appConfig.apiEvalJob, { id: jobId }))
+}
+
+export function getEvalReportUrl(jobId: string): string {
+  return fillUrl(appConfig.apiEvalResults, { id: jobId, filename: "report.html" })
 }

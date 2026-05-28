@@ -1,21 +1,32 @@
-import { createRouter, createWebHistory } from "vue-router"
+import { createRouter, createWebHistory, type RouteRecordRaw } from "vue-router"
 import MainLayout from "../components/MainLayout.vue"
 import ComponentsDemoPage from "../pages/ComponentsDemoPage.vue"
+import { appConfig } from "../config"
+
+const routes: RouteRecordRaw[] = [
+  {
+    path: "/components-demo",
+    name: "components-demo",
+    component: ComponentsDemoPage,
+  },
+  {
+    path: "/",
+    name: "chat",
+    component: MainLayout,
+  },
+]
+
+if (appConfig.enableEval) {
+  routes.push({
+    path: "/eval",
+    name: "eval",
+    component: () => import("../pages/EvalPage.vue"),
+  })
+}
 
 const router = createRouter({
   history: createWebHistory(),
-  routes: [
-    {
-      path: "/components-demo",
-      name: "components-demo",
-      component: ComponentsDemoPage,
-    },
-    {
-      path: "/",
-      name: "chat",
-      component: MainLayout,
-    },
-  ],
+  routes,
 })
 
 export default router
