@@ -17,7 +17,7 @@ const collapsed = inject(FOLDABLE_COLLAPSED_KEY, computed(() => false))
     <FoldableWrapper :collapsed="collapsed">
       <template #header>
         <span class="reasoning-label">{{ t("reasoning") }}</span>
-        <span class="reasoning-length">{{ text.length }} tokens</span>
+        <span class="reasoning-length">{{ text.length }} {{ t("characters") }}</span>
       </template>
       <div class="reasoning-inner">{{ text }}</div>
     </FoldableWrapper>

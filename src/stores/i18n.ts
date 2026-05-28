@@ -45,6 +45,7 @@ const messages: Record<Locale, Record<string, string>> = {
     register_title: "创建新账户",
     scroll_to_bottom: "回到底部",
     copy: "复制",
+    characters: "字符",
   },
   en: {
     sessions: "Sessions",
@@ -84,6 +85,7 @@ const messages: Record<Locale, Record<string, string>> = {
     register_title: "Create a new account",
     scroll_to_bottom: "Scroll to bottom",
     copy: "Copy",
+    characters: "characters",
   },
 }
 
