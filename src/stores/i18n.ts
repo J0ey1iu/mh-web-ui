@@ -74,6 +74,9 @@ const messages: Record<Locale, Record<string, string>> = {
     eval_time: "耗时",
     eval_tools: "工具调用",
     eval_tokens: "Token",
+    eval_batch_import: "批量导入",
+    eval_batch_import_download: "下载 Excel 模板",
+    eval_batch_import_upload: "上传 Excel",
   },
   en: {
     sessions: "Sessions",
@@ -142,6 +145,9 @@ const messages: Record<Locale, Record<string, string>> = {
     eval_time: "Time",
     eval_tools: "Tools",
     eval_tokens: "Tokens",
+    eval_batch_import: "Batch Import",
+    eval_batch_import_download: "Download Excel Template",
+    eval_batch_import_upload: "Upload Excel",
   },
 }
 

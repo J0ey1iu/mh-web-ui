@@ -6,6 +6,7 @@ import { useI18nStore } from "../stores/i18n"
 import { useEvalStore } from "../stores/eval"
 import { fetchScenarioDetail, fetchScenarios, getEvalReportUrl } from "../api/client"
 import type { EvalInput, ScenarioDetail, ScenarioInfo } from "../types"
+import * as XLSX from "xlsx"
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -77,6 +78,56 @@ function removeInput(index: number) {
 // ── Config fields ──
 const maxConcurrency = ref(4)
 
+// ── Batch import ──
+const batchError = ref("")
+
+// ── XLSX import ──
+function downloadTemplate() {
+  const wb = XLSX.utils.book_new()
+  const data = [
+    { input_text: "你好，请介绍一下你自己", agent_name: "" },
+    { input_text: "用Python写一个冒泡排序", agent_name: "" },
+    { input_text: "翻译成英文：今天天气真好", agent_name: "" },
+  ]
+  const ws = XLSX.utils.json_to_sheet(data)
+  ws["!cols"] = [{ wch: 50 }, { wch: 20 }]
+  XLSX.utils.book_append_sheet(wb, ws, "inputs")
+  XLSX.writeFile(wb, "eval_inputs_template.xlsx")
+}
+
+function handleFileUpload(event: Event) {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  if (!file) return
+
+  const reader = new FileReader()
+  reader.onload = (e) => {
+    try {
+      const data = new Uint8Array(e.target?.result as ArrayBuffer)
+      const wb = XLSX.read(data, { type: "array" })
+      const ws = wb.Sheets[wb.SheetNames[0]]
+      const rows = XLSX.utils.sheet_to_json<Record<string, string>>(ws, { defval: "" })
+      const firstAgent = availableAgents.value[0]?.name ?? ""
+      const parsed: EvalInput[] = rows
+        .map((r) => ({
+          input_text: (r.input_text ?? r.input ?? "").toString(),
+          agent_name: (r.agent_name ?? r.agent ?? firstAgent).toString() || firstAgent,
+        }))
+        .filter((r) => r.input_text.trim())
+      if (parsed.length > 0) {
+        inputs.value = parsed
+        batchError.value = ""
+      } else {
+        batchError.value = "No valid rows found"
+      }
+    } catch {
+      batchError.value = "Invalid xlsx file"
+    }
+    input.value = ""
+  }
+  reader.readAsArrayBuffer(file)
+}
+
 // ── Submit ──
 const submitting = ref(false)
 
@@ -103,6 +154,8 @@ async function handleSubmit() {
     submitting.value = false
   }
 }
+
+// ── Job list ──
 
 // ── Job list ──
 const expandedJobId = ref<string | null>(null)
@@ -289,6 +342,20 @@ onUnmounted(() => {
             {{ t("eval_add_input") }}
           </button>
           <p v-else class="empty-hint">{{ t("eval_no_agents_for_scenario") }}</p>
+
+          <details class="batch-import">
+            <summary class="batch-summary">{{ t("eval_batch_import") }}</summary>
+            <div class="batch-xlsx">
+              <button class="btn-outline" @click="downloadTemplate">
+                {{ t("eval_batch_import_download") }}
+              </button>
+              <label class="btn-outline btn-upload">
+                {{ t("eval_batch_import_upload") }}
+                <input type="file" accept=".xlsx" hidden @change="handleFileUpload" />
+              </label>
+            </div>
+            <span v-if="batchError" class="batch-error">{{ batchError }}</span>
+          </details>
         </div>
 
         <div class="form-card config-card">
@@ -1000,6 +1067,66 @@ onUnmounted(() => {
 
 .btn-report:hover {
   opacity: 0.9;
+}
+
+.batch-import {
+  margin-top: 16px;
+  border-top: 1px solid var(--border);
+  padding-top: 12px;
+}
+
+.batch-summary {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent);
+  cursor: pointer;
+  user-select: none;
+  padding: 4px 0;
+}
+
+.batch-summary:hover {
+  opacity: 0.8;
+}
+
+.batch-error {
+  display: inline-block;
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--danger-text);
+  background: var(--danger);
+  padding: 4px 10px;
+  border-radius: 4px;
+}
+
+.batch-xlsx {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.btn-outline {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  background: transparent;
+  border: 1px solid var(--accent);
+  border-radius: 6px;
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.15s;
+}
+
+.btn-outline:hover {
+  background: var(--accent);
+  color: var(--accent-text, #fff);
+}
+
+.btn-upload {
+  cursor: pointer;
 }
 
 @media (max-width: 640px) {
