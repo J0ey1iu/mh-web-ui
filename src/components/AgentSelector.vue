@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { AgentInfo, ScenarioInfo } from "../types"
 import { useI18nStore } from "../stores/i18n"
+import SkeletonBlock from "./SkeletonBlock.vue"
 
 defineProps<{
   scenario: ScenarioInfo | null
@@ -17,32 +18,49 @@ const { t } = useI18nStore()
 <template>
   <div class="agent-selector">
     <div class="selector-header">
-      <span class="scene-icon">{{ scenario?.icon }}</span>
-      <h2>{{ scenario?.name ?? "Select Agent" }}</h2>
-      <p class="scene-desc">{{ scenario?.description }}</p>
+      <template v-if="scenario">
+        <span class="scene-icon">{{ scenario.icon }}</span>
+        <h2>{{ scenario.name }}</h2>
+        <p class="scene-desc">{{ scenario.description }}</p>
+      </template>
+      <template v-else>
+        <SkeletonBlock variant="circle" width="48px" height="48px" />
+        <div style="margin-top:12px"><SkeletonBlock width="60%" height="24px" /></div>
+        <div style="margin-top:8px"><SkeletonBlock width="80%" height="14px" /></div>
+      </template>
     </div>
     <div class="agent-list">
-      <div
-        v-for="agent in agents"
-        :key="agent.name"
-        class="agent-card"
-        @click="emit('select', agent.name)"
-      >
-        <div class="agent-info">
-          <h3 class="agent-name">{{ agent.display_name || agent.name }}</h3>
-          <p class="agent-desc">{{ agent.description }}</p>
+      <template v-if="agents.length > 0">
+        <div
+          v-for="agent in agents"
+          :key="agent.name"
+          class="agent-card"
+          @click="emit('select', agent.name)"
+        >
+          <div class="agent-info">
+            <h3 class="agent-name">{{ agent.display_name || agent.name }}</h3>
+            <p class="agent-desc">{{ agent.description }}</p>
+          </div>
+          <div class="agent-tools">
+            <span
+              v-for="tool in agent.tools"
+              :key="tool.name"
+              class="tool-badge"
+            >{{ tool.display_name || tool.name }}</span>
+          </div>
         </div>
-        <div class="agent-tools">
-          <span
-            v-for="tool in agent.tools"
-            :key="tool.name"
-            class="tool-badge"
-          >{{ tool.display_name || tool.name }}</span>
+      </template>
+      <template v-else>
+        <div v-for="i in 2" :key="i" class="agent-card" style="pointer-events:none">
+          <SkeletonBlock width="40%" height="18px" />
+          <div style="margin:8px 0"><SkeletonBlock width="80%" height="13px" /></div>
+          <div style="display:flex;gap:6px">
+            <SkeletonBlock width="60px" height="20px" borderRadius="4px" />
+            <SkeletonBlock width="80px" height="20px" borderRadius="4px" />
+          </div>
         </div>
-      </div>
-      <div v-if="agents.length === 0" class="empty-hint">
-        {{ t("no_agents") }}
-      </div>
+        <div class="empty-hint">{{ t("no_agents") }}</div>
+      </template>
     </div>
   </div>
 </template>

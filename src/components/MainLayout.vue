@@ -10,6 +10,7 @@ import { TOOL_CONTEXT_KEY } from "../toolContext"
 import { ensureComponentsLoaded } from "../toolComponentLoader"
 import ChatView from "./ChatView.vue"
 import AgentSelector from "./AgentSelector.vue"
+import SkeletonBlock from "./SkeletonBlock.vue"
 
 const route = useRoute()
 const router = useRouter()
@@ -24,6 +25,8 @@ const {
   currentScenario,
   availableScenarios,
   availableAgents,
+  sessionsLoading,
+  messagesLoading,
 } = storeToRefs(chatStore)
 const {
   loadSessions,
@@ -166,26 +169,40 @@ function handleLogout() {
     <header class="top-bar">
       <div class="scene-selector-wrap">
         <button class="header-btn scene-btn" @click="sceneMenuOpen = !sceneMenuOpen">
-          <span class="scene-icon-small">{{ currentScenario?.icon }}</span>
-          <span class="scene-name">{{ currentScenario?.name ?? t("select_scene") }}</span>
+          <template v-if="currentScenario">
+            <span class="scene-icon-small">{{ currentScenario.icon }}</span>
+            <span class="scene-name">{{ currentScenario.name }}</span>
+          </template>
+          <SkeletonBlock v-else width="80px" height="18px" />
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <polyline points="6 9 12 15 18 9"/>
           </svg>
         </button>
         <div v-if="sceneMenuOpen" class="scene-dropdown">
-          <button
-            v-for="s in availableScenarios"
-            :key="s.id"
-            class="scene-option"
-            :class="{ active: s.id === currentScenario?.id }"
-            @click="handleScenarioSelect(s.id)"
-          >
-            <span class="scene-opt-icon">{{ s.icon }}</span>
-            <div class="scene-opt-info">
-              <span class="scene-opt-name">{{ s.name }}</span>
-              <span class="scene-opt-desc">{{ s.description }}</span>
+          <template v-if="availableScenarios.length > 0">
+            <button
+              v-for="s in availableScenarios"
+              :key="s.id"
+              class="scene-option"
+              :class="{ active: s.id === currentScenario?.id }"
+              @click="handleScenarioSelect(s.id)"
+            >
+              <span class="scene-opt-icon">{{ s.icon }}</span>
+              <div class="scene-opt-info">
+                <span class="scene-opt-name">{{ s.name }}</span>
+                <span class="scene-opt-desc">{{ s.description }}</span>
+              </div>
+            </button>
+          </template>
+          <div v-else class="scene-option-skel">
+            <div v-for="i in 3" :key="i" class="scene-option" style="pointer-events:none">
+              <SkeletonBlock variant="circle" width="20px" height="20px" />
+              <div class="scene-opt-info">
+                <SkeletonBlock width="100px" height="14px" />
+                <div style="margin-top:2px"><SkeletonBlock width="140px" height="11px" /></div>
+              </div>
             </div>
-          </button>
+          </div>
         </div>
       </div>
 
@@ -240,9 +257,15 @@ function handleLogout() {
             <span v-if="locale === 'en'" class="check">✓</span>
           </button>
           <div class="dropdown-divider"></div>
-          <div v-if="authUser" class="dropdown-user">
-            <span class="user-name">{{ authUser.username }}</span>
-            <span class="user-role">{{ authUser.roles[0]?.name }}</span>
+          <div class="dropdown-user">
+            <template v-if="authUser">
+              <span class="user-name">{{ authUser.username }}</span>
+              <span class="user-role">{{ authUser.roles[0]?.name }}</span>
+            </template>
+            <template v-else>
+              <SkeletonBlock width="60%" height="14px" />
+              <div style="margin-top:4px"><SkeletonBlock width="40%" height="11px" /></div>
+            </template>
           </div>
           <button
             v-if="authUser"
@@ -276,30 +299,38 @@ function handleLogout() {
         <button class="btn-close" @click="drawerOpen = false">&times;</button>
       </div>
       <div class="session-list">
-        <div
-          v-for="s in sessions"
-          :key="s.memory_id"
-          :class="[
-            'session-item',
-            { active: s.memory_id === currentSessionId },
-          ]"
-          @click="selectSessionHandler(s.memory_id)"
-        >
-          <div class="session-title">{{ s.title }}</div>
-          <div class="session-meta">
-            {{ s.agent_name }} &middot; {{ s.message_count }} msgs
+        <template v-if="sessionsLoading">
+          <div v-for="i in 5" :key="i" class="session-item" style="pointer-events:none">
+            <SkeletonBlock width="75%" height="16px" />
+            <div style="margin-top:4px"><SkeletonBlock width="50%" height="12px" /></div>
           </div>
-          <button
-            class="btn-delete"
-            @click.stop="removeSessionHandler(s.memory_id)"
-            title="Delete"
+        </template>
+        <template v-else>
+          <div
+            v-for="s in sessions"
+            :key="s.memory_id"
+            :class="[
+              'session-item',
+              { active: s.memory_id === currentSessionId },
+            ]"
+            @click="selectSessionHandler(s.memory_id)"
           >
-            &times;
-          </button>
-        </div>
-        <div v-if="sessions.length === 0" class="empty-hint">
-          {{ t("no_conversations") }}
-        </div>
+            <div class="session-title">{{ s.title }}</div>
+            <div class="session-meta">
+              {{ s.agent_name }} &middot; {{ s.message_count }} msgs
+            </div>
+            <button
+              class="btn-delete"
+              @click.stop="removeSessionHandler(s.memory_id)"
+              title="Delete"
+            >
+              &times;
+            </button>
+          </div>
+          <div v-if="sessions.length === 0" class="empty-hint">
+            {{ t("no_conversations") }}
+          </div>
+        </template>
       </div>
     </aside>
 
@@ -323,6 +354,7 @@ function handleLogout() {
       <ChatView
         v-else
         :messages="messages"
+        :messages-loading="messagesLoading"
         :streaming="streaming"
         :disabled="!backendOnline"
         @send="handleSendMessage"

@@ -2,10 +2,12 @@
 import { ref, watch, nextTick, computed } from "vue"
 import type { Message, StreamingState } from "../types"
 import MessageBubble from "./MessageBubble.vue"
+import SkeletonBlock from "./SkeletonBlock.vue"
 import { useI18nStore } from "../stores/i18n"
 
 const props = defineProps<{
   messages: Message[]
+  messagesLoading: boolean
   streaming: StreamingState
   disabled: boolean
 }>()
@@ -99,8 +101,18 @@ function onKeydown(e: KeyboardEvent) {
         :message="streamingMessage"
         is-streaming
       />
+      <template v-if="messagesLoading">
+        <div class="skeleton-msg-group">
+          <div class="skeleton-msg skeleton-msg-user">
+            <SkeletonBlock width="140px" height="40px" borderRadius="12px" />
+          </div>
+          <div class="skeleton-msg skeleton-msg-assistant">
+            <SkeletonBlock width="220px" height="48px" borderRadius="12px" />
+          </div>
+        </div>
+      </template>
       <div
-        v-if="messages.length === 0 && !streaming.isStreaming"
+        v-else-if="messages.length === 0 && !streaming.isStreaming"
         class="empty-state"
       >
         <p class="empty-text">{{ t("start_conversation") }}</p>
@@ -272,5 +284,23 @@ function onKeydown(e: KeyboardEvent) {
   background: var(--accent-dim);
   color: var(--accent);
   border-color: var(--accent);
+}
+.skeleton-msg-group {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 16px;
+  padding: 24px;
+}
+.skeleton-msg {
+  display: flex;
+}
+.skeleton-msg-user {
+  justify-content: flex-end;
+}
+.skeleton-msg-assistant {
+  justify-content: flex-start;
+  flex-direction: column;
 }
 </style>

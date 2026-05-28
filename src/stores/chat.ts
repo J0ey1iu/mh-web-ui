@@ -24,7 +24,8 @@ export const useChatStore = defineStore("chat", () => {
   const messages = ref<Message[]>([])
   const error = ref<string | null>(null)
   const backendOnline = ref<boolean | null>(null)
-  const loading = ref(false)
+  const sessionsLoading = ref(false)
+  const messagesLoading = ref(false)
   const currentSession = computed(() => sessions.value.find((s) => s.memory_id === currentSessionId.value) ?? null)
   const availableScenarios = ref<ScenarioInfo[]>([])
   const currentScenario = ref<ScenarioInfo | null>(null)
@@ -227,6 +228,7 @@ export const useChatStore = defineStore("chat", () => {
   }
 
   async function loadSessions(scenarioId?: string) {
+    sessionsLoading.value = true
     try {
       sessions.value = await fetchSessions(scenarioId)
       backendOnline.value = true
@@ -238,6 +240,8 @@ export const useChatStore = defineStore("chat", () => {
       } else {
         backendOnline.value = false
       }
+    } finally {
+      sessionsLoading.value = false
     }
   }
 
@@ -271,11 +275,14 @@ export const useChatStore = defineStore("chat", () => {
   async function selectSession(memoryId: string) {
     currentSessionId.value = memoryId
     messages.value = []
+    messagesLoading.value = true
     try {
       const apiMessages = await fetchMessages(memoryId)
       messages.value = transformMessages(apiMessages)
     } catch (e) {
       error.value = String(e)
+    } finally {
+      messagesLoading.value = false
     }
     await router.replace({ query: { ...router.currentRoute.value.query, session: memoryId } })
   }
@@ -423,8 +430,9 @@ export const useChatStore = defineStore("chat", () => {
   }
 
   return {
-    sessions, currentSessionId, currentSession, messages, streaming, loading, error,
+    sessions, currentSessionId, currentSession, messages, streaming, error,
     backendOnline, availableScenarios, currentScenario, availableAgents, toolDisplayNames,
+    sessionsLoading, messagesLoading,
     loadSessions, newSession, removeSession, selectSession, sendMessage, cancelStream,
     loadScenarios, selectScenario, createSessionWithAgent, refreshLocaleData, clearError,
   }
