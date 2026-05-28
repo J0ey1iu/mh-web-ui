@@ -136,35 +136,37 @@ export const useChatStore = defineStore("chat", () => {
       }
 
       case SSE_EVENTS.TOOL_PROGRESS: {
-        const tc = pending.toolCalls.find(
+        const idx = pending.toolCalls.findIndex(
           (t) => t.id === data.tool_call?.id,
         )
-        if (tc && data.chunk) {
+        if (idx >= 0 && data.chunk) {
           const chunk =
             typeof data.chunk === "string"
               ? data.chunk
               : JSON.stringify(data.chunk)
-          tc.progress = (tc.progress || "") + chunk
+          const stc = streaming.value.toolCalls[idx]
+          stc.progress = (stc.progress || "") + chunk
         }
         break
       }
 
       case SSE_EVENTS.TOOL_END: {
-        const tc = pending.toolCalls.find(
+        const idx = pending.toolCalls.findIndex(
           (t) => t.id === data.tool_call?.id,
         )
-        if (tc) {
+        if (idx >= 0) {
           const resultStr =
             typeof data.result === "string"
               ? data.result
               : JSON.stringify(data.result)
-          tc.status =
+          const stc = streaming.value.toolCalls[idx]
+          stc.status =
             typeof resultStr === "string" && resultStr.startsWith("[Error]")
               ? "error"
               : "success"
-          tc.result = resultStr
+          stc.result = resultStr
           if (data.meta) {
-            tc.meta =
+            stc.meta =
               typeof data.meta === "string"
                 ? data.meta
                 : JSON.stringify(data.meta)
@@ -174,10 +176,11 @@ export const useChatStore = defineStore("chat", () => {
             `ToolEnd with no matching ToolStart: id=${data.tool_call?.id}, ` +
             `available IDs: [${pending.toolCalls.map((t) => t.id).join(", ")}]`,
           )
-          for (const t of pending.toolCalls) {
-            if (t.status === "running") {
-              t.status = "error"
-              t.result = "Tool ended without a matching start event"
+          for (let i = 0; i < pending.toolCalls.length; i++) {
+            if (pending.toolCalls[i].status === "running") {
+              const stc = streaming.value.toolCalls[i]
+              stc.status = "error"
+              stc.result = "Tool ended without a matching start event"
             }
           }
         }
@@ -195,10 +198,11 @@ export const useChatStore = defineStore("chat", () => {
         if (data.error) {
           console.error("Agent ended with error:", data.error)
         }
-        for (const tc of pending.toolCalls) {
-          if (tc.status === "running") {
-            tc.status = "error"
-            tc.result = tc.result || "Agent completed before tool finished"
+        for (let i = 0; i < pending.toolCalls.length; i++) {
+          if (pending.toolCalls[i].status === "running") {
+            const stc = streaming.value.toolCalls[i]
+            stc.status = "error"
+            stc.result = stc.result || "Agent completed before tool finished"
           }
         }
         flushImmediately()

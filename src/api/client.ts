@@ -97,13 +97,13 @@ export function streamChat(memoryId: string, message: string, onEvent: SSEEventC
       if (!reader) throw new Error("No response body")
       const decoder = new TextDecoder()
       let buffer = ""
+      let eventName = ""
       while (true) {
         const { done, value } = await reader.read()
         if (done) break
         buffer += decoder.decode(value, { stream: true })
         const lines = buffer.split("\n")
         buffer = lines.pop() ?? ""
-        let eventName = ""
         for (const line of lines) {
           if (line.startsWith("event: ")) eventName = line.slice(7).trim()
           else if (line.startsWith("data: ")) {
