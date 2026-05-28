@@ -42,8 +42,8 @@ export const useChatStore = defineStore("chat", () => {
     streaming.value = {
       content: pending.content,
       reasoning: pending.reasoning,
-      toolCalls: pending.toolCalls,
-      orderedItems: pending.orderedItems,
+      toolCalls: pending.toolCalls.map(tc => ({ ...tc })),
+      orderedItems: [...pending.orderedItems],
       isStreaming: pending.isStreaming,
     }
   }
@@ -145,8 +145,7 @@ export const useChatStore = defineStore("chat", () => {
             typeof data.chunk === "string"
               ? data.chunk
               : JSON.stringify(data.chunk)
-          const stc = streaming.value.toolCalls[idx]
-          stc.progress = (stc.progress || "") + chunk
+          pending.toolCalls[idx].progress = (pending.toolCalls[idx].progress || "") + chunk
         }
         break
       }
@@ -160,18 +159,19 @@ export const useChatStore = defineStore("chat", () => {
             typeof data.result === "string"
               ? data.result
               : JSON.stringify(data.result)
-          const stc = streaming.value.toolCalls[idx]
-          stc.status =
+          pending.toolCalls[idx].status =
             typeof resultStr === "string" && resultStr.startsWith("[Error]")
               ? "error"
               : "success"
-          stc.result = resultStr
+          pending.toolCalls[idx].result = resultStr
           if (data.meta) {
-            stc.meta =
+            pending.toolCalls[idx].meta =
               typeof data.meta === "string"
                 ? data.meta
                 : JSON.stringify(data.meta)
           }
+          flush()
+          if (pending.isStreaming) scheduleFlush()
         } else {
           console.warn(
             `ToolEnd with no matching ToolStart: id=${data.tool_call?.id}, ` +
@@ -179,9 +179,8 @@ export const useChatStore = defineStore("chat", () => {
           )
           for (let i = 0; i < pending.toolCalls.length; i++) {
             if (pending.toolCalls[i].status === "running") {
-              const stc = streaming.value.toolCalls[i]
-              stc.status = "error"
-              stc.result = "Tool ended without a matching start event"
+              pending.toolCalls[i].status = "error"
+              pending.toolCalls[i].result = "Tool ended without a matching start event"
             }
           }
         }
@@ -201,9 +200,8 @@ export const useChatStore = defineStore("chat", () => {
         }
         for (let i = 0; i < pending.toolCalls.length; i++) {
           if (pending.toolCalls[i].status === "running") {
-            const stc = streaming.value.toolCalls[i]
-            stc.status = "error"
-            stc.result = stc.result || "Agent completed before tool finished"
+            pending.toolCalls[i].status = "error"
+            pending.toolCalls[i].result = pending.toolCalls[i].result || "Agent completed before tool finished"
           }
         }
         flushImmediately()
