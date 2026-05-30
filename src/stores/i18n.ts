@@ -144,6 +144,10 @@ const messages: Record<Locale, Record<string, string>> = {
     mgmt_assign_tool: "分配工具",
     mgmt_tab_manage: "管理",
     mgmt_tab_create: "创建",
+    mgmt_created_at: "创建时间",
+    mgmt_updated_at: "更新时间",
+    mgmt_created_by: "创建人",
+    mgmt_updated_by: "更新人",
   },
   en: {
     sessions: "Sessions",
@@ -282,6 +286,10 @@ const messages: Record<Locale, Record<string, string>> = {
     mgmt_assign_tool: "Assign Tool",
     mgmt_tab_manage: "Manage",
     mgmt_tab_create: "Create",
+    mgmt_created_at: "Created At",
+    mgmt_updated_at: "Updated At",
+    mgmt_created_by: "Created By",
+    mgmt_updated_by: "Updated By",
   },
 }
 

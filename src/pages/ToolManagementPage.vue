@@ -121,6 +121,12 @@ async function save() {
   }
 }
 
+function fmtAudit(dt: string | undefined, by: string | undefined): string {
+  if (!dt) return "-"
+  const t = dt.replace("T", " ").substring(0, 16)
+  return by ? `${t} by ${by}` : t
+}
+
 async function remove(name: string) {
   if (!confirm(`Delete tool "${name}"?`)) return
   try {
@@ -427,6 +433,8 @@ function formatOutput(data: any): string {
               <th>{{ t("mgmt_display_name") }}</th>
               <th>{{ t("mgmt_description") }}</th>
               <th>{{ t("mgmt_endpoint") }}</th>
+              <th>{{ t("mgmt_created_at") }}</th>
+              <th>{{ t("mgmt_updated_at") }}</th>
               <th>{{ t("mgmt_actions") }}</th>
             </tr>
           </thead>
@@ -436,6 +444,8 @@ function formatOutput(data: any): string {
             <td>{{ localeVal(tl.display_name_locale, tl.display_name) }}</td>
             <td class="cell-desc">{{ localeVal(tl.description_locale, tl.description) }}</td>
             <td><code class="cell-url">{{ tl.endpoint_url || t("mgmt_local") }}</code></td>
+            <td class="cell-audit">{{ fmtAudit(tl.created_at, tl.created_by) }}</td>
+            <td class="cell-audit">{{ fmtAudit(tl.updated_at, tl.updated_by) }}</td>
             <td class="cell-actions">
               <button class="btn-action" @click="openEdit(tl)">{{ t("mgmt_edit") }}</button>
               <button class="btn-action btn-danger" @click="remove(tl.name)">{{ t("mgmt_delete") }}</button>
@@ -784,6 +794,11 @@ function formatOutput(data: any): string {
 }
 .cell-actions {
   white-space: nowrap;
+}
+.cell-audit {
+  white-space: nowrap;
+  font-size: 12px;
+  color: var(--text-secondary);
 }
 .btn-action {
   background: none;

@@ -205,6 +205,12 @@ function unusedAgents(): ManageAgent[] {
   return allAgents.value.filter(a => !used.has(a.name))
 }
 
+function fmtAudit(dt: string | undefined, by: string | undefined): string {
+  if (!dt) return "-"
+  const t = dt.replace("T", " ").substring(0, 16)
+  return by ? `${t} by ${by}` : t
+}
+
 function unusedTools(agentName: string): ManageTool[] {
   if (!detailScenario.value) return allTools.value
   const agent = (detailScenario.value.agents ?? []).find(a => a.name === agentName)
@@ -234,6 +240,8 @@ onMounted(load)
             <th>{{ t("mgmt_name") }}</th>
             <th>{{ t("mgmt_description") }}</th>
             <th>{{ t("mgmt_agent_count") }}</th>
+            <th>{{ t("mgmt_created_at") }}</th>
+            <th>{{ t("mgmt_updated_at") }}</th>
             <th>{{ t("mgmt_actions") }}</th>
           </tr>
         </thead>
@@ -244,6 +252,8 @@ onMounted(load)
           <td>{{ localeVal(s.name_locale, s.name) }}</td>
           <td class="cell-desc">{{ localeVal(s.description_locale, s.description) }}</td>
           <td>{{ s.agents?.length ?? 0 }}</td>
+          <td class="cell-audit">{{ fmtAudit(s.created_at, s.created_by) }}</td>
+          <td class="cell-audit">{{ fmtAudit(s.updated_at, s.updated_by) }}</td>
             <td class="cell-actions" @click.stop>
               <button class="btn-action" @click="openEdit(s)">{{ t("mgmt_edit") }}</button>
               <button class="btn-action btn-danger" @click="remove(s.id)">{{ t("mgmt_delete") }}</button>
@@ -310,6 +320,10 @@ onMounted(load)
           <div class="detail-meta">
             <code>ID: {{ detailScenario.id }}</code>
             <p>{{ localeVal(detailScenario.description_locale, detailScenario.description) }}</p>
+            <div class="detail-audit">
+              <span v-if="detailScenario.created_at"><strong>{{ t("mgmt_created_at") }}:</strong> {{ fmtAudit(detailScenario.created_at, detailScenario.created_by) }}</span>
+              <span v-if="detailScenario.updated_at"><strong>{{ t("mgmt_updated_at") }}:</strong> {{ fmtAudit(detailScenario.updated_at, detailScenario.updated_by) }}</span>
+            </div>
           </div>
 
           <div class="detail-section">
@@ -478,6 +492,7 @@ onMounted(load)
 .btn-action:hover { background: var(--surface-raised); }
 .btn-danger { color: #ef4444; border-color: #ef4444; }
 .btn-danger:hover { background: rgba(239, 68, 68, 0.1); }
+.cell-audit { white-space: nowrap; font-size: 12px; color: var(--text-secondary); }
 
 /* Detail panel */
 .dialog-overlay {
@@ -596,6 +611,7 @@ onMounted(load)
   margin-bottom: 20px;
 }
 .detail-meta p { margin: 4px 0 0; }
+.detail-audit { display: flex; gap: 16px; margin-top: 8px; font-size: 12px; color: var(--text-secondary); }
 .detail-section {
   border-top: 1px solid var(--border);
   padding-top: 16px;
