@@ -9,8 +9,6 @@ import {
   saveGeneratedTool,
   updateGeneratedTool,
   executeGeneratedTool,
-  fetchGeneratedTools,
-  deleteGeneratedTool,
 } from "../api/client"
 import type { ManageTool, GeneratedTool } from "../types"
 import ManagementNav from "../components/ManagementNav.vue"
@@ -237,56 +235,8 @@ function formatParametersJson() {
   }
 }
 
-const loadingTools = ref(false)
-const savedTools = ref<GeneratedTool[]>([])
 const editingName = ref<string | null>(null)
 const showNL = ref(false)
-
-async function loadSavedTools() {
-  loadingTools.value = true
-  try {
-    savedTools.value = await fetchGeneratedTools()
-  } finally {
-    loadingTools.value = false
-  }
-}
-
-function newTool() {
-  generated.value = {
-    name: "",
-    display_name: "",
-    description: "",
-    parameters: {},
-    source_code: "",
-    user_id: "",
-    created_at: "",
-    updated_at: "",
-  }
-  creatorParametersText.value = "{}"
-  trialOutput.value = []
-  trialArgs.value = {}
-  editingName.value = null
-  naturalDescription.value = ""
-}
-
-function loadTool(tool: GeneratedTool) {
-  generated.value = { ...tool }
-  creatorParametersText.value = JSON.stringify(tool.parameters, null, 2)
-  trialOutput.value = []
-  editingName.value = tool.name
-  initTrialArgs()
-}
-
-async function handleDelete(name: string) {
-  if (!confirm(t("mgmt_tc_confirm_delete_tool_name").replace("{name}", name))) return
-  try {
-    await deleteGeneratedTool(name)
-    if (editingName.value === name) newTool()
-    await loadSavedTools()
-  } catch (e: any) {
-    alert(t("mgmt_tc_delete_failed") + ": " + e.message)
-  }
-}
 
 function handleGenerate() {
   if (!naturalDescription.value.trim()) return
@@ -374,7 +324,6 @@ async function handleSave() {
       editingName.value = generated.value.name
       alert(t("mgmt_tc_tool_saved"))
     }
-    await loadSavedTools()
   } catch (e: any) {
     alert(t("mgmt_tc_save_failed") + ": " + e.message)
   } finally {
@@ -636,31 +585,6 @@ function formatOutput(data: any): string {
               </button>
             </div>
 
-            <div class="tc-divider" />
-            <div class="tc-saved-header">
-              <h2 class="tc-panel-title">{{ t("mgmt_tc_my_saved_tools") }}</h2>
-              <button class="btn-new" @click="newTool">{{ t("mgmt_tc_new") }}</button>
-            </div>
-            <div v-if="loadingTools" class="tc-placeholder">{{ t("mgmt_loading") }}</div>
-            <ul v-else-if="savedTools.length" class="tc-tool-list">
-              <li
-                v-for="tool in savedTools"
-                :key="tool.name"
-                :class="['tc-tool-item', { active: editingName === tool.name }]"
-                @click="loadTool(tool)"
-              >
-                <div class="tc-tool-item-body">
-                  <span class="tc-tool-display-name">{{ tool.display_name || tool.name }}</span>
-                  <span class="tc-tool-id">{{ tool.name }}</span>
-                </div>
-                <button class="tc-btn-delete" @click.stop="handleDelete(tool.name)" :title="t('mgmt_delete')">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M18 6L6 18M6 6l12 12"/>
-                  </svg>
-                </button>
-              </li>
-            </ul>
-            <div v-else class="tc-placeholder">{{ t("mgmt_tc_no_saved_tools") }}</div>
           </div>
 
           <div class="tc-panel tc-right">
@@ -693,8 +617,6 @@ function formatOutput(data: any): string {
                 />
               </div>
             </template>
-            <p v-else class="tc-placeholder">{{ t("mgmt_tc_no_params") }}</p>
-
             <div class="tc-trial-actions">
               <button v-if="!executing" class="btn-run" @click="handleExecute">{{ t("mgmt_tc_run") }}</button>
               <button v-else class="btn-stop" @click="handleStop">{{ t("stop") }}</button>
@@ -927,12 +849,6 @@ function formatOutput(data: any): string {
   accent-color: var(--accent);
   cursor: pointer;
 }
-.tc-placeholder {
-  color: var(--text-secondary);
-  font-size: 14px;
-  text-align: center;
-  margin-top: 40px;
-}
 .tc-subtitle {
   font-size: 14px;
   font-weight: 700;
@@ -1070,90 +986,6 @@ function formatOutput(data: any): string {
 }
 .tc-nl-body {
   margin-top: 10px;
-}
-.tc-saved-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 14px;
-}
-.tc-saved-header .tc-panel-title {
-  margin: 0;
-}
-.btn-new {
-  padding: 6px 14px;
-  background: var(--accent);
-  border: none;
-  border-radius: 8px;
-  color: #fff;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: opacity 0.15s;
-}
-.btn-new:hover { opacity: 0.9; }
-.tc-tool-list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-.tc-tool-item {
-  display: flex;
-  align-items: center;
-  padding: 10px 12px;
-  border-radius: 8px;
-  margin-bottom: 4px;
-  cursor: pointer;
-  transition: background 0.15s, border-color 0.15s;
-  border: 1px solid transparent;
-}
-.tc-tool-item:hover {
-  background: var(--surface-raised);
-  border-color: var(--border);
-}
-.tc-tool-item.active {
-  background: var(--surface-raised);
-  border-color: var(--accent);
-}
-.tc-tool-item-body {
-  flex: 1;
-  min-width: 0;
-}
-.tc-tool-display-name {
-  display: block;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-primary);
-}
-.tc-tool-id {
-  display: block;
-  font-size: 11px;
-  color: var(--text-secondary);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  margin-top: 2px;
-  font-family: "SF Mono", "Fira Code", monospace;
-}
-.tc-btn-delete {
-  flex-shrink: 0;
-  width: 28px;
-  height: 28px;
-  padding: 0;
-  background: transparent;
-  border: 1px solid transparent;
-  border-radius: 6px;
-  color: var(--text-secondary);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.15s;
-}
-.tc-btn-delete:hover {
-  border-color: rgba(239, 68, 68, 0.3);
-  color: #ef4444;
-  background: rgba(239, 68, 68, 0.06);
 }
 .tc-gen-progress {
   margin-top: 12px;
