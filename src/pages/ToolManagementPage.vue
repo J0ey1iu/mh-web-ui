@@ -39,6 +39,7 @@ const form = ref<Partial<ManageTool>>({
   description_locale: "",
   parameters: { type: "object", properties: {}, required: [] },
   endpoint_url: "",
+  source_code: "",
 })
 
 const localeForm = ref({ display_zh: "", display_en: "", desc_zh: "", desc_en: "" })
@@ -72,6 +73,40 @@ function applyLocaleToForm() {
 const parametersText = ref("{}")
 const saving = ref(false)
 
+// ===== Management Dialog Fullscreen =====
+const mgmtFs = ref(false)
+const mgmtFsTitle = ref("")
+const mgmtFsContent = ref("")
+let mgmtFsTarget: "description" | "parameters" | "source_code" | null = null
+
+function openMgmtFs(title: string, content: string, target: "description" | "parameters" | "source_code") {
+  mgmtFsTitle.value = title
+  mgmtFsContent.value = content
+  mgmtFsTarget = target
+  mgmtFs.value = true
+}
+
+function closeMgmtFs() {
+  if (mgmtFsTarget === "description" && form.value) {
+    form.value.description = mgmtFsContent.value
+  } else if (mgmtFsTarget === "parameters") {
+    parametersText.value = mgmtFsContent.value
+  } else if (mgmtFsTarget === "source_code" && form.value) {
+    form.value.source_code = mgmtFsContent.value
+  }
+  mgmtFs.value = false
+  mgmtFsTarget = null
+}
+
+function formatMgmtFsJson() {
+  try {
+    const parsed = JSON.parse(mgmtFsContent.value)
+    mgmtFsContent.value = JSON.stringify(parsed, null, 2)
+  } catch {
+    alert(t("mgmt_tc_invalid_json"))
+  }
+}
+
 async function load() {
   loading.value = true
   try {
@@ -102,7 +137,7 @@ function onPageSizeChange() {
 
 function openCreate() {
   editing.value = false
-  form.value = { name: "", display_name: "", display_name_locale: "", description: "", description_locale: "", parameters: { type: "object", properties: {}, required: [] }, endpoint_url: "" }
+  form.value = { name: "", display_name: "", display_name_locale: "", description: "", description_locale: "", parameters: { type: "object", properties: {}, required: [] }, endpoint_url: "", source_code: "" }
   localeForm.value = { display_zh: "", display_en: "", desc_zh: "", desc_en: "" }
   parametersText.value = JSON.stringify(form.value.parameters, null, 2)
   showDialog.value = true
@@ -460,16 +495,29 @@ function formatOutput(data: any): string {
                 <input v-model="form.display_name" :placeholder="t('mgmt_placeholder_display_name')" />
               </div>
               <div class="form-group">
-                <label>{{ t("mgmt_description") }}</label>
+                <div class="tc-label-row">
+                  <label>{{ t("mgmt_description") }}</label>
+                  <button class="tc-fullscreen-btn" @click="openMgmtFs(t('mgmt_description'), form.description ?? '', 'description')" :title="t('mgmt_tc_source_code')">&#x26F6;</button>
+                </div>
                 <textarea v-model="form.description" rows="2"></textarea>
               </div>
               <div class="form-group">
-                <label>{{ t("mgmt_parameters") }}</label>
+                <div class="tc-label-row">
+                  <label>{{ t("mgmt_parameters") }}</label>
+                  <button class="tc-fullscreen-btn" @click="openMgmtFs(t('mgmt_parameters'), parametersText, 'parameters')" :title="t('mgmt_tc_source_code')">&#x26F6;</button>
+                </div>
                 <textarea v-model="parametersText" rows="6" class="mono" @blur="applyParametersJson"></textarea>
               </div>
               <div class="form-group">
                 <label>{{ t("mgmt_endpoint") }}</label>
                 <input v-model="form.endpoint_url" :placeholder="t('mgmt_placeholder_endpoint')" />
+              </div>
+              <div class="form-group">
+                <div class="tc-label-row">
+                  <label>{{ t("mgmt_tc_source_code") }}</label>
+                  <button class="tc-fullscreen-btn" @click="openMgmtFs(t('mgmt_tc_source_code'), form.source_code ?? '', 'source_code')" :title="t('mgmt_tc_source_code')">&#x26F6;</button>
+                </div>
+                <textarea v-model="form.source_code" rows="6" class="mono" spellcheck="false" :placeholder="t('mgmt_tc_source_code_placeholder')" />
               </div>
               <details class="locale-section">
                 <summary>{{ t("mgmt_translations") }}</summary>
@@ -493,6 +541,24 @@ function formatOutput(data: any): string {
                 <button class="btn-primary" :disabled="saving || !form.name" @click="save">
                   {{ saving ? t("mgmt_saving") : t("mgmt_save") }}
                 </button>
+              </div>
+            </div>
+          </div>
+        </Teleport>
+
+        <!-- Mgmt Dialog Fullscreen Overlay -->
+        <Teleport to="body">
+          <div v-if="mgmtFs" class="tc-overlay" @click.self="closeMgmtFs()">
+            <div class="tc-overlay-content">
+              <div class="tc-overlay-header">
+                <span class="tc-overlay-title">{{ mgmtFsTitle }}</span>
+                <div class="tc-overlay-header-actions">
+                  <button v-if="mgmtFsTarget === 'parameters'" class="tc-format-btn" @click="formatMgmtFsJson">{{ t("mgmt_tc_format_json") }}</button>
+                  <button class="tc-fullscreen-close" @click="closeMgmtFs()">&#x2715;</button>
+                </div>
+              </div>
+              <div class="tc-overlay-body">
+                <textarea v-model="mgmtFsContent" class="tc-overlay-textarea" spellcheck="false" />
               </div>
             </div>
           </div>

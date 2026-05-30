@@ -231,6 +231,7 @@ export interface ManageTool {
   description: string
   description_locale?: string
   parameters: Record<string, any>
+  source_code?: string
   endpoint_url?: string
   created_at?: string
   updated_at?: string
