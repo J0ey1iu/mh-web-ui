@@ -255,9 +255,20 @@ export function executeGeneratedTool(
 }
 
 // ── Management CRUD ──
+// Silent-403 helpers: if the user lacks manage:* for a resource, return empty/null
+// instead of showing an intrusive alert. Mutations still throw on 403.
+
+async function fetchManageOrEmpty<T>(url: string): Promise<T[]> {
+  try {
+    return await request<T[]>(url)
+  } catch (e) {
+    if (e instanceof Error && e.message.includes("permission denied")) return []
+    throw e
+  }
+}
 
 export async function fetchManageScenarios(): Promise<ManageScenario[]> {
-  return request<ManageScenario[]>(appConfig.apiManagementScenarios)
+  return fetchManageOrEmpty<ManageScenario>(appConfig.apiManagementScenarios)
 }
 
 export async function createManageScenario(scenario: Partial<ManageScenario>): Promise<ManageScenario> {
@@ -279,7 +290,7 @@ export async function deleteManageScenario(scenarioId: string): Promise<void> {
 }
 
 export async function fetchManageAgents(): Promise<ManageAgent[]> {
-  return request<ManageAgent[]>(appConfig.apiManagementAgents)
+  return fetchManageOrEmpty<ManageAgent>(appConfig.apiManagementAgents)
 }
 
 export async function createManageAgent(agent: Partial<ManageAgent>): Promise<ManageAgent> {
@@ -301,7 +312,7 @@ export async function deleteManageAgent(name: string): Promise<void> {
 }
 
 export async function fetchManageTools(): Promise<ManageTool[]> {
-  return request<ManageTool[]>(appConfig.apiManagementTools)
+  return fetchManageOrEmpty<ManageTool>(appConfig.apiManagementTools)
 }
 
 export async function createManageTool(tool: Partial<ManageTool>): Promise<ManageTool> {
