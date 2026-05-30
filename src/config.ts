@@ -17,6 +17,12 @@ export interface AppConfig {
   apiToolGeneratorGenerate: string
   apiToolGeneratorTools: string
   apiGeneratedToolTrial: string
+  apiManagementScenarios: string
+  apiManagementScenario: string
+  apiManagementAgents: string
+  apiManagementAgent: string
+  apiManagementTools: string
+  apiManagementTool: string
 }
 
 declare const __APP_CONFIG__: AppConfig

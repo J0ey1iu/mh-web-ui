@@ -15,6 +15,21 @@ const routes: RouteRecordRaw[] = [
     component: () => import("../pages/ToolCreatorPage.vue"),
   },
   {
+    path: "/scenes",
+    name: "scenes",
+    component: () => import("../pages/SceneManagementPage.vue"),
+  },
+  {
+    path: "/agents",
+    name: "agents",
+    component: () => import("../pages/AgentManagementPage.vue"),
+  },
+  {
+    path: "/tools",
+    name: "tools",
+    component: () => import("../pages/ToolManagementPage.vue"),
+  },
+  {
     path: "/",
     name: "chat",
     component: MainLayout,

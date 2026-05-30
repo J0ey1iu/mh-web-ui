@@ -194,3 +194,40 @@ export interface GeneratedTool {
   created_at?: string
   updated_at?: string
 }
+
+export interface ManageScenario {
+  id: string
+  name: string
+  name_locale?: string
+  icon: string
+  description: string
+  description_locale?: string
+  agents?: Array<{ name: string; tool_names: string[] }>
+  created_at?: string
+  updated_at?: string
+}
+
+export interface ManageAgent {
+  name: string
+  display_name: string
+  display_name_locale?: string
+  description: string
+  description_locale?: string
+  system_prompt: string
+  system_prompt_locale?: string
+  endpoint_url?: string
+  created_at?: string
+  updated_at?: string
+}
+
+export interface ManageTool {
+  name: string
+  display_name: string
+  display_name_locale?: string
+  description: string
+  description_locale?: string
+  parameters: Record<string, any>
+  endpoint_url?: string
+  created_at?: string
+  updated_at?: string
+}

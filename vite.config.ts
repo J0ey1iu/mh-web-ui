@@ -25,6 +25,12 @@ export default defineConfig(({ mode }) => {
         apiToolGeneratorGenerate: isProd ? "{wcm_api_tool_generator_generate}" : "//localhost:8005/api/v1/tool-generator/generate",
         apiToolGeneratorTools: isProd ? "{wcm_api_tool_generator_tools}" : "//localhost:8005/api/v1/tool-generator/tools",
         apiGeneratedToolTrial: isProd ? "{wcm_api_generated_tool_trial}" : "//localhost:8005/api/v1/tool-generator/tools/{name}/trial",
+        apiManagementScenarios: isProd ? "{wcm_api_management_scenarios}" : "//localhost:8005/api/v1/management/scenarios",
+        apiManagementScenario: isProd ? "{wcm_api_management_scenario}" : "//localhost:8005/api/v1/management/scenarios/{id}",
+        apiManagementAgents: isProd ? "{wcm_api_management_agents}" : "//localhost:8005/api/v1/management/agents",
+        apiManagementAgent: isProd ? "{wcm_api_management_agent}" : "//localhost:8005/api/v1/management/agents/{name}",
+        apiManagementTools: isProd ? "{wcm_api_management_tools}" : "//localhost:8005/api/v1/management/tools",
+        apiManagementTool: isProd ? "{wcm_api_management_tool}" : "//localhost:8005/api/v1/management/tools/{name}",
       }),
     },
   }

@@ -1,4 +1,4 @@
-import type { AgentInfo, EvalJob, EvalJobConfig, GeneratedTool, MessageItem, ScenarioDetail, ScenarioInfo, SessionInfo, UserInfo, SSEEventName } from "../types"
+import type { AgentInfo, EvalJob, EvalJobConfig, GeneratedTool, ManageAgent, ManageScenario, ManageTool, MessageItem, ScenarioDetail, ScenarioInfo, SessionInfo, UserInfo, SSEEventName } from "../types"
 import { appConfig } from "../config"
 
 function fillUrl(template: string, params?: Record<string, string>): string {
@@ -252,4 +252,100 @@ export function executeGeneratedTool(
     })
 
   return controller
+}
+
+// ── Management CRUD ──
+
+export async function fetchManageScenarios(): Promise<ManageScenario[]> {
+  return request<ManageScenario[]>(appConfig.apiManagementScenarios)
+}
+
+export async function createManageScenario(scenario: Partial<ManageScenario>): Promise<ManageScenario> {
+  return request<ManageScenario>(appConfig.apiManagementScenarios, {
+    method: "POST",
+    body: JSON.stringify(scenario),
+  })
+}
+
+export async function updateManageScenario(scenarioId: string, scenario: Partial<ManageScenario>): Promise<ManageScenario> {
+  return request<ManageScenario>(fillUrl(appConfig.apiManagementScenario, { id: scenarioId }), {
+    method: "PUT",
+    body: JSON.stringify(scenario),
+  })
+}
+
+export async function deleteManageScenario(scenarioId: string): Promise<void> {
+  await request(fillUrl(appConfig.apiManagementScenario, { id: scenarioId }), { method: "DELETE" })
+}
+
+export async function fetchManageAgents(): Promise<ManageAgent[]> {
+  return request<ManageAgent[]>(appConfig.apiManagementAgents)
+}
+
+export async function createManageAgent(agent: Partial<ManageAgent>): Promise<ManageAgent> {
+  return request<ManageAgent>(appConfig.apiManagementAgents, {
+    method: "POST",
+    body: JSON.stringify(agent),
+  })
+}
+
+export async function updateManageAgent(name: string, agent: Partial<ManageAgent>): Promise<ManageAgent> {
+  return request<ManageAgent>(fillUrl(appConfig.apiManagementAgent, { name }), {
+    method: "PUT",
+    body: JSON.stringify(agent),
+  })
+}
+
+export async function deleteManageAgent(name: string): Promise<void> {
+  await request(fillUrl(appConfig.apiManagementAgent, { name }), { method: "DELETE" })
+}
+
+export async function fetchManageTools(): Promise<ManageTool[]> {
+  return request<ManageTool[]>(appConfig.apiManagementTools)
+}
+
+export async function createManageTool(tool: Partial<ManageTool>): Promise<ManageTool> {
+  return request<ManageTool>(appConfig.apiManagementTools, {
+    method: "POST",
+    body: JSON.stringify(tool),
+  })
+}
+
+export async function updateManageTool(name: string, tool: Partial<ManageTool>): Promise<ManageTool> {
+  return request<ManageTool>(fillUrl(appConfig.apiManagementTool, { name }), {
+    method: "PUT",
+    body: JSON.stringify(tool),
+  })
+}
+
+export async function deleteManageTool(name: string): Promise<void> {
+  await request(fillUrl(appConfig.apiManagementTool, { name }), { method: "DELETE" })
+}
+
+// ── Relationship management ──
+
+export async function addScenarioAgent(scenarioId: string, agentName: string, toolNames?: string[]): Promise<ManageScenario> {
+  return request<ManageScenario>(fillUrl(`${appConfig.apiManagementScenarios}/{id}/agents`, { id: scenarioId }), {
+    method: "POST",
+    body: JSON.stringify({ agent_name: agentName, tool_names: toolNames ?? [] }),
+  })
+}
+
+export async function removeScenarioAgent(scenarioId: string, agentName: string): Promise<ManageScenario> {
+  return request<ManageScenario>(fillUrl(`${appConfig.apiManagementScenarios}/{id}/agents/{name}`, { id: scenarioId, name: agentName }), {
+    method: "DELETE",
+  })
+}
+
+export async function addAgentTool(scenarioId: string, agentName: string, toolName: string): Promise<ManageScenario> {
+  return request<ManageScenario>(fillUrl(`${appConfig.apiManagementScenarios}/{id}/agents/{a}/tools`, { id: scenarioId, a: agentName }), {
+    method: "POST",
+    body: JSON.stringify({ tool_name: toolName }),
+  })
+}
+
+export async function removeAgentTool(scenarioId: string, agentName: string, toolName: string): Promise<ManageScenario> {
+  return request<ManageScenario>(fillUrl(`${appConfig.apiManagementScenarios}/{id}/agents/{a}/tools/{t}`, { id: scenarioId, a: agentName, t: toolName }), {
+    method: "DELETE",
+  })
 }

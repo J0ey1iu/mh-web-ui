@@ -275,6 +275,29 @@ function handleLogout() {
             </template>
           </div>
           <div class="dropdown-divider"></div>
+          <div class="dropdown-label">{{ t("management") }}</div>
+          <button
+            v-if="authUser"
+            class="dropdown-item"
+            @click="router.push('/scenes'); menuOpen = false"
+          >
+            Scenes
+          </button>
+          <button
+            v-if="authUser"
+            class="dropdown-item"
+            @click="router.push('/agents'); menuOpen = false"
+          >
+            Agents
+          </button>
+          <button
+            v-if="authUser"
+            class="dropdown-item"
+            @click="router.push('/tools'); menuOpen = false"
+          >
+            Tools
+          </button>
+          <div class="dropdown-divider"></div>
           <button
             v-if="authUser && hasEvalPermission"
             class="dropdown-item"
