@@ -10,17 +10,17 @@ const routes: RouteRecordRaw[] = [
     component: ComponentsDemoPage,
   },
   {
-    path: "/scenes",
+    path: "/manage/scenes",
     name: "scenes",
     component: () => import("../pages/SceneManagementPage.vue"),
   },
   {
-    path: "/agents",
+    path: "/manage/agents",
     name: "agents",
     component: () => import("../pages/AgentManagementPage.vue"),
   },
   {
-    path: "/tools",
+    path: "/manage/tools",
     name: "tools",
     component: () => import("../pages/ToolManagementPage.vue"),
   },
@@ -33,7 +33,7 @@ const routes: RouteRecordRaw[] = [
 
 if (appConfig.enableEval) {
   routes.push({
-    path: "/eval",
+    path: "/manage/eval",
     name: "eval",
     component: () => import("../pages/EvalPage.vue"),
   })

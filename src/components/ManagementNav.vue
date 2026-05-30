@@ -44,9 +44,9 @@ function toggleLang() {
     <div class="mgmt-nav-inner">
       <button class="btn-back" @click="router.push('/')">&larr; {{ t("mgmt_back") }}</button>
       <div class="mgmt-nav-tabs">
-        <router-link to="/scenes" class="nav-tab" :class="{ active: isActive('/scenes') }">{{ t("mgmt_scenes") }}</router-link>
-        <router-link to="/agents" class="nav-tab" :class="{ active: isActive('/agents') }">{{ t("mgmt_agents") }}</router-link>
-        <router-link to="/tools" class="nav-tab" :class="{ active: isActive('/tools') }">{{ t("mgmt_tools") }}</router-link>
+        <router-link to="/manage/scenes" class="nav-tab" :class="{ active: isActive('/manage/scenes') }">{{ t("mgmt_scenes") }}</router-link>
+        <router-link to="/manage/agents" class="nav-tab" :class="{ active: isActive('/manage/agents') }">{{ t("mgmt_agents") }}</router-link>
+        <router-link to="/manage/tools" class="nav-tab" :class="{ active: isActive('/manage/tools') }">{{ t("mgmt_tools") }}</router-link>
       </div>
       <div class="mgmt-nav-controls">
         <div class="control-group">

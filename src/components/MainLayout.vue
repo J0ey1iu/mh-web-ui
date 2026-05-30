@@ -279,21 +279,21 @@ function handleLogout() {
           <button
             v-if="authUser"
             class="dropdown-item"
-            @click="router.push('/scenes'); menuOpen = false"
+            @click="router.push('/manage/scenes'); menuOpen = false"
           >
             Scenes
           </button>
           <button
             v-if="authUser"
             class="dropdown-item"
-            @click="router.push('/agents'); menuOpen = false"
+            @click="router.push('/manage/agents'); menuOpen = false"
           >
             Agents
           </button>
           <button
             v-if="authUser"
             class="dropdown-item"
-            @click="router.push('/tools'); menuOpen = false"
+            @click="router.push('/manage/tools'); menuOpen = false"
           >
             Tools
           </button>
@@ -301,7 +301,7 @@ function handleLogout() {
           <button
             v-if="authUser && hasEvalPermission"
             class="dropdown-item"
-            @click="router.push('/eval'); menuOpen = false"
+            @click="router.push('/manage/eval'); menuOpen = false"
           >
             {{ t("evaluation") }}
           </button>
