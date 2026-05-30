@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from "vue"
+import { ref, computed, onMounted } from "vue"
 import {
   fetchManageAgents,
   createManageAgent,
@@ -61,17 +61,42 @@ function applyLocaleToForm() {
   form.value.description_locale = composeLocaleJson(localeForm.value.desc_zh, localeForm.value.desc_en)
   form.value.system_prompt_locale = composeLocaleJson(localeForm.value.prompt_zh, localeForm.value.prompt_en)
 }
+
+const searchQuery = ref("")
+const currentPage = ref(1)
+const pageSize = ref(15)
+const total = ref(0)
+
+const totalPages = computed(() => Math.max(1, Math.ceil(total.value / pageSize.value)))
+
 const saving = ref(false)
 
 async function load() {
   loading.value = true
   try {
-    agents.value = await fetchManageAgents()
+    const resp = await fetchManageAgents({ q: searchQuery.value, page: currentPage.value, page_size: pageSize.value })
+    agents.value = resp.items
+    total.value = resp.total
   } catch (e) {
     alert("Failed to load agents: " + (e as Error).message)
   } finally {
     loading.value = false
   }
+}
+
+function onSearch() {
+  currentPage.value = 1
+  load()
+}
+
+function goToPage(page: number) {
+  currentPage.value = page
+  load()
+}
+
+function onPageSizeChange() {
+  currentPage.value = 1
+  load()
 }
 
 function openCreate() {
@@ -134,26 +159,35 @@ onMounted(load)
         <button class="btn-primary" @click="openCreate">{{ t("mgmt_new_agent") }}</button>
       </header>
 
+      <div class="mgmt-toolbar">
+        <input v-model="searchQuery" class="mgmt-search" :placeholder="t('mgmt_search_placeholder')" @keyup.enter="onSearch" />
+        <button class="btn-search" @click="onSearch">{{ t("mgmt_search") }}</button>
+      </div>
+
       <div v-if="loading" class="mgmt-loading">{{ t("mgmt_loading") }}</div>
-      <div v-else-if="agents.length === 0" class="mgmt-empty">{{ t("mgmt_no_agents") }}</div>
-      <table v-else class="mgmt-table">
-        <thead>
-          <tr>
-            <th>{{ t("mgmt_name") }}</th>
-            <th>{{ t("mgmt_display_name") }}</th>
-            <th>{{ t("mgmt_description") }}</th>
-            <th>{{ t("mgmt_endpoint") }}</th>
-            <th>{{ t("mgmt_created_at") }}</th>
-            <th>{{ t("mgmt_updated_at") }}</th>
-            <th>{{ t("mgmt_actions") }}</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="a in agents" :key="a.name">
+      <div v-else-if="agents.length === 0" class="mgmt-empty">{{ searchQuery ? t("mgmt_no_results") : t("mgmt_no_agents") }}</div>
+      <div v-else>
+        <div class="table-wrap">
+          <table class="mgmt-table">
+            <thead>
+              <tr>
+                <th>{{ t("mgmt_name") }}</th>
+                <th>{{ t("mgmt_display_name") }}</th>
+                <th>{{ t("mgmt_description") }}</th>
+                <th>{{ t("mgmt_endpoint") }}</th>
+                <th>{{ t("mgmt_created_at") }}</th>
+                <th>{{ t("mgmt_updated_at") }}</th>
+                <th>{{ t("mgmt_actions") }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="a in agents" :key="a.name">
             <td><code>{{ a.name }}</code></td>
             <td>{{ localeVal(a.display_name_locale, a.display_name) }}</td>
             <td class="cell-desc">{{ localeVal(a.description_locale, a.description) }}</td>
-            <td><code class="cell-url">{{ a.endpoint_url || t("mgmt_local") }}</code></td>
+            <td><code class="cell-url">{{ a.endpoint_url || t("mgmt_local") }}</code>
+              <span v-if="!a.endpoint_url" class="badge badge-neutral" style="margin-left:6px">{{ t("mgmt_local") }}</span>
+            </td>
             <td class="cell-audit">{{ fmtAudit(a.created_at, a.created_by) }}</td>
             <td class="cell-audit">{{ fmtAudit(a.updated_at, a.updated_by) }}</td>
             <td class="cell-actions">
@@ -163,6 +197,19 @@ onMounted(load)
           </tr>
         </tbody>
       </table>
+        </div>
+        <div class="mgmt-pagination">
+          <button class="btn-page" :disabled="currentPage <= 1" @click="goToPage(currentPage - 1)">{{ t("mgmt_prev_page") }}</button>
+          <span class="mgmt-page-info">{{ currentPage }} / {{ totalPages }}</span>
+          <button class="btn-page" :disabled="currentPage >= totalPages" @click="goToPage(currentPage + 1)">{{ t("mgmt_next_page") }}</button>
+          <select v-model.number="pageSize" class="mgmt-page-size" @change="onPageSizeChange">
+            <option :value="10">10</option>
+            <option :value="15">15</option>
+            <option :value="20">20</option>
+            <option :value="50">50</option>
+          </select>
+        </div>
+      </div>
 
       <Teleport to="body">
         <div v-if="showDialog" class="dialog-overlay" @click.self="showDialog = false">
@@ -225,240 +272,4 @@ onMounted(load)
   </div>
 </template>
 
-<style scoped>
-.mgmt-page {
-  color: var(--text-primary);
-}
-.mgmt-page-content {
-  max-width: 960px;
-  margin: 0 auto;
-  padding: 24px;
-}
-.mgmt-header {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 24px;
-}
-.mgmt-header h1 {
-  flex: 1;
-  margin: 0;
-  font-size: 20px;
-}
-.btn-back {
-  background: none;
-  border: 1px solid var(--border);
-  color: var(--text-primary);
-  padding: 6px 12px;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 13px;
-}
-.btn-back:hover {
-  background: var(--surface-raised);
-}
-.btn-primary {
-  background: var(--accent);
-  color: #fff;
-  border: none;
-  padding: 8px 16px;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 13px;
-  font-weight: 600;
-}
-.btn-primary:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-.btn-cancel {
-  background: var(--surface-raised);
-  color: var(--text-primary);
-  border: 1px solid var(--border);
-  padding: 8px 16px;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 13px;
-}
-.mgmt-loading, .mgmt-empty {
-  text-align: center;
-  padding: 40px;
-  color: var(--text-secondary);
-}
-.mgmt-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 13px;
-}
-.mgmt-table th {
-  text-align: left;
-  padding: 10px 12px;
-  border-bottom: 2px solid var(--border);
-  color: var(--text-secondary);
-  font-weight: 600;
-  white-space: nowrap;
-}
-.mgmt-table td {
-  padding: 10px 12px;
-  border-bottom: 1px solid var(--border);
-}
-.mgmt-table tr:hover td {
-  background: var(--surface-raised);
-}
-.cell-desc {
-  max-width: 200px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.cell-url {
-  font-size: 11px;
-  max-width: 160px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  display: inline-block;
-  vertical-align: middle;
-}
-.cell-actions {
-  white-space: nowrap;
-}
-.cell-audit {
-  white-space: nowrap;
-  font-size: 12px;
-  color: var(--text-secondary);
-}
-.btn-action {
-  background: none;
-  border: 1px solid var(--border);
-  color: var(--text-primary);
-  padding: 4px 10px;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 12px;
-  margin-right: 4px;
-}
-.btn-action:hover {
-  background: var(--surface-raised);
-}
-.btn-danger {
-  color: #ef4444;
-  border-color: #ef4444;
-}
-.btn-danger:hover {
-  background: rgba(239, 68, 68, 0.1);
-}
-.dialog-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-}
-.dialog {
-  background: var(--surface-bg);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 24px;
-  width: 80vw;
-  max-width: 800px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-}
-.dialog-wide {
-  width: 80vw;
-  max-width: 800px;
-}
-.dialog h2 {
-  margin: 0 0 20px;
-  font-size: 18px;
-}
-.form-group {
-  margin-bottom: 16px;
-}
-.form-group label {
-  display: block;
-  font-size: 12px;
-  color: var(--text-secondary);
-  margin-bottom: 4px;
-  font-weight: 600;
-}
-.form-group input,
-.form-group textarea {
-  width: 100%;
-  padding: 8px 10px;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  background: var(--surface-raised);
-  color: var(--text-primary);
-  font-size: 13px;
-  font-family: inherit;
-  box-sizing: border-box;
-}
-.form-group textarea {
-  resize: vertical;
-}
-.form-group .mono {
-  font-family: "SF Mono", "Cascadia Code", "Fira Code", monospace;
-  font-size: 12px;
-}
-.dialog-actions {
-  display: flex;
-  gap: 8px;
-  justify-content: flex-end;
-  margin-top: 20px;
-}
-.locale-section {
-  margin: 12px 0;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 8px 12px;
-}
-.locale-section summary {
-  cursor: pointer;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--text-secondary);
-  margin-bottom: 8px;
-}
-.locale-field {
-  margin-bottom: 10px;
-}
-.locale-field:last-child {
-  margin-bottom: 0;
-}
-.locale-field-label {
-  font-size: 11px;
-  color: var(--text-secondary);
-  margin-bottom: 4px;
-  font-weight: 600;
-}
-.locale-input-row {
-  display: flex;
-  gap: 8px;
-}
-.locale-lang {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  font-size: 11px;
-  color: var(--text-muted);
-  font-family: inherit;
-}
-.locale-lang input,
-.locale-lang textarea {
-  width: 100%;
-  padding: 6px 8px;
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  background: var(--surface-raised);
-  color: var(--text-primary);
-  font-size: 12px;
-  font-family: inherit;
-  box-sizing: border-box;
-}
-.locale-lang textarea {
-  resize: vertical;
-}
-</style>
+

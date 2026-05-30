@@ -237,3 +237,16 @@ export interface ManageTool {
   created_by?: string
   updated_by?: string
 }
+
+export interface PaginatedResponse<T> {
+  items: T[]
+  total: number
+  page: number
+  page_size: number
+}
+
+export interface FetchListParams {
+  q?: string
+  page?: number
+  page_size?: number
+}

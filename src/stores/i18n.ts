@@ -148,6 +148,11 @@ const messages: Record<Locale, Record<string, string>> = {
     mgmt_updated_at: "更新时间",
     mgmt_created_by: "创建人",
     mgmt_updated_by: "更新人",
+    mgmt_search: "搜索",
+    mgmt_search_placeholder: "输入关键词搜索…",
+    mgmt_prev_page: "上一页",
+    mgmt_next_page: "下一页",
+    mgmt_no_results: "无匹配结果",
   },
   en: {
     sessions: "Sessions",
@@ -290,6 +295,11 @@ const messages: Record<Locale, Record<string, string>> = {
     mgmt_updated_at: "Updated At",
     mgmt_created_by: "Created By",
     mgmt_updated_by: "Updated By",
+    mgmt_search: "Search",
+    mgmt_search_placeholder: "Search by keyword…",
+    mgmt_prev_page: "Prev",
+    mgmt_next_page: "Next",
+    mgmt_no_results: "No results",
   },
 }
 

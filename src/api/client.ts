@@ -1,4 +1,4 @@
-import type { AgentInfo, EvalJob, EvalJobConfig, GeneratedTool, ManageAgent, ManageScenario, ManageTool, MessageItem, ScenarioDetail, ScenarioInfo, SessionInfo, UserInfo, SSEEventName } from "../types"
+import type { AgentInfo, EvalJob, EvalJobConfig, FetchListParams, GeneratedTool, ManageAgent, ManageScenario, ManageTool, MessageItem, PaginatedResponse, ScenarioDetail, ScenarioInfo, SessionInfo, UserInfo, SSEEventName } from "../types"
 import { appConfig } from "../config"
 
 function fillUrl(template: string, params?: Record<string, string>): string {
@@ -258,17 +258,32 @@ export function executeGeneratedTool(
 // Silent-403 helpers: if the user lacks manage:* for a resource, return empty/null
 // instead of showing an intrusive alert. Mutations still throw on 403.
 
-async function fetchManageOrEmpty<T>(url: string): Promise<T[]> {
+function buildListUrl(base: string, params?: FetchListParams): string {
+  if (!params) return base
+  const query = new URLSearchParams()
+  if (params.q) query.set("q", params.q)
+  if (params.page != null) query.set("page", String(params.page))
+  if (params.page_size != null) query.set("page_size", String(params.page_size))
+  const qs = query.toString()
+  return qs ? `${base}?${qs}` : base
+}
+
+async function fetchManageOrEmpty<T>(url: string, params?: FetchListParams): Promise<PaginatedResponse<T>> {
   try {
-    return await request<T[]>(url)
+    return await request<PaginatedResponse<T>>(buildListUrl(url, params))
   } catch (e) {
-    if (e instanceof Error && e.message.includes("permission denied")) return []
+    if (e instanceof Error && e.message.includes("permission denied"))
+      return { items: [], total: 0, page: params?.page ?? 1, page_size: params?.page_size ?? 15 }
     throw e
   }
 }
 
-export async function fetchManageScenarios(): Promise<ManageScenario[]> {
-  return fetchManageOrEmpty<ManageScenario>(appConfig.apiManagementScenarios)
+export async function fetchManageScenarios(params?: FetchListParams): Promise<PaginatedResponse<ManageScenario>> {
+  return fetchManageOrEmpty<ManageScenario>(appConfig.apiManagementScenarios, params)
+}
+
+export async function fetchManageScenario(scenarioId: string): Promise<ManageScenario> {
+  return request<ManageScenario>(fillUrl(appConfig.apiManagementScenario, { id: scenarioId }))
 }
 
 export async function createManageScenario(scenario: Partial<ManageScenario>): Promise<ManageScenario> {
@@ -289,8 +304,8 @@ export async function deleteManageScenario(scenarioId: string): Promise<void> {
   await request(fillUrl(appConfig.apiManagementScenario, { id: scenarioId }), { method: "DELETE" })
 }
 
-export async function fetchManageAgents(): Promise<ManageAgent[]> {
-  return fetchManageOrEmpty<ManageAgent>(appConfig.apiManagementAgents)
+export async function fetchManageAgents(params?: FetchListParams): Promise<PaginatedResponse<ManageAgent>> {
+  return fetchManageOrEmpty<ManageAgent>(appConfig.apiManagementAgents, params)
 }
 
 export async function createManageAgent(agent: Partial<ManageAgent>): Promise<ManageAgent> {
@@ -311,8 +326,8 @@ export async function deleteManageAgent(name: string): Promise<void> {
   await request(fillUrl(appConfig.apiManagementAgent, { name }), { method: "DELETE" })
 }
 
-export async function fetchManageTools(): Promise<ManageTool[]> {
-  return fetchManageOrEmpty<ManageTool>(appConfig.apiManagementTools)
+export async function fetchManageTools(params?: FetchListParams): Promise<PaginatedResponse<ManageTool>> {
+  return fetchManageOrEmpty<ManageTool>(appConfig.apiManagementTools, params)
 }
 
 export async function createManageTool(tool: Partial<ManageTool>): Promise<ManageTool> {

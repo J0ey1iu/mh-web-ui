@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from "vue"
+import { ref, computed, onMounted } from "vue"
 import {
   fetchManageTools,
   createManageTool,
@@ -23,6 +23,14 @@ const activeTab = ref<"manage" | "create">("manage")
 // ===== Manage Tools =====
 const tools = ref<ManageTool[]>([])
 const loading = ref(false)
+
+const searchQuery = ref("")
+const currentPage = ref(1)
+const pageSize = ref(15)
+const total = ref(0)
+
+const totalPages = computed(() => Math.max(1, Math.ceil(total.value / pageSize.value)))
+
 const showDialog = ref(false)
 const editing = ref(false)
 const form = ref<Partial<ManageTool>>({
@@ -69,12 +77,29 @@ const saving = ref(false)
 async function load() {
   loading.value = true
   try {
-    tools.value = await fetchManageTools()
+    const resp = await fetchManageTools({ q: searchQuery.value, page: currentPage.value, page_size: pageSize.value })
+    tools.value = resp.items
+    total.value = resp.total
   } catch (e) {
     alert("Failed to load tools: " + (e as Error).message)
   } finally {
     loading.value = false
   }
+}
+
+function onSearch() {
+  currentPage.value = 1
+  load()
+}
+
+function goToPage(page: number) {
+  currentPage.value = page
+  load()
+}
+
+function onPageSizeChange() {
+  currentPage.value = 1
+  load()
 }
 
 function openCreate() {
@@ -424,22 +449,29 @@ function formatOutput(data: any): string {
       <div v-if="activeTab === 'manage'">
         <button class="btn-primary" @click="openCreate">{{ t("mgmt_new_tool") }}</button>
 
+        <div class="mgmt-toolbar">
+          <input v-model="searchQuery" class="mgmt-search" :placeholder="t('mgmt_search_placeholder')" @keyup.enter="onSearch" />
+          <button class="btn-search" @click="onSearch">{{ t("mgmt_search") }}</button>
+        </div>
+
         <div v-if="loading" class="mgmt-loading">{{ t("mgmt_loading") }}</div>
-        <div v-else-if="tools.length === 0" class="mgmt-empty">{{ t("mgmt_no_tools") }}</div>
-        <table v-else class="mgmt-table">
-          <thead>
-            <tr>
-              <th>{{ t("mgmt_name") }}</th>
-              <th>{{ t("mgmt_display_name") }}</th>
-              <th>{{ t("mgmt_description") }}</th>
-              <th>{{ t("mgmt_endpoint") }}</th>
-              <th>{{ t("mgmt_created_at") }}</th>
-              <th>{{ t("mgmt_updated_at") }}</th>
-              <th>{{ t("mgmt_actions") }}</th>
-            </tr>
-          </thead>
-          <tbody>
-          <tr v-for="tl in tools" :key="tl.name">
+        <div v-else-if="tools.length === 0" class="mgmt-empty">{{ searchQuery ? t("mgmt_no_results") : t("mgmt_no_tools") }}</div>
+        <div v-else>
+          <div class="table-wrap">
+            <table class="mgmt-table">
+              <thead>
+                <tr>
+                  <th>{{ t("mgmt_name") }}</th>
+                  <th>{{ t("mgmt_display_name") }}</th>
+                  <th>{{ t("mgmt_description") }}</th>
+                  <th>{{ t("mgmt_endpoint") }}</th>
+                  <th>{{ t("mgmt_created_at") }}</th>
+                  <th>{{ t("mgmt_updated_at") }}</th>
+                  <th>{{ t("mgmt_actions") }}</th>
+                </tr>
+              </thead>
+              <tbody>
+              <tr v-for="tl in tools" :key="tl.name">
             <td><code>{{ tl.name }}</code></td>
             <td>{{ localeVal(tl.display_name_locale, tl.display_name) }}</td>
             <td class="cell-desc">{{ localeVal(tl.description_locale, tl.description) }}</td>
@@ -453,6 +485,19 @@ function formatOutput(data: any): string {
           </tr>
           </tbody>
         </table>
+          </div>
+          <div class="mgmt-pagination">
+            <button class="btn-page" :disabled="currentPage <= 1" @click="goToPage(currentPage - 1)">{{ t("mgmt_prev_page") }}</button>
+            <span class="mgmt-page-info">{{ currentPage }} / {{ totalPages }}</span>
+            <button class="btn-page" :disabled="currentPage >= totalPages" @click="goToPage(currentPage + 1)">{{ t("mgmt_next_page") }}</button>
+            <select v-model.number="pageSize" class="mgmt-page-size" @change="onPageSizeChange">
+              <option :value="10">10</option>
+              <option :value="15">15</option>
+              <option :value="20">20</option>
+              <option :value="50">50</option>
+            </select>
+          </div>
+        </div>
 
         <Teleport to="body">
           <div v-if="showDialog" class="dialog-overlay" @click.self="showDialog = false">
@@ -512,7 +557,12 @@ function formatOutput(data: any): string {
           <div class="tc-panel tc-left">
             <div class="tc-nl-section">
               <button class="tc-nl-toggle" @click="showNL = !showNL">
-                {{ showNL ? 'Hide' : 'Describe in Natural Language' }}
+                <span class="tc-nl-toggle-text">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="tc-nl-icon">
+                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                  </svg>
+                  Describe in Natural Language
+                </span>
                 <span class="tc-nl-arrow">{{ showNL ? '▲' : '▼' }}</span>
               </button>
               <div v-if="showNL" class="tc-nl-body">
@@ -528,6 +578,9 @@ function formatOutput(data: any): string {
                     :disabled="!naturalDescription.trim()"
                     @click="handleGenerate"
                   >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px">
+                      <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+                    </svg>
                     Generate Metadata
                   </button>
                 </template>
@@ -536,7 +589,7 @@ function formatOutput(data: any): string {
                     Stop Generation
                   </button>
                   <div v-if="genProgress" class="tc-gen-progress">
-                    <div class="tc-gen-progress-label">Generating</div>
+                    <div class="tc-gen-progress-label">Generating...</div>
                     <pre class="tc-gen-progress-text">{{ genProgress }}</pre>
                   </div>
                 </template>
@@ -595,12 +648,17 @@ function formatOutput(data: any): string {
                 v-for="tool in savedTools"
                 :key="tool.name"
                 :class="['tc-tool-item', { active: editingName === tool.name }]"
+                @click="loadTool(tool)"
               >
-                <div class="tc-tool-name" @click="loadTool(tool)">
-                  <span class="tc-tool-display-name">{{ tool.display_name }}</span>
+                <div class="tc-tool-item-body">
+                  <span class="tc-tool-display-name">{{ tool.display_name || tool.name }}</span>
                   <span class="tc-tool-id">{{ tool.name }}</span>
                 </div>
-                <button class="tc-btn-delete" @click.stop="handleDelete(tool.name)" title="Delete">x</button>
+                <button class="tc-btn-delete" @click.stop="handleDelete(tool.name)" :title="t('mgmt_delete')">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M18 6L6 18M6 6l12 12"/>
+                  </svg>
+                </button>
               </li>
             </ul>
             <div v-else class="tc-placeholder">No saved tools yet.</div>
@@ -711,328 +769,83 @@ function formatOutput(data: any): string {
 </template>
 
 <style scoped>
-.mgmt-page {
-  color: var(--text-primary);
-}
-.mgmt-page-content {
-  max-width: 1060px;
-  margin: 0 auto;
-  padding: 24px;
-}
-.mgmt-header {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 24px;
-}
-.mgmt-header h1 {
-  margin: 0;
-  font-size: 20px;
-}
-.btn-primary {
-  background: var(--accent);
-  color: #fff;
-  border: none;
-  padding: 8px 16px;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 13px;
-  font-weight: 600;
-  margin-bottom: 16px;
-}
-.btn-primary:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-.btn-cancel {
-  background: var(--surface-raised);
-  color: var(--text-primary);
-  border: 1px solid var(--border);
-  padding: 8px 16px;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 13px;
-}
-.mgmt-loading, .mgmt-empty {
-  text-align: center;
-  padding: 40px;
-  color: var(--text-secondary);
-}
-.mgmt-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 13px;
-}
-.mgmt-table th {
-  text-align: left;
-  padding: 10px 12px;
-  border-bottom: 2px solid var(--border);
-  color: var(--text-secondary);
-  font-weight: 600;
-  white-space: nowrap;
-}
-.mgmt-table td {
-  padding: 10px 12px;
-  border-bottom: 1px solid var(--border);
-}
-.mgmt-table tr:hover td {
-  background: var(--surface-raised);
-}
-.cell-desc {
-  max-width: 200px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.cell-url {
-  font-size: 11px;
-  max-width: 160px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  display: inline-block;
-  vertical-align: middle;
-}
-.cell-actions {
-  white-space: nowrap;
-}
-.cell-audit {
-  white-space: nowrap;
-  font-size: 12px;
-  color: var(--text-secondary);
-}
-.btn-action {
-  background: none;
-  border: 1px solid var(--border);
-  color: var(--text-primary);
-  padding: 4px 10px;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 12px;
-  margin-right: 4px;
-}
-.btn-action:hover {
-  background: var(--surface-raised);
-}
-.btn-danger {
-  color: #ef4444;
-  border-color: #ef4444;
-}
-.btn-danger:hover {
-  background: rgba(239, 68, 68, 0.1);
-}
-
-/* Tabs */
-.mgmt-tabs {
-  display: flex;
-  gap: 4px;
-  background: var(--surface-raised);
-  border-radius: 8px;
-  padding: 3px;
-}
-.tab-btn {
-  padding: 6px 16px;
-  border: none;
-  border-radius: 6px;
-  background: transparent;
-  color: var(--text-secondary);
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.15s;
-}
-.tab-btn:hover {
-  color: var(--text-primary);
-}
-.tab-btn.active {
-  background: var(--surface-bg);
-  color: var(--text-primary);
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-}
-
-/* Dialog */
-.dialog-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-}
-.dialog {
-  background: var(--surface-bg);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 24px;
-  width: 80vw;
-  max-width: 800px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-}
-.dialog-wide {
-  width: 80vw;
-  max-width: 800px;
-}
-.dialog h2 {
-  margin: 0 0 20px;
-  font-size: 18px;
-}
-.form-group {
-  margin-bottom: 16px;
-}
-.form-group label {
-  display: block;
-  font-size: 12px;
-  color: var(--text-secondary);
-  margin-bottom: 4px;
-  font-weight: 600;
-}
-.form-group input,
-.form-group textarea {
-  width: 100%;
-  padding: 8px 10px;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  background: var(--surface-raised);
-  color: var(--text-primary);
-  font-size: 13px;
-  font-family: inherit;
-  box-sizing: border-box;
-}
-.form-group textarea {
-  resize: vertical;
-}
-.form-group .mono {
-  font-family: "SF Mono", "Cascadia Code", "Fira Code", monospace;
-  font-size: 12px;
-}
-.dialog-actions {
-  display: flex;
-  gap: 8px;
-  justify-content: flex-end;
-  margin-top: 20px;
-}
-.locale-section {
-  margin: 12px 0;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 8px 12px;
-}
-.locale-section summary {
-  cursor: pointer;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--text-secondary);
-  margin-bottom: 8px;
-}
-.locale-field {
-  margin-bottom: 10px;
-}
-.locale-field:last-child {
-  margin-bottom: 0;
-}
-.locale-field-label {
-  font-size: 11px;
-  color: var(--text-secondary);
-  margin-bottom: 4px;
-  font-weight: 600;
-}
-.locale-input-row {
-  display: flex;
-  gap: 8px;
-}
-.locale-lang {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  font-size: 11px;
-  color: var(--text-muted);
-  font-family: inherit;
-}
-.locale-lang input,
-.locale-lang textarea {
-  width: 100%;
-  padding: 6px 8px;
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  background: var(--surface-raised);
-  color: var(--text-primary);
-  font-size: 12px;
-  font-family: inherit;
-  box-sizing: border-box;
-}
-.locale-lang textarea {
-  resize: vertical;
-}
-
 /* Tool Creator */
 .tc-content {
   min-height: 60vh;
 }
 .tc-panels {
   display: flex;
-  gap: 16px;
-  min-height: calc(100vh - 200px);
+  gap: 18px;
+  min-height: calc(100vh - 220px);
 }
 .tc-panel {
   flex: 1;
   background: var(--surface-bg);
   border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 16px;
+  border-radius: 12px;
+  padding: 20px;
   overflow-y: auto;
 }
 .tc-panel-title {
   font-size: 16px;
-  font-weight: 600;
-  margin: 0 0 16px;
+  font-weight: 700;
+  margin: 0 0 18px;
+  letter-spacing: -0.2px;
 }
 .tc-textarea {
   width: 100%;
   background: var(--surface-raised);
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: 8px;
   color: var(--text-primary);
   font-size: 13px;
-  padding: 10px;
+  padding: 10px 12px;
   resize: vertical;
   font-family: inherit;
   box-sizing: border-box;
+  line-height: 1.5;
+  transition: border-color 0.15s, box-shadow 0.15s;
 }
 .tc-textarea:focus {
   outline: none;
   border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-dim);
 }
+.tc-textarea::placeholder { color: var(--text-muted); }
 .tc-textarea-sm {
-  min-height: 60px;
+  min-height: 64px;
 }
 .tc-textarea-code {
   min-height: 120px;
-  font-family: monospace;
+  font-family: "SF Mono", "Cascadia Code", "Fira Code", Menlo, Consolas, monospace;
   font-size: 12px;
 }
 .tc-textarea-code-source {
   min-height: 200px;
-  font-family: monospace;
+  font-family: "SF Mono", "Cascadia Code", "Fira Code", Menlo, Consolas, monospace;
   font-size: 12px;
 }
 .tc-actions {
-  margin-top: 16px;
+  margin-top: 18px;
 }
 .btn-save {
   width: 100%;
   padding: 10px 24px;
   background: var(--success, #22c55e);
   border: none;
-  border-radius: 8px;
+  border-radius: 10px;
   color: #fff;
   font-weight: 600;
   font-size: 14px;
   cursor: pointer;
+  transition: opacity 0.15s, transform 0.1s;
 }
+.btn-save:hover:not(:disabled) { opacity: 0.9; transform: translateY(-1px); }
+.btn-save:active:not(:disabled) { transform: translateY(0); }
 .btn-save:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+  transform: none;
 }
 .btn-generate {
   width: 100%;
@@ -1040,67 +853,80 @@ function formatOutput(data: any): string {
   padding: 10px 24px;
   background: var(--accent);
   border: none;
-  border-radius: 8px;
-  color: var(--accent-text, #fff);
+  border-radius: 10px;
+  color: #fff;
   font-weight: 600;
   font-size: 14px;
   cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.15s, transform 0.1s;
 }
+.btn-generate:hover:not(:disabled) { opacity: 0.9; transform: translateY(-1px); }
+.btn-generate:active:not(:disabled) { transform: translateY(0); }
 .btn-generate:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+  transform: none;
 }
 .tc-field {
-  margin-bottom: 12px;
+  margin-bottom: 14px;
 }
 .tc-label-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 4px;
+  margin-bottom: 5px;
 }
 .tc-label {
   display: block;
   font-size: 12px;
-  font-weight: 500;
-  margin-bottom: 4px;
+  font-weight: 600;
+  margin-bottom: 5px;
   color: var(--text-secondary);
 }
 .tc-fullscreen-btn {
   background: var(--surface-raised);
   border: 1px solid var(--border);
-  border-radius: 4px;
+  border-radius: 6px;
   color: var(--text-secondary);
   cursor: pointer;
-  font-size: 14px;
+  font-size: 15px;
   line-height: 1;
-  padding: 2px 6px;
+  padding: 3px 8px;
+  transition: all 0.15s;
 }
 .tc-fullscreen-btn:hover {
   color: var(--text-primary);
   border-color: var(--accent);
+  background: var(--surface-bg);
 }
 .tc-input {
   width: 100%;
-  padding: 8px 10px;
+  padding: 9px 12px;
   background: var(--surface-raised);
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: 8px;
   color: var(--text-primary);
   font-size: 13px;
   box-sizing: border-box;
+  transition: border-color 0.15s, box-shadow 0.15s;
 }
 .tc-input:focus {
   outline: none;
   border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-dim);
 }
 .tc-input:disabled {
   opacity: 0.5;
 }
+.tc-input::placeholder { color: var(--text-muted); }
 .tc-checkbox {
   width: 18px;
   height: 18px;
   accent-color: var(--accent);
+  cursor: pointer;
 }
 .tc-placeholder {
   color: var(--text-secondary);
@@ -1110,47 +936,53 @@ function formatOutput(data: any): string {
 }
 .tc-subtitle {
   font-size: 14px;
-  font-weight: 600;
-  margin: 16px 0 8px;
+  font-weight: 700;
+  margin: 20px 0 10px;
+  color: var(--text-primary);
 }
 .tc-trial-actions {
-  margin-top: 12px;
+  margin-top: 16px;
 }
 .btn-run {
   width: 100%;
   padding: 10px 24px;
   background: var(--accent);
   border: none;
-  border-radius: 8px;
-  color: var(--accent-text, #fff);
+  border-radius: 10px;
+  color: #fff;
   font-weight: 600;
   font-size: 14px;
   cursor: pointer;
+  transition: opacity 0.15s, transform 0.1s;
 }
+.btn-run:hover { opacity: 0.9; transform: translateY(-1px); }
+.btn-run:active { transform: translateY(0); }
 .btn-stop {
   width: 100%;
   padding: 10px 24px;
   background: var(--error, #ef4444);
   border: none;
-  border-radius: 8px;
+  border-radius: 10px;
   color: #fff;
   font-weight: 600;
   font-size: 14px;
   cursor: pointer;
+  transition: opacity 0.15s;
 }
+.btn-stop:hover { opacity: 0.9; }
 .tc-output {
-  margin-top: 8px;
+  margin-top: 10px;
   background: var(--surface-raised);
   border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 10px;
+  border-radius: 10px;
+  padding: 12px;
   min-height: 100px;
-  max-height: 300px;
+  max-height: 320px;
   overflow-y: auto;
 }
 .tc-output-item {
-  margin-bottom: 8px;
-  padding-bottom: 8px;
+  margin-bottom: 10px;
+  padding-bottom: 10px;
   border-bottom: 1px solid var(--border);
 }
 .tc-output-item:last-child {
@@ -1162,14 +994,15 @@ function formatOutput(data: any): string {
   display: inline-block;
   font-size: 11px;
   font-weight: 600;
-  padding: 2px 6px;
-  border-radius: 4px;
-  margin-bottom: 4px;
+  padding: 2px 8px;
+  border-radius: 5px;
+  margin-bottom: 6px;
   text-transform: uppercase;
+  letter-spacing: 0.3px;
 }
 .tc-output-tool_progress .tc-output-type {
   background: var(--accent);
-  color: var(--accent-text, #fff);
+  color: #fff;
 }
 .tc-output-tool_end .tc-output-type {
   background: var(--success, #22c55e);
@@ -1185,62 +1018,81 @@ function formatOutput(data: any): string {
   white-space: pre-wrap;
   word-break: break-all;
   color: var(--text-primary);
+  line-height: 1.5;
 }
 .tc-output-waiting {
   color: var(--text-secondary);
   font-size: 13px;
   text-align: center;
-  padding: 20px;
+  padding: 24px;
 }
 .tc-divider {
   height: 1px;
   background: var(--border);
-  margin: 20px 0;
+  margin: 24px 0;
 }
 .tc-nl-section {
-  margin-bottom: 16px;
+  margin-bottom: 20px;
 }
 .tc-nl-toggle {
   width: 100%;
-  padding: 8px 12px;
+  padding: 10px 14px;
   background: var(--surface-raised);
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: 10px;
   color: var(--text-secondary);
   font-size: 13px;
+  font-weight: 500;
   cursor: pointer;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  transition: all 0.15s;
+  font-family: inherit;
 }
 .tc-nl-toggle:hover {
   border-color: var(--accent);
   color: var(--accent);
+  background: var(--surface-alt);
+}
+.tc-nl-toggle-text {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.tc-nl-icon {
+  flex-shrink: 0;
+  opacity: 0.6;
 }
 .tc-nl-arrow {
   font-size: 10px;
+  opacity: 0.5;
+  transition: transform 0.15s;
 }
 .tc-nl-body {
-  margin-top: 8px;
+  margin-top: 10px;
 }
 .tc-saved-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 12px;
+  margin-bottom: 14px;
 }
 .tc-saved-header .tc-panel-title {
   margin: 0;
 }
 .btn-new {
-  padding: 4px 12px;
+  padding: 6px 14px;
   background: var(--accent);
   border: none;
-  border-radius: 6px;
-  color: var(--accent-text, #fff);
+  border-radius: 8px;
+  color: #fff;
   font-size: 13px;
+  font-weight: 600;
   cursor: pointer;
+  transition: opacity 0.15s;
 }
+.btn-new:hover { opacity: 0.9; }
 .tc-tool-list {
   list-style: none;
   padding: 0;
@@ -1249,27 +1101,29 @@ function formatOutput(data: any): string {
 .tc-tool-item {
   display: flex;
   align-items: center;
-  padding: 8px 10px;
-  border-radius: 6px;
+  padding: 10px 12px;
+  border-radius: 8px;
   margin-bottom: 4px;
   cursor: pointer;
-  transition: background 0.15s;
+  transition: background 0.15s, border-color 0.15s;
+  border: 1px solid transparent;
 }
 .tc-tool-item:hover {
   background: var(--surface-raised);
+  border-color: var(--border);
 }
 .tc-tool-item.active {
   background: var(--surface-raised);
-  border: 1px solid var(--accent);
+  border-color: var(--accent);
 }
-.tc-tool-name {
+.tc-tool-item-body {
   flex: 1;
   min-width: 0;
 }
 .tc-tool-display-name {
   display: block;
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 600;
   color: var(--text-primary);
 }
 .tc-tool-id {
@@ -1279,36 +1133,56 @@ function formatOutput(data: any): string {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  margin-top: 2px;
+  font-family: "SF Mono", "Fira Code", monospace;
 }
 .tc-btn-delete {
   flex-shrink: 0;
-  width: 24px;
-  height: 24px;
+  width: 28px;
+  height: 28px;
   padding: 0;
   background: transparent;
   border: 1px solid transparent;
-  border-radius: 4px;
+  border-radius: 6px;
   color: var(--text-secondary);
-  font-size: 14px;
   cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   transition: all 0.15s;
 }
 .tc-btn-delete:hover {
-  border-color: var(--error, #ef4444);
-  color: var(--error, #ef4444);
+  border-color: rgba(239, 68, 68, 0.3);
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.06);
 }
 .tc-gen-progress {
   margin-top: 12px;
   background: var(--surface-raised);
   border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 10px;
+  border-radius: 10px;
+  padding: 12px;
 }
 .tc-gen-progress-label {
   font-size: 12px;
   font-weight: 600;
-  color: var(--text-secondary);
-  margin-bottom: 4px;
+  color: var(--accent);
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.tc-gen-progress-label::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+  animation: tc-pulse 1.2s ease-in-out infinite;
+}
+@keyframes tc-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.8); }
 }
 .tc-gen-progress-text {
   margin: 0;
@@ -1316,32 +1190,46 @@ function formatOutput(data: any): string {
   white-space: pre-wrap;
   word-break: break-all;
   color: var(--text-primary);
+  line-height: 1.5;
 }
 .tc-overlay {
   position: fixed;
   inset: 0;
   z-index: 9999;
-  background: rgba(0, 0, 0, 0.7);
+  background: rgba(0, 0, 0, 0.75);
   display: flex;
   align-items: center;
   justify-content: center;
+  backdrop-filter: blur(4px);
+  animation: tcOverlayIn 0.15s ease;
+}
+@keyframes tcOverlayIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 .tc-overlay-content {
   background: var(--surface-bg);
   border: 1px solid var(--border);
-  border-radius: 12px;
-  width: 90vw;
-  height: 90vh;
+  border-radius: 14px;
+  width: 92vw;
+  height: 92vh;
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.5);
+  animation: tcOverlaySlide 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+@keyframes tcOverlaySlide {
+  from { opacity: 0; transform: scale(0.96); }
+  to { opacity: 1; transform: scale(1); }
 }
 .tc-overlay-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 16px 20px;
+  padding: 18px 24px;
   border-bottom: 1px solid var(--border);
+  background: var(--surface-alt);
 }
 .tc-overlay-header-actions {
   display: flex;
@@ -1351,29 +1239,33 @@ function formatOutput(data: any): string {
 .tc-format-btn {
   background: var(--surface-raised);
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: 8px;
   color: var(--text-primary);
   font-size: 12px;
-  font-weight: 500;
-  padding: 4px 12px;
+  font-weight: 600;
+  padding: 6px 14px;
   cursor: pointer;
+  transition: all 0.15s;
 }
 .tc-format-btn:hover {
   border-color: var(--accent);
   color: var(--accent);
 }
 .tc-overlay-title {
-  font-size: 16px;
-  font-weight: 600;
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.2px;
 }
 .tc-fullscreen-close {
   background: none;
   border: none;
   color: var(--text-secondary);
-  font-size: 20px;
+  font-size: 22px;
   cursor: pointer;
   padding: 4px 8px;
-  border-radius: 4px;
+  border-radius: 6px;
+  line-height: 1;
+  transition: all 0.15s;
 }
 .tc-fullscreen-close:hover {
   color: var(--text-primary);
@@ -1382,23 +1274,34 @@ function formatOutput(data: any): string {
 .tc-overlay-body {
   flex: 1;
   overflow: auto;
-  padding: 20px;
+  padding: 24px;
 }
 .tc-overlay-textarea {
   width: 100%;
   height: 100%;
   background: var(--surface-raised);
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: 10px;
   color: var(--text-primary);
-  font-family: monospace;
+  font-family: "SF Mono", "Cascadia Code", "Fira Code", Menlo, Consolas, monospace;
   font-size: 13px;
-  padding: 12px;
+  padding: 14px;
   resize: none;
   box-sizing: border-box;
+  line-height: 1.6;
 }
 .tc-overlay-textarea:focus {
   outline: none;
   border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-dim);
+}
+
+@media (max-width: 768px) {
+  .tc-panels {
+    flex-direction: column;
+  }
+  .tc-panel {
+    min-height: auto;
+  }
 }
 </style>

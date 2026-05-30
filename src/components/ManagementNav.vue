@@ -20,6 +20,7 @@ const themes = [
 ]
 
 const currentTheme = ref(localStorage.getItem("theme") || "light")
+const scrolled = ref(false)
 
 function setTheme(v: string) {
   currentTheme.value = v
@@ -28,7 +29,14 @@ function setTheme(v: string) {
 }
 
 watch(currentTheme, setTheme)
-onMounted(() => setTheme(currentTheme.value))
+onMounted(() => {
+  setTheme(currentTheme.value)
+  window.addEventListener("scroll", onScroll, { passive: true })
+})
+
+function onScroll() {
+  scrolled.value = window.scrollY > 4
+}
 
 function isActive(path: string) {
   return route.path.startsWith(path)
@@ -40,22 +48,46 @@ function toggleLang() {
 </script>
 
 <template>
-  <nav class="mgmt-nav">
+  <nav class="mgmt-nav" :class="{ scrolled }">
     <div class="mgmt-nav-inner">
-      <button class="btn-back" @click="router.push('/')">&larr; {{ t("mgmt_back") }}</button>
-      <div class="mgmt-nav-tabs">
-        <router-link to="/manage/scenes" class="nav-tab" :class="{ active: isActive('/manage/scenes') }">{{ t("mgmt_scenes") }}</router-link>
-        <router-link to="/manage/agents" class="nav-tab" :class="{ active: isActive('/manage/agents') }">{{ t("mgmt_agents") }}</router-link>
-        <router-link to="/manage/tools" class="nav-tab" :class="{ active: isActive('/manage/tools') }">{{ t("mgmt_tools") }}</router-link>
+      <button class="nav-back" @click="router.push('/')" :title="t('mgmt_back')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M19 12H5M12 19l-7-7 7-7"/>
+        </svg>
+      </button>
+
+      <div class="nav-tabs">
+        <router-link to="/manage/scenes" class="nav-tab" :class="{ active: isActive('/manage/scenes') }">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>
+          </svg>
+          <span>{{ t("mgmt_scenes") }}</span>
+        </router-link>
+        <router-link to="/manage/agents" class="nav-tab" :class="{ active: isActive('/manage/agents') }">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+          </svg>
+          <span>{{ t("mgmt_agents") }}</span>
+        </router-link>
+        <router-link to="/manage/tools" class="nav-tab" :class="{ active: isActive('/manage/tools') }">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
+          </svg>
+          <span>{{ t("mgmt_tools") }}</span>
+        </router-link>
+        <router-link v-if="route.path.startsWith('/manage/eval')" to="/manage/eval" class="nav-tab" :class="{ active: isActive('/manage/eval') }">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+          </svg>
+          <span>{{ t("evaluation") }}</span>
+        </router-link>
       </div>
-      <div class="mgmt-nav-controls">
-        <div class="control-group">
-          <label class="control-label">{{ t("theme") }}</label>
-          <select v-model="currentTheme" class="control-select">
-            <option v-for="th in themes" :key="th.value" :value="th.value">{{ t(th.labelKey) }}</option>
-          </select>
-        </div>
-        <button class="lang-btn" @click="toggleLang">{{ locale === "zh" ? "EN" : "中文" }}</button>
+
+      <div class="nav-controls">
+        <select v-model="currentTheme" class="nav-select" :title="t('theme')">
+          <option v-for="th in themes" :key="th.value" :value="th.value">{{ t(th.labelKey) }}</option>
+        </select>
+        <button class="nav-lang-btn" @click="toggleLang">{{ locale === "zh" ? "EN" : "中" }}</button>
       </div>
     </div>
   </nav>
@@ -63,84 +95,163 @@ function toggleLang() {
 
 <style scoped>
 .mgmt-nav {
-  border-bottom: 1px solid var(--border);
-  background: var(--surface-bg);
   position: sticky;
   top: 0;
   z-index: 100;
+  background: var(--surface-bg);
+  border-bottom: 1px solid transparent;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  transition: border-color 0.2s, box-shadow 0.2s;
 }
+.mgmt-nav.scrolled {
+  border-bottom-color: var(--border);
+  box-shadow: 0 1px 8px rgba(0, 0, 0, 0.06);
+}
+
 .mgmt-nav-inner {
-  max-width: 1060px;
+  max-width: 1160px;
   margin: 0 auto;
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 0 24px;
-  height: 52px;
+  gap: 16px;
+  padding: 0 28px;
+  height: 56px;
 }
-.btn-back {
+
+.nav-back {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
   background: none;
   border: 1px solid var(--border);
-  color: var(--text-primary);
-  padding: 4px 10px;
-  border-radius: 6px;
+  border-radius: 10px;
+  color: var(--text-secondary);
   cursor: pointer;
-  font-size: 12px;
-  white-space: nowrap;
+  flex-shrink: 0;
+  transition: all 0.15s;
 }
-.btn-back:hover { background: var(--surface-raised); }
-.mgmt-nav-tabs {
+.nav-back:hover {
+  background: var(--surface-raised);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.nav-back:active { transform: scale(0.95); }
+
+.nav-tabs {
   display: flex;
   gap: 2px;
   flex: 1;
+  background: var(--surface-raised);
+  border-radius: 12px;
+  padding: 4px;
+  border: 1px solid var(--border);
 }
+
 .nav-tab {
-  padding: 6px 14px;
-  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 16px;
+  border-radius: 10px;
   font-size: 13px;
   font-weight: 600;
   color: var(--text-secondary);
   text-decoration: none;
-  transition: background 0.15s, color 0.15s;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
 }
-.nav-tab:hover { background: var(--surface-raised); color: var(--text-primary); }
+.nav-tab:hover {
+  background: var(--surface-bg);
+  color: var(--text-primary);
+}
 .nav-tab.active {
   background: var(--accent);
   color: #fff;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.18);
 }
-.mgmt-nav-controls {
+.nav-tab svg {
+  flex-shrink: 0;
+}
+
+.nav-controls {
   display: flex;
   align-items: center;
   gap: 8px;
 }
-.control-group {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-.control-label {
-  font-size: 11px;
-  color: var(--text-secondary);
-  white-space: nowrap;
-}
-.control-select {
-  padding: 4px 6px;
+
+.nav-select {
+  padding: 6px 10px;
   border: 1px solid var(--border);
-  border-radius: 4px;
+  border-radius: 8px;
   background: var(--surface-raised);
   color: var(--text-primary);
   font-size: 12px;
   cursor: pointer;
+  font-family: inherit;
+  font-weight: 500;
+  transition: border-color 0.15s, box-shadow 0.15s;
 }
-.lang-btn {
+.nav-select:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-dim);
+}
+
+.nav-lang-btn {
   background: var(--surface-raised);
   border: 1px solid var(--border);
   color: var(--text-primary);
-  padding: 4px 10px;
-  border-radius: 4px;
+  padding: 6px 12px;
+  border-radius: 8px;
   cursor: pointer;
   font-size: 12px;
   font-weight: 600;
+  font-family: inherit;
+  min-width: 36px;
+  text-align: center;
+  transition: all 0.15s;
 }
-.lang-btn:hover { background: var(--border); }
+.nav-lang-btn:hover {
+  background: var(--surface-alt);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.nav-lang-btn:active { transform: scale(0.95); }
+
+@media (max-width: 768px) {
+  .mgmt-nav-inner {
+    padding: 0 12px;
+    gap: 8px;
+  }
+  .nav-tab {
+    padding: 7px 10px;
+    font-size: 12px;
+    gap: 4px;
+  }
+  .nav-tab svg {
+    width: 13px;
+    height: 13px;
+  }
+}
+
+@media (max-width: 480px) {
+  .nav-tab span {
+    display: none;
+  }
+  .nav-tab {
+    padding: 7px 12px;
+    gap: 0;
+  }
+  .nav-tab svg {
+    width: 16px;
+    height: 16px;
+    margin: 0 auto;
+  }
+  .nav-tabs {
+    justify-content: center;
+  }
+}
 </style>

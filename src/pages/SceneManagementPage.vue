@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { ref, onMounted } from "vue"
+import { ref, computed, onMounted } from "vue"
 import {
   fetchManageScenarios,
+  fetchManageScenario,
   createManageScenario,
   updateManageScenario,
   deleteManageScenario,
@@ -63,6 +64,14 @@ function applyLocaleToForm() {
   form.value.name_locale = composeLocaleJson(localeForm.value.name_zh, localeForm.value.name_en)
   form.value.description_locale = composeLocaleJson(localeForm.value.desc_zh, localeForm.value.desc_en)
 }
+
+const searchQuery = ref("")
+const currentPage = ref(1)
+const pageSize = ref(15)
+const total = ref(0)
+
+const totalPages = computed(() => Math.max(1, Math.ceil(total.value / pageSize.value)))
+
 const saving = ref(false)
 
 // detail panel
@@ -76,14 +85,35 @@ const showAddTool = ref("")  // agent name
 async function load() {
   loading.value = true
   try {
-    scenarios.value = await fetchManageScenarios()
-    allAgents.value = await fetchManageAgents()
-    allTools.value = await fetchManageTools()
+    const [scenarioResp, agentList, toolList] = await Promise.all([
+      fetchManageScenarios({ q: searchQuery.value, page: currentPage.value, page_size: pageSize.value }),
+      fetchManageAgents(),
+      fetchManageTools(),
+    ])
+    scenarios.value = scenarioResp.items
+    total.value = scenarioResp.total
+    allAgents.value = agentList.items
+    allTools.value = toolList.items
   } catch (e) {
     alert("Failed to load: " + (e as Error).message)
   } finally {
     loading.value = false
   }
+}
+
+function onSearch() {
+  currentPage.value = 1
+  load()
+}
+
+function goToPage(page: number) {
+  currentPage.value = page
+  load()
+}
+
+function onPageSizeChange() {
+  currentPage.value = 1
+  load()
 }
 
 function openCreate() {
@@ -136,8 +166,7 @@ async function openDetail(s: ManageScenario) {
   showAddAgent.value = false
   showAddTool.value = ""
   try {
-    // re-fetch to get latest agents/tools data
-    detailScenario.value = (await fetchManageScenarios()).find(x => x.id === s.id) ?? s
+    detailScenario.value = await fetchManageScenario(s.id)
     showDetail.value = true
   } catch {
     detailScenario.value = s
@@ -181,6 +210,7 @@ async function handleAddTool(agentName: string) {
 
 async function handleRemoveTool(agentName: string, toolName: string) {
   if (!detailScenario.value) return
+  if (!confirm(`Remove tool "${getToolDisplay(toolName)}" from agent "${getAgentDisplay(agentName)}"?`)) return
   try {
     detailScenario.value = await removeAgentTool(detailScenario.value.id, agentName, toolName)
     await load()
@@ -230,23 +260,30 @@ onMounted(load)
         <button class="btn-primary" @click="openCreate">{{ t("mgmt_new_scene") }}</button>
       </header>
 
+      <div class="mgmt-toolbar">
+        <input v-model="searchQuery" class="mgmt-search" :placeholder="t('mgmt_search_placeholder')" @keyup.enter="onSearch" />
+        <button class="btn-search" @click="onSearch">{{ t("mgmt_search") }}</button>
+      </div>
+
       <div v-if="loading" class="mgmt-loading">{{ t("mgmt_loading") }}</div>
-      <div v-else-if="scenarios.length === 0" class="mgmt-empty">{{ t("mgmt_no_scenes") }}</div>
-      <table v-else class="mgmt-table">
-        <thead>
-          <tr>
-            <th>{{ t("mgmt_icon") }}</th>
-            <th>{{ t("mgmt_id") }}</th>
-            <th>{{ t("mgmt_name") }}</th>
-            <th>{{ t("mgmt_description") }}</th>
-            <th>{{ t("mgmt_agent_count") }}</th>
-            <th>{{ t("mgmt_created_at") }}</th>
-            <th>{{ t("mgmt_updated_at") }}</th>
-            <th>{{ t("mgmt_actions") }}</th>
-          </tr>
-        </thead>
-      <tbody>
-        <tr v-for="s in scenarios" :key="s.id" class="clickable-row" @click="openDetail(s)">
+      <div v-else-if="scenarios.length === 0" class="mgmt-empty">{{ searchQuery ? t("mgmt_no_results") : t("mgmt_no_scenes") }}</div>
+      <div v-else>
+        <div class="table-wrap">
+          <table class="mgmt-table">
+            <thead>
+              <tr>
+                <th>{{ t("mgmt_icon") }}</th>
+                <th>{{ t("mgmt_id") }}</th>
+                <th>{{ t("mgmt_name") }}</th>
+                <th>{{ t("mgmt_description") }}</th>
+                <th>{{ t("mgmt_agent_count") }}</th>
+                <th>{{ t("mgmt_created_at") }}</th>
+                <th>{{ t("mgmt_updated_at") }}</th>
+                <th>{{ t("mgmt_actions") }}</th>
+              </tr>
+            </thead>
+          <tbody>
+            <tr v-for="s in scenarios" :key="s.id" class="clickable-row" @click="openDetail(s)">
           <td class="cell-icon">{{ s.icon }}</td>
           <td><code>{{ s.id }}</code></td>
           <td>{{ localeVal(s.name_locale, s.name) }}</td>
@@ -261,6 +298,19 @@ onMounted(load)
           </tr>
         </tbody>
       </table>
+        </div>
+        <div class="mgmt-pagination">
+          <button class="btn-page" :disabled="currentPage <= 1" @click="goToPage(currentPage - 1)">{{ t("mgmt_prev_page") }}</button>
+          <span class="mgmt-page-info">{{ currentPage }} / {{ totalPages }}</span>
+          <button class="btn-page" :disabled="currentPage >= totalPages" @click="goToPage(currentPage + 1)">{{ t("mgmt_next_page") }}</button>
+          <select v-model.number="pageSize" class="mgmt-page-size" @change="onPageSizeChange">
+            <option :value="10">10</option>
+            <option :value="15">15</option>
+            <option :value="20">20</option>
+            <option :value="50">50</option>
+          </select>
+        </div>
+      </div>
 
     <Teleport to="body">
       <div v-if="showDialog" class="dialog-overlay" @click.self="showDialog = false">
@@ -314,11 +364,15 @@ onMounted(load)
       <div v-if="showDetail && detailScenario" class="dialog-overlay" @click.self="showDetail = false">
         <div class="dialog dialog-lg">
           <div class="detail-header">
-            <h2>{{ detailScenario.icon }} {{ localeVal(detailScenario.name_locale, detailScenario.name) }}</h2>
+            <span class="detail-icon">{{ detailScenario.icon }}</span>
+            <h2>{{ localeVal(detailScenario.name_locale, detailScenario.name) }}</h2>
             <button class="btn-close" @click="showDetail = false">&times;</button>
           </div>
           <div class="detail-meta">
-            <code>ID: {{ detailScenario.id }}</code>
+            <div class="detail-meta-row">
+              <code class="detail-id">ID: {{ detailScenario.id }}</code>
+              <span class="badge badge-neutral">{{ (detailScenario.agents ?? []).length }} agents</span>
+            </div>
             <p>{{ localeVal(detailScenario.description_locale, detailScenario.description) }}</p>
             <div class="detail-audit">
               <span v-if="detailScenario.created_at"><strong>{{ t("mgmt_created_at") }}:</strong> {{ fmtAudit(detailScenario.created_at, detailScenario.created_by) }}</span>
@@ -329,7 +383,7 @@ onMounted(load)
           <div class="detail-section">
             <div class="section-header">
               <h3>{{ t("mgmt_detail_agents_tools") }}</h3>
-              <button class="btn-sm" @click="showAddAgent = !showAddAgent">{{ t("mgmt_add_agent") }}</button>
+              <button class="btn-sm" @click="showAddAgent = !showAddAgent">{{ showAddAgent ? t("mgmt_cancel") : t("mgmt_add_agent") }}</button>
             </div>
 
             <div v-if="showAddAgent" class="inline-form">
@@ -340,7 +394,6 @@ onMounted(load)
                 </option>
               </select>
               <button class="btn-sm btn-primary" :disabled="!addAgentName" @click="handleAddAgent">{{ t("mgmt_save") }}</button>
-              <button class="btn-sm" @click="showAddAgent = false">{{ t("mgmt_cancel") }}</button>
             </div>
 
             <div v-if="!detailScenario.agents || detailScenario.agents.length === 0" class="empty-hint">
@@ -348,13 +401,16 @@ onMounted(load)
             </div>
             <div v-for="a in (detailScenario.agents ?? [])" :key="a.name" class="agent-card">
               <div class="agent-card-header">
-                <strong>{{ getAgentDisplay(a.name) }}</strong>
+                <div class="agent-card-info">
+                  <strong>{{ getAgentDisplay(a.name) }}</strong>
+                  <span class="badge badge-accent" v-if="(a.tool_names ?? []).length">{{ (a.tool_names ?? []).length }} tools</span>
+                </div>
                 <button class="btn-sm btn-danger" @click="handleRemoveAgent(a.name)">{{ t("mgmt_remove") }}</button>
               </div>
               <div class="tool-list">
-                <span v-for="t in (a.tool_names ?? [])" :key="t" class="tool-tag">
-                  {{ getToolDisplay(t) }}
-                  <button class="tool-tag-remove" @click="handleRemoveTool(a.name, t)">&times;</button>
+                <span v-for="tn in (a.tool_names ?? [])" :key="tn" class="tool-tag">
+                  {{ getToolDisplay(tn) }}
+                  <button class="tool-tag-remove" @click="handleRemoveTool(a.name, tn)" :title="t('mgmt_remove')">&times;</button>
                 </span>
                 <span v-if="!a.tool_names || a.tool_names.length === 0" class="text-muted">{{ t("mgmt_no_tools_assigned") }}</span>
               </div>
@@ -379,321 +435,27 @@ onMounted(load)
 </template>
 
 <style scoped>
-.mgmt-page {
-  color: var(--text-primary);
-}
-.mgmt-page-content {
-  max-width: 1060px;
-  margin: 0 auto;
-  padding: 24px;
-}
-.mgmt-header {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 24px;
-}
-.mgmt-header h1 {
-  flex: 1;
-  margin: 0;
-  font-size: 20px;
-}
-.btn-back {
-  background: none;
-  border: 1px solid var(--border);
-  color: var(--text-primary);
-  padding: 6px 12px;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 13px;
-}
-.btn-back:hover { background: var(--surface-raised); }
-.btn-primary {
-  background: var(--accent);
-  color: #fff;
-  border: none;
-  padding: 8px 16px;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 13px;
-  font-weight: 600;
-}
-.btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
-.btn-cancel {
-  background: var(--surface-raised);
-  color: var(--text-primary);
-  border: 1px solid var(--border);
-  padding: 8px 16px;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 13px;
-}
-.btn-sm {
-  background: var(--surface-raised);
-  color: var(--text-primary);
-  border: 1px solid var(--border);
-  padding: 4px 10px;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 12px;
-}
-.btn-sm:hover { background: var(--border); }
-.btn-close {
-  background: none;
-  border: none;
-  color: var(--text-secondary);
+.detail-icon {
   font-size: 28px;
-  cursor: pointer;
   line-height: 1;
-  padding: 0 4px;
 }
-.mgmt-loading, .mgmt-empty {
-  text-align: center;
-  padding: 40px;
-  color: var(--text-secondary);
-}
-.mgmt-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 13px;
-}
-.mgmt-table th {
-  text-align: left;
-  padding: 10px 12px;
-  border-bottom: 2px solid var(--border);
-  color: var(--text-secondary);
-  font-weight: 600;
-  white-space: nowrap;
-}
-.mgmt-table td {
-  padding: 10px 12px;
-  border-bottom: 1px solid var(--border);
-}
-.mgmt-table tr:hover td { background: var(--surface-raised); }
-.clickable-row { cursor: pointer; }
-.cell-icon { font-size: 20px; }
-.cell-desc {
-  max-width: 200px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.cell-actions { white-space: nowrap; }
-.btn-action {
-  background: none;
-  border: 1px solid var(--border);
-  color: var(--text-primary);
-  padding: 4px 10px;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 12px;
-  margin-right: 4px;
-}
-.btn-action:hover { background: var(--surface-raised); }
-.btn-danger { color: #ef4444; border-color: #ef4444; }
-.btn-danger:hover { background: rgba(239, 68, 68, 0.1); }
-.cell-audit { white-space: nowrap; font-size: 12px; color: var(--text-secondary); }
-
-/* Detail panel */
-.dialog-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.5);
+.detail-meta-row {
   display: flex;
   align-items: center;
-  justify-content: center;
-  z-index: 1000;
-}
-.dialog {
-  background: var(--surface-bg);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 24px;
-  width: 75vw;
-  max-width: 720px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-}
-.dialog-lg {
-  width: 80vw;
-  max-width: 800px;
-}
-.dialog h2 { margin: 0; font-size: 18px; }
-.form-group { margin-bottom: 16px; }
-.form-group label {
-  display: block;
-  font-size: 12px;
-  color: var(--text-secondary);
-  margin-bottom: 4px;
-  font-weight: 600;
-}
-.form-group input,
-.form-group textarea {
-  width: 100%;
-  padding: 8px 10px;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  background: var(--surface-raised);
-  color: var(--text-primary);
-  font-size: 13px;
-  font-family: inherit;
-  box-sizing: border-box;
-}
-.form-group textarea { resize: vertical; }
-.dialog-actions {
-  display: flex;
-  gap: 8px;
-  justify-content: flex-end;
-  margin-top: 20px;
-}
-.locale-section {
-  margin: 12px 0;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 8px 12px;
-}
-.locale-section summary {
-  cursor: pointer;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--text-secondary);
+  gap: 10px;
   margin-bottom: 8px;
 }
-.locale-field {
-  margin-bottom: 10px;
+.detail-id {
+  font-size: 12px;
+  opacity: 0.7;
 }
-.locale-field:last-child {
-  margin-bottom: 0;
-}
-.locale-field-label {
-  font-size: 11px;
-  color: var(--text-secondary);
-  margin-bottom: 4px;
-  font-weight: 600;
-}
-.locale-input-row {
+.agent-card-info {
   display: flex;
+  align-items: center;
   gap: 8px;
-}
-.locale-lang {
   flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  font-size: 11px;
-  color: var(--text-muted);
-  font-family: inherit;
-}
-.locale-lang input,
-.locale-lang textarea {
-  width: 100%;
-  padding: 6px 8px;
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  background: var(--surface-raised);
-  color: var(--text-primary);
-  font-size: 12px;
-  font-family: inherit;
-  box-sizing: border-box;
-}
-.locale-lang textarea {
-  resize: vertical;
-}
-.detail-header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 12px;
-}
-.detail-header h2 { flex: 1; }
-.detail-meta {
-  font-size: 12px;
-  color: var(--text-secondary);
-  margin-bottom: 20px;
-}
-.detail-meta p { margin: 4px 0 0; }
-.detail-audit { display: flex; gap: 16px; margin-top: 8px; font-size: 12px; color: var(--text-secondary); }
-.detail-section {
-  border-top: 1px solid var(--border);
-  padding-top: 16px;
-}
-.section-header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 12px;
-}
-.section-header h3 { margin: 0; font-size: 14px; flex: 1; }
-.inline-form {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  margin-bottom: 12px;
-  flex-wrap: wrap;
-}
-.inline-form.compact { margin-top: 4px; margin-bottom: 4px; }
-.sel {
-  padding: 4px 8px;
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  background: var(--surface-raised);
-  color: var(--text-primary);
-  font-size: 12px;
-  min-width: 180px;
-}
-.inline-form input {
-  flex: 1;
-  min-width: 140px;
-  padding: 4px 8px;
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  background: var(--surface-raised);
-  color: var(--text-primary);
-  font-size: 12px;
-}
-.agent-card {
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 12px;
-  margin-bottom: 8px;
-  background: var(--surface-raised);
-}
-.agent-card-header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 8px;
-}
-.agent-card-header strong { flex: 1; font-size: 13px; }
-.tool-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-bottom: 8px;
-}
-.tool-tag {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 2px 8px;
-  background: var(--accent-dim);
-  border-radius: 12px;
-  font-size: 11px;
-  color: var(--text-primary);
-}
-.tool-tag-remove {
-  background: none;
-  border: none;
-  color: var(--text-secondary);
-  cursor: pointer;
-  font-size: 14px;
-  line-height: 1;
-  padding: 0;
-}
-.tool-tag-remove:hover { color: #ef4444; }
-.text-muted { color: var(--text-muted); font-size: 12px; }
-.empty-hint {
-  color: var(--text-muted);
-  font-size: 12px;
-  padding: 8px 0;
+  min-width: 0;
 }
 </style>
+
+
