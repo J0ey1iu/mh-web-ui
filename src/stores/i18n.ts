@@ -142,6 +142,8 @@ const messages: Record<Locale, Record<string, string>> = {
     mgmt_tools_for_agent: "该 Agent 的工具",
     mgmt_add_agents: "添加 Agent",
     mgmt_assign_tool: "分配工具",
+    mgmt_tab_manage: "管理",
+    mgmt_tab_create: "创建",
   },
   en: {
     sessions: "Sessions",
@@ -278,6 +280,8 @@ const messages: Record<Locale, Record<string, string>> = {
     mgmt_tools_for_agent: "Agent Tools",
     mgmt_add_agents: "Add Agent",
     mgmt_assign_tool: "Assign Tool",
+    mgmt_tab_manage: "Manage",
+    mgmt_tab_create: "Create",
   },
 }
 

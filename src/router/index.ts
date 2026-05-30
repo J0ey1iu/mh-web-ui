@@ -10,11 +10,6 @@ const routes: RouteRecordRaw[] = [
     component: ComponentsDemoPage,
   },
   {
-    path: "/tool-creator",
-    name: "tool-creator",
-    component: () => import("../pages/ToolCreatorPage.vue"),
-  },
-  {
     path: "/scenes",
     name: "scenes",
     component: () => import("../pages/SceneManagementPage.vue"),
