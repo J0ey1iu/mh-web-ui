@@ -443,12 +443,11 @@ function formatOutput(data: any): string {
           <button :class="['tab-btn', { active: activeTab === 'manage' }]" @click="activeTab = 'manage'">{{ t("mgmt_tab_manage") }}</button>
           <button :class="['tab-btn', { active: activeTab === 'create' }]" @click="activeTab = 'create'">{{ t("mgmt_tab_create") }}</button>
         </div>
+        <button v-if="activeTab === 'manage'" class="btn-primary" @click="openCreate">{{ t("mgmt_new_tool") }}</button>
       </header>
 
       <!-- ===== Manage Tools Tab ===== -->
       <div v-if="activeTab === 'manage'">
-        <button class="btn-primary" @click="openCreate">{{ t("mgmt_new_tool") }}</button>
-
         <div class="mgmt-toolbar">
           <input v-model="searchQuery" class="mgmt-search" :placeholder="t('mgmt_search_placeholder')" @keyup.enter="onSearch" />
           <button class="btn-search" @click="onSearch">{{ t("mgmt_search") }}</button>
