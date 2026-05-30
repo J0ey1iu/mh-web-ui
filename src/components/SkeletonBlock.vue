@@ -27,14 +27,15 @@ withDefaults(defineProps<{
 <style scoped>
 .skeleton {
   background: linear-gradient(
-    90deg,
-    var(--surface-raised) 25%,
-    var(--border-hover) 50%,
-    var(--surface-raised) 75%
+    110deg,
+    var(--glass-highlight) 25%,
+    var(--glass-border) 50%,
+    var(--glass-highlight) 75%
   );
   background-size: 200% 100%;
   animation: shimmer 1.5s ease-in-out infinite;
   flex-shrink: 0;
+  border-radius: inherit;
 }
 .skeleton-block {
   min-height: 8px;

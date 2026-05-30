@@ -42,13 +42,15 @@ const statusIcon = computed(() => {
 .tool-card {
   margin: 4px 0;
   padding: 8px 12px;
-  border-radius: 6px;
+  border-radius: 8px;
   font-size: 13px;
-  background: var(--surface-alt);
-  border: 1px solid var(--border);
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  transition: border-color var(--transition-duration);
 }
 .tool-card.running {
   border-color: var(--accent);
+  box-shadow: 0 0 12px rgba(96, 165, 250, 0.15);
 }
 .tool-card.success {
   border-color: var(--success);

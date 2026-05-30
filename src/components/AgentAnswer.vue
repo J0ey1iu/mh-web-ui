@@ -39,11 +39,12 @@ const rendered = computed(() => {
   font-family: "SF Mono", "Fira Code", "Fira Mono", Menlo, Consolas, monospace;
   font-size: 13px;
   color: var(--text-primary);
+  border: 1px solid var(--glass-border);
 }
 .agent-answer :deep(pre) {
   background: var(--pre-bg);
-  border: 1px solid var(--border);
-  border-radius: 6px;
+  border: 1px solid var(--glass-border);
+  border-radius: 8px;
   padding: 12px;
   margin: 8px 0;
   overflow-x: auto;
@@ -53,6 +54,7 @@ const rendered = computed(() => {
   padding: 0;
   font-size: 13px;
   line-height: 1.5;
+  border: none;
 }
 .agent-answer :deep(a) {
   color: var(--accent);
@@ -64,10 +66,13 @@ const rendered = computed(() => {
 .agent-answer :deep(blockquote) {
   border-left: 3px solid var(--accent);
   margin: 8px 0;
-  padding: 4px 12px;
+  padding: 8px 12px;
   color: var(--text-secondary);
-  background: var(--surface-bg);
-  border-radius: 0 4px 4px 0;
+  background: var(--glass-highlight);
+  border-radius: 0 6px 6px 0;
+  border-top: 1px solid var(--glass-border);
+  border-right: 1px solid var(--glass-border);
+  border-bottom: 1px solid var(--glass-border);
 }
 .agent-answer :deep(ul),
 .agent-answer :deep(ol) {
@@ -93,20 +98,23 @@ const rendered = computed(() => {
   margin: 8px 0;
   width: 100%;
   font-size: 13px;
+  border: 1px solid var(--glass-border);
+  border-radius: 8px;
+  overflow: hidden;
 }
 .agent-answer :deep(th),
 .agent-answer :deep(td) {
-  border: 1px solid var(--border);
+  border: 1px solid var(--glass-border);
   padding: 6px 10px;
   text-align: left;
 }
 .agent-answer :deep(th) {
-  background: var(--surface-bg);
+  background: var(--glass-highlight);
   font-weight: 600;
 }
 .agent-answer :deep(hr) {
   border: none;
-  border-top: 1px solid var(--border);
+  border-top: 1px solid var(--glass-border);
   margin: 12px 0;
 }
 .agent-answer :deep(strong) {

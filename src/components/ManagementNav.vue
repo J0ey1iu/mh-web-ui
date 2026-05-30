@@ -98,15 +98,15 @@ function toggleLang() {
   position: sticky;
   top: 0;
   z-index: 100;
-  background: var(--surface-bg);
+  background: var(--glass-bg);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   border-bottom: 1px solid transparent;
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  transition: border-color 0.2s, box-shadow 0.2s;
+  transition: border-color 0.3s, box-shadow 0.3s;
 }
 .mgmt-nav.scrolled {
-  border-bottom-color: var(--border);
-  box-shadow: 0 1px 8px rgba(0, 0, 0, 0.06);
+  border-bottom-color: var(--glass-border);
+  box-shadow: var(--glass-shadow);
 }
 
 .mgmt-nav-inner {
@@ -125,18 +125,19 @@ function toggleLang() {
   justify-content: center;
   width: 36px;
   height: 36px;
-  background: none;
-  border: 1px solid var(--border);
+  background: var(--glass-highlight);
+  border: 1px solid var(--glass-border);
   border-radius: 10px;
   color: var(--text-secondary);
   cursor: pointer;
   flex-shrink: 0;
-  transition: all 0.15s;
+  transition: all var(--transition-duration);
 }
 .nav-back:hover {
-  background: var(--surface-raised);
+  background: var(--accent-dim);
   border-color: var(--accent);
   color: var(--accent);
+  transform: scale(1.05);
 }
 .nav-back:active { transform: scale(0.95); }
 
@@ -144,10 +145,10 @@ function toggleLang() {
   display: flex;
   gap: 2px;
   flex: 1;
-  background: var(--surface-raised);
+  background: var(--glass-highlight);
   border-radius: 12px;
   padding: 4px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--glass-border);
 }
 
 .nav-tab {
@@ -160,7 +161,7 @@ function toggleLang() {
   font-weight: 600;
   color: var(--text-secondary);
   text-decoration: none;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
 }
 .nav-tab:hover {
@@ -170,7 +171,9 @@ function toggleLang() {
 .nav-tab.active {
   background: var(--accent);
   color: #fff;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.18);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
 .nav-tab svg {
   flex-shrink: 0;
@@ -184,15 +187,15 @@ function toggleLang() {
 
 .nav-select {
   padding: 6px 10px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--glass-border);
   border-radius: 8px;
-  background: var(--surface-raised);
+  background: var(--glass-highlight);
   color: var(--text-primary);
   font-size: 12px;
   cursor: pointer;
   font-family: inherit;
   font-weight: 500;
-  transition: border-color 0.15s, box-shadow 0.15s;
+  transition: border-color var(--transition-duration), box-shadow var(--transition-duration);
 }
 .nav-select:focus {
   outline: none;
@@ -201,8 +204,8 @@ function toggleLang() {
 }
 
 .nav-lang-btn {
-  background: var(--surface-raised);
-  border: 1px solid var(--border);
+  background: var(--glass-highlight);
+  border: 1px solid var(--glass-border);
   color: var(--text-primary);
   padding: 6px 12px;
   border-radius: 8px;
@@ -212,12 +215,13 @@ function toggleLang() {
   font-family: inherit;
   min-width: 36px;
   text-align: center;
-  transition: all 0.15s;
+  transition: all var(--transition-duration);
 }
 .nav-lang-btn:hover {
-  background: var(--surface-alt);
+  background: var(--accent-dim);
   border-color: var(--accent);
   color: var(--accent);
+  transform: scale(1.05);
 }
 .nav-lang-btn:active { transform: scale(0.95); }
 

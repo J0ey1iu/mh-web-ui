@@ -162,8 +162,8 @@ async function copy(text: string) {
   flex-direction: row-reverse;
 }
 .avatar {
-  width: 32px;
-  height: 32px;
+  width: 34px;
+  height: 34px;
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -171,19 +171,22 @@ async function copy(text: string) {
   font-weight: 700;
   font-size: 14px;
   flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 .message.user .avatar {
   background: var(--accent-dim);
   color: var(--accent);
+  border: 1px solid var(--glass-border);
 }
 .message.assistant .avatar {
   background: var(--surface-bg);
   color: var(--success);
+  border: 1px solid var(--glass-border);
 }
 .bubble {
   max-width: 80%;
   padding: 10px 14px;
-  border-radius: 12px;
+  border-radius: 14px;
   font-size: 14px;
   line-height: 1.5;
 }
@@ -191,11 +194,13 @@ async function copy(text: string) {
   background: var(--accent-dim);
   color: var(--text-primary);
   border-bottom-right-radius: 4px;
+  border: 1px solid var(--glass-border);
 }
 .message.assistant .bubble {
-  background: var(--surface-alt);
+  background: var(--glass-bg);
   color: var(--text-primary);
   border-bottom-left-radius: 4px;
+  border: 1px solid var(--glass-border);
 }
 .tool-calls {
   margin-bottom: 8px;
@@ -213,20 +218,21 @@ async function copy(text: string) {
   position: absolute;
   top: 4px;
   right: 4px;
-  padding: 4px;
-  background: var(--surface-raised);
-  border: 1px solid var(--border);
+  padding: 5px;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
   border-radius: 6px;
   color: var(--text-secondary);
   cursor: pointer;
   line-height: 0;
-  opacity: 0.7;
-  transition: opacity 0.15s;
+  opacity: 0;
+  transition: opacity var(--transition-duration), color var(--transition-duration);
+}
+.copyable:hover .copy-btn {
+  opacity: 1;
 }
 .copy-btn:hover {
-  opacity: 1;
   color: var(--accent);
-  border-color: var(--accent);
 }
 .thinking {
   padding: 8px 0;

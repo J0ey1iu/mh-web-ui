@@ -97,19 +97,27 @@ const { t } = useI18nStore()
 .agent-list {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
 }
 .agent-card {
-  background: var(--surface-bg);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 16px;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 14px;
+  padding: 18px;
   cursor: pointer;
-  transition: border-color var(--transition-duration), background var(--transition-duration), color var(--transition-duration);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  transition: border-color var(--transition-duration), box-shadow var(--transition-duration), transform var(--transition-duration), backdrop-filter var(--transition-duration), -webkit-backdrop-filter var(--transition-duration);
 }
 .agent-card:hover {
   border-color: var(--accent);
-  background: var(--surface-raised);
+  transform: translateY(-1px);
+  box-shadow: var(--glass-shadow);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+.agent-card:active {
+  transform: translateY(0);
 }
 .agent-info {
   margin-bottom: 10px;
@@ -135,11 +143,14 @@ const { t } = useI18nStore()
 .tool-badge {
   font-size: 11px;
   padding: 3px 8px;
-  border-radius: 4px;
-  background: var(--accent-dim);
+  border-radius: 6px;
+  background: var(--glass-highlight);
   color: var(--text-secondary);
-  border: 1px solid var(--border);
+  border: 1px solid var(--glass-border);
   font-family: monospace;
+}
+.agent-card:hover .tool-badge {
+  border-color: var(--accent);
 }
 .empty-hint {
   text-align: center;

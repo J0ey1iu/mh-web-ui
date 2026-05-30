@@ -456,8 +456,8 @@ function formatOutput(data: any): string {
 
 .tc-panel {
   flex: 1;
-  background: var(--surface-bg);
-  border: 1px solid var(--border);
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
   border-radius: 8px;
   padding: 16px;
   overflow-y: auto;
@@ -471,8 +471,8 @@ function formatOutput(data: any): string {
 
 .tc-textarea {
   width: 100%;
-  background: var(--surface-raised);
-  border: 1px solid var(--border);
+  background: var(--glass-highlight);
+  border: 1px solid var(--glass-border);
   border-radius: 6px;
   color: var(--text-primary);
   font-size: 13px;
@@ -561,8 +561,8 @@ function formatOutput(data: any): string {
 }
 
 .tc-fullscreen-btn {
-  background: var(--surface-raised);
-  border: 1px solid var(--border);
+  background: var(--glass-highlight);
+  border: 1px solid var(--glass-border);
   border-radius: 4px;
   color: var(--text-secondary);
   cursor: pointer;
@@ -579,8 +579,8 @@ function formatOutput(data: any): string {
 .tc-input {
   width: 100%;
   padding: 8px 10px;
-  background: var(--surface-raised);
-  border: 1px solid var(--border);
+  background: var(--glass-highlight);
+  border: 1px solid var(--glass-border);
   border-radius: 6px;
   color: var(--text-primary);
   font-size: 13px;
@@ -638,8 +638,8 @@ function formatOutput(data: any): string {
 
 .tc-output {
   margin-top: 8px;
-  background: var(--surface-raised);
-  border: 1px solid var(--border);
+  background: var(--glass-highlight);
+  border: 1px solid var(--glass-border);
   border-radius: 6px;
   padding: 10px;
   min-height: 100px;
@@ -650,7 +650,7 @@ function formatOutput(data: any): string {
 .tc-output-item {
   margin-bottom: 8px;
   padding-bottom: 8px;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--glass-border);
 }
 
 .tc-output-item:last-child {
@@ -701,7 +701,7 @@ function formatOutput(data: any): string {
 
 .tc-divider {
   height: 1px;
-  background: var(--border);
+  background: var(--glass-border);
   margin: 20px 0;
 }
 
@@ -712,8 +712,8 @@ function formatOutput(data: any): string {
 .tc-nl-toggle {
   width: 100%;
   padding: 8px 12px;
-  background: var(--surface-raised);
-  border: 1px solid var(--border);
+  background: var(--glass-highlight);
+  border: 1px solid var(--glass-border);
   border-radius: 6px;
   color: var(--text-secondary);
   font-size: 13px;
@@ -738,8 +738,8 @@ function formatOutput(data: any): string {
 
 .tc-gen-progress {
   margin-top: 12px;
-  background: var(--surface-raised);
-  border: 1px solid var(--border);
+  background: var(--glass-highlight);
+  border: 1px solid var(--glass-border);
   border-radius: 6px;
   padding: 10px;
 }
@@ -770,8 +770,8 @@ function formatOutput(data: any): string {
 }
 
 .tc-overlay-content {
-  background: var(--surface-bg);
-  border: 1px solid var(--border);
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
   border-radius: 12px;
   width: 90vw;
   height: 90vh;
@@ -785,7 +785,7 @@ function formatOutput(data: any): string {
   justify-content: space-between;
   align-items: center;
   padding: 16px 20px;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--glass-border);
 }
 
 .tc-overlay-header-actions {
@@ -795,8 +795,8 @@ function formatOutput(data: any): string {
 }
 
 .tc-format-btn {
-  background: var(--surface-raised);
-  border: 1px solid var(--border);
+  background: var(--glass-highlight);
+  border: 1px solid var(--glass-border);
   border-radius: 6px;
   color: var(--text-primary);
   font-size: 12px;
@@ -827,7 +827,7 @@ function formatOutput(data: any): string {
 
 .tc-fullscreen-close:hover {
   color: var(--text-primary);
-  background: var(--surface-raised);
+  background: var(--glass-highlight);
 }
 
 .tc-overlay-body {
@@ -841,7 +841,7 @@ function formatOutput(data: any): string {
   font-size: 13px;
   line-height: 1.6;
   background: #0d1117;
-  border: 1px solid var(--border);
+  border: 1px solid var(--glass-border);
   border-radius: 6px;
   padding: 16px;
   color: #c9d1d9;
@@ -850,8 +850,8 @@ function formatOutput(data: any): string {
 .tc-overlay-textarea {
   width: 100%;
   height: 100%;
-  background: var(--surface-raised);
-  border: 1px solid var(--border);
+  background: var(--glass-highlight);
+  border: 1px solid var(--glass-border);
   border-radius: 6px;
   color: var(--text-primary);
   font-family: monospace;

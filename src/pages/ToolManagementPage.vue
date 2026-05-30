@@ -767,8 +767,8 @@ function formatOutput(data: any): string {
 }
 .tc-panel {
   flex: 1;
-  background: var(--surface-bg);
-  border: 1px solid var(--border);
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
   border-radius: 12px;
   padding: 20px;
   overflow-y: auto;
@@ -781,8 +781,8 @@ function formatOutput(data: any): string {
 }
 .tc-textarea {
   width: 100%;
-  background: var(--surface-raised);
-  border: 1px solid var(--border);
+  background: var(--glass-highlight);
+  border: 1px solid var(--glass-border);
   border-radius: 8px;
   color: var(--text-primary);
   font-size: 13px;
@@ -874,8 +874,8 @@ function formatOutput(data: any): string {
   color: var(--text-secondary);
 }
 .tc-fullscreen-btn {
-  background: var(--surface-raised);
-  border: 1px solid var(--border);
+  background: var(--glass-highlight);
+  border: 1px solid var(--glass-border);
   border-radius: 6px;
   color: var(--text-secondary);
   cursor: pointer;
@@ -887,13 +887,13 @@ function formatOutput(data: any): string {
 .tc-fullscreen-btn:hover {
   color: var(--text-primary);
   border-color: var(--accent);
-  background: var(--surface-bg);
+  background: var(--glass-bg);
 }
 .tc-input {
   width: 100%;
   padding: 9px 12px;
-  background: var(--surface-raised);
-  border: 1px solid var(--border);
+  background: var(--glass-highlight);
+  border: 1px solid var(--glass-border);
   border-radius: 8px;
   color: var(--text-primary);
   font-size: 13px;
@@ -953,8 +953,8 @@ function formatOutput(data: any): string {
 .btn-stop:hover { opacity: 0.9; }
 .tc-output {
   margin-top: 10px;
-  background: var(--surface-raised);
-  border: 1px solid var(--border);
+  background: var(--glass-highlight);
+  border: 1px solid var(--glass-border);
   border-radius: 10px;
   padding: 12px;
   min-height: 100px;
@@ -964,7 +964,7 @@ function formatOutput(data: any): string {
 .tc-output-item {
   margin-bottom: 10px;
   padding-bottom: 10px;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--glass-border);
 }
 .tc-output-item:last-child {
   border-bottom: none;
@@ -1009,7 +1009,7 @@ function formatOutput(data: any): string {
 }
 .tc-divider {
   height: 1px;
-  background: var(--border);
+  background: var(--glass-border);
   margin: 24px 0;
 }
 .tc-nl-section {
@@ -1018,8 +1018,8 @@ function formatOutput(data: any): string {
 .tc-nl-toggle {
   width: 100%;
   padding: 10px 14px;
-  background: var(--surface-raised);
-  border: 1px solid var(--border);
+  background: var(--glass-highlight);
+  border: 1px solid var(--glass-border);
   border-radius: 10px;
   color: var(--text-secondary);
   font-size: 13px;
@@ -1034,7 +1034,7 @@ function formatOutput(data: any): string {
 .tc-nl-toggle:hover {
   border-color: var(--accent);
   color: var(--accent);
-  background: var(--surface-alt);
+  background: var(--glass-highlight);
 }
 .tc-nl-toggle-text {
   display: flex;
@@ -1055,8 +1055,8 @@ function formatOutput(data: any): string {
 }
 .tc-gen-progress {
   margin-top: 12px;
-  background: var(--surface-raised);
-  border: 1px solid var(--border);
+  background: var(--glass-highlight);
+  border: 1px solid var(--glass-border);
   border-radius: 10px;
   padding: 12px;
 }
@@ -1105,8 +1105,8 @@ function formatOutput(data: any): string {
   to { opacity: 1; }
 }
 .tc-overlay-content {
-  background: var(--surface-bg);
-  border: 1px solid var(--border);
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
   border-radius: 14px;
   width: 92vw;
   height: 92vh;
@@ -1125,8 +1125,8 @@ function formatOutput(data: any): string {
   justify-content: space-between;
   align-items: center;
   padding: 18px 24px;
-  border-bottom: 1px solid var(--border);
-  background: var(--surface-alt);
+  border-bottom: 1px solid var(--glass-border);
+  background: var(--glass-highlight);
 }
 .tc-overlay-header-actions {
   display: flex;
@@ -1134,8 +1134,8 @@ function formatOutput(data: any): string {
   gap: 10px;
 }
 .tc-format-btn {
-  background: var(--surface-raised);
-  border: 1px solid var(--border);
+  background: var(--glass-highlight);
+  border: 1px solid var(--glass-border);
   border-radius: 8px;
   color: var(--text-primary);
   font-size: 12px;
@@ -1166,7 +1166,7 @@ function formatOutput(data: any): string {
 }
 .tc-fullscreen-close:hover {
   color: var(--text-primary);
-  background: var(--surface-raised);
+  background: var(--glass-highlight);
 }
 .tc-overlay-body {
   flex: 1;
@@ -1176,8 +1176,8 @@ function formatOutput(data: any): string {
 .tc-overlay-textarea {
   width: 100%;
   height: 100%;
-  background: var(--surface-raised);
-  border: 1px solid var(--border);
+  background: var(--glass-highlight);
+  border: 1px solid var(--glass-border);
   border-radius: 10px;
   color: var(--text-primary);
   font-family: "SF Mono", "Cascadia Code", "Fira Code", Menlo, Consolas, monospace;

@@ -27,10 +27,10 @@ const collapsed = inject(FOLDABLE_COLLAPSED_KEY, computed(() => false))
 <style scoped>
 .reasoning-block {
   margin-bottom: 8px;
-  border: 1px solid var(--border);
-  border-radius: 6px;
+  border: 1px solid var(--glass-border);
+  border-radius: 8px;
   overflow: hidden;
-  background: var(--surface-raised);
+  background: var(--glass-bg);
 }
 .reasoning-block :deep(.foldable-header) {
   padding: 6px 10px;
@@ -38,9 +38,10 @@ const collapsed = inject(FOLDABLE_COLLAPSED_KEY, computed(() => false))
   font-size: 12px;
   font-family: inherit;
   text-align: left;
+  transition: background var(--transition-duration);
 }
 .reasoning-block :deep(.foldable-header:hover) {
-  background: var(--border);
+  background: var(--glass-highlight);
 }
 .reasoning-label {
   font-weight: 600;

@@ -416,8 +416,8 @@ onUnmounted(() => {
 }
 
 .form-card {
-  background: var(--surface-bg);
-  border: 1px solid var(--border);
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
   border-radius: 12px;
   padding: 20px;
 }
@@ -432,8 +432,8 @@ onUnmounted(() => {
 .form-select {
   width: 100%;
   padding: 9px 12px;
-  background: var(--surface-raised);
-  border: 1px solid var(--border);
+  background: var(--glass-highlight);
+  border: 1px solid var(--glass-border);
   border-radius: 8px;
   color: var(--text-primary);
   font-size: 13px;
@@ -449,7 +449,7 @@ onUnmounted(() => {
 }
 
 .form-select option {
-  background: var(--surface-bg);
+  background: var(--glass-bg);
   color: var(--text-primary);
 }
 
@@ -468,8 +468,8 @@ onUnmounted(() => {
 .form-textarea {
   flex: 1;
   padding: 8px 10px;
-  background: var(--surface-raised);
-  border: 1px solid var(--border);
+  background: var(--glass-highlight);
+  border: 1px solid var(--glass-border);
   border-radius: 6px;
   color: var(--text-primary);
   font-size: 13px;
@@ -538,8 +538,8 @@ onUnmounted(() => {
 .form-input-num {
   width: 70px;
   padding: 6px 8px;
-  background: var(--surface-raised);
-  border: 1px solid var(--border);
+  background: var(--glass-highlight);
+  border: 1px solid var(--glass-border);
   border-radius: 6px;
   color: var(--text-primary);
   font-size: 13px;
@@ -632,11 +632,11 @@ onUnmounted(() => {
 .eval-error-close:hover { opacity: 1; }
 
 .job-item {
-  border: 1px solid var(--border);
+  border: 1px solid var(--glass-border);
   border-radius: 10px;
   margin-bottom: 10px;
   overflow: hidden;
-  background: var(--surface-bg);
+  background: var(--glass-bg);
   transition: border-color 0.15s, box-shadow 0.15s;
 }
 .job-item:hover {
@@ -653,7 +653,7 @@ onUnmounted(() => {
 }
 
 .job-header:hover {
-  background: var(--surface-raised);
+  background: var(--glass-highlight);
 }
 
 .job-id {
@@ -678,7 +678,7 @@ onUnmounted(() => {
 }
 
 .status-pending {
-  background: var(--surface-raised);
+  background: var(--glass-highlight);
   color: var(--text-muted);
 }
 
@@ -715,8 +715,8 @@ onUnmounted(() => {
 
 .job-detail {
   padding: 20px;
-  border-top: 1px solid var(--border);
-  background: var(--surface-raised);
+  border-top: 1px solid var(--glass-border);
+  background: var(--glass-highlight);
 }
 
 .error-block {
@@ -737,11 +737,11 @@ onUnmounted(() => {
 }
 
 .summary-card {
-  background: var(--surface-bg);
+  background: var(--glass-bg);
   border-radius: 10px;
   padding: 14px;
   text-align: center;
-  border: 1px solid var(--border);
+  border: 1px solid var(--glass-border);
   transition: border-color 0.15s;
 }
 .summary-card:hover {
@@ -780,7 +780,7 @@ onUnmounted(() => {
 .runs-table th {
   text-align: left;
   padding: 8px 6px;
-  border-bottom: 2px solid var(--border);
+  border-bottom: 2px solid var(--glass-border);
   color: var(--text-muted);
   font-weight: 600;
   white-space: nowrap;
@@ -788,7 +788,7 @@ onUnmounted(() => {
 
 .runs-table td {
   padding: 8px 6px;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--glass-border);
 }
 
 .cell-mono {
@@ -835,7 +835,7 @@ onUnmounted(() => {
 
 .batch-import {
   margin-top: 16px;
-  border-top: 1px solid var(--border);
+  border-top: 1px solid var(--glass-border);
   padding-top: 12px;
 }
 

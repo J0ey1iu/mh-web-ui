@@ -531,9 +531,9 @@ const compCount = computed(() => registeredComponents.value.length)
   justify-content: space-between;
   align-items: center;
   padding: 10px 16px;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--glass-border);
   flex-shrink: 0;
-  background: var(--surface-bg);
+  background: var(--glass-bg);
 }
 
 .demo-header h1 {
@@ -550,9 +550,9 @@ const compCount = computed(() => registeredComponents.value.length)
 
 .demo-btn {
   padding: 4px 10px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--glass-border);
   border-radius: 5px;
-  background: var(--surface-raised);
+  background: var(--glass-highlight);
   color: var(--text-primary);
   cursor: pointer;
   font-size: 12px;
@@ -572,9 +572,9 @@ const compCount = computed(() => registeredComponents.value.length)
 
 .demo-btn-sm {
   padding: 3px 10px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--glass-border);
   border-radius: 4px;
-  background: var(--surface-raised);
+  background: var(--glass-highlight);
   color: var(--text-primary);
   cursor: pointer;
   font-size: 12px;
@@ -582,7 +582,7 @@ const compCount = computed(() => registeredComponents.value.length)
 }
 
 .demo-btn-sm:hover:not(:disabled) {
-  background: var(--surface-alt);
+  background: var(--glass-highlight);
 }
 
 .demo-btn-sm:disabled {
@@ -600,8 +600,8 @@ const compCount = computed(() => registeredComponents.value.length)
   left: 0;
   margin-top: 4px;
   min-width: 120px;
-  background: var(--surface-bg);
-  border: 1px solid var(--border);
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
   border-radius: 8px;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
   z-index: 201;
@@ -629,7 +629,7 @@ const compCount = computed(() => registeredComponents.value.length)
 }
 
 .dropdown-item:hover {
-  background: var(--surface-raised);
+  background: var(--glass-highlight);
 }
 
 .dropdown-item.active {
@@ -641,7 +641,7 @@ const compCount = computed(() => registeredComponents.value.length)
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  border: 1px solid var(--border);
+  border: 1px solid var(--glass-border);
   vertical-align: middle;
   margin-right: 2px;
 }
@@ -657,8 +657,8 @@ const compCount = computed(() => registeredComponents.value.length)
 .demo-sidebar {
   width: 250px;
   flex-shrink: 0;
-  border-right: 1px solid var(--border);
-  background: var(--surface-alt);
+  border-right: 1px solid var(--glass-border);
+  background: var(--glass-highlight);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -678,7 +678,7 @@ const compCount = computed(() => registeredComponents.value.length)
 
 .sidebar-badge {
   font-size: 10px;
-  background: var(--surface-raised);
+  background: var(--glass-highlight);
   color: var(--text-muted);
   padding: 1px 6px;
   border-radius: 8px;
@@ -716,7 +716,7 @@ const compCount = computed(() => registeredComponents.value.length)
 }
 
 .comp-list-item:hover {
-  background: var(--surface-raised);
+  background: var(--glass-highlight);
 }
 
 .comp-list-item.active {
@@ -738,7 +738,7 @@ const compCount = computed(() => registeredComponents.value.length)
 
 .sidebar-divider {
   height: 1px;
-  background: var(--border);
+  background: var(--glass-border);
   margin: 6px 12px;
 }
 
@@ -824,7 +824,7 @@ const compCount = computed(() => registeredComponents.value.length)
 .src-reload,
 .src-remove {
   background: none;
-  border: 1px solid var(--border);
+  border: 1px solid var(--glass-border);
   border-radius: 3px;
   color: var(--text-muted);
   cursor: pointer;
@@ -856,8 +856,8 @@ const compCount = computed(() => registeredComponents.value.length)
 .add-source-form {
   margin-top: 8px;
   padding: 8px;
-  background: var(--surface-bg);
-  border: 1px solid var(--border);
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
   border-radius: 6px;
   display: flex;
   flex-direction: column;
@@ -874,9 +874,9 @@ const compCount = computed(() => registeredComponents.value.length)
 
 .src-input {
   padding: 4px 6px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--glass-border);
   border-radius: 3px;
-  background: var(--surface-alt);
+  background: var(--glass-highlight);
   color: var(--text-primary);
   font-size: 11px;
   font-family: monospace;
@@ -946,7 +946,7 @@ const compCount = computed(() => registeredComponents.value.length)
   font-size: 18px;
   font-weight: 700;
   color: var(--text-strong);
-  background: var(--surface-alt);
+  background: var(--glass-highlight);
   padding: 2px 10px;
   border-radius: 5px;
 }
@@ -968,9 +968,9 @@ const compCount = computed(() => registeredComponents.value.length)
 
 .preview-area {
   padding: 20px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--glass-border);
   border-radius: 8px;
-  background: var(--surface-bg);
+  background: var(--glass-bg);
 }
 
 /* ===== right (params panel) ===== */
@@ -978,8 +978,8 @@ const compCount = computed(() => registeredComponents.value.length)
 .demo-right {
   flex: 1;
   min-width: 0;
-  border-left: 1px solid var(--border);
-  background: var(--surface-alt);
+  border-left: 1px solid var(--glass-border);
+  background: var(--glass-highlight);
   display: flex;
   flex-direction: column;
   overflow-y: auto;
@@ -1032,9 +1032,9 @@ const compCount = computed(() => registeredComponents.value.length)
   width: 100%;
   box-sizing: border-box;
   padding: 7px 8px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--glass-border);
   border-radius: 4px;
-  background: var(--surface-bg);
+  background: var(--glass-bg);
   color: var(--text-primary);
   font-size: 12px;
   font-family: monospace;
@@ -1048,7 +1048,7 @@ const compCount = computed(() => registeredComponents.value.length)
 
 .beautify-btn {
   background: none;
-  border: 1px solid var(--border);
+  border: 1px solid var(--glass-border);
   border-radius: 3px;
   color: var(--text-muted);
   cursor: pointer;
@@ -1097,7 +1097,7 @@ const compCount = computed(() => registeredComponents.value.length)
 
 .entry-btn {
   background: none;
-  border: 1px solid var(--border);
+  border: 1px solid var(--glass-border);
   border-radius: 3px;
   color: var(--text-muted);
   cursor: pointer;
@@ -1118,7 +1118,7 @@ const compCount = computed(() => registeredComponents.value.length)
 
 .add-btn {
   background: none;
-  border: 1px dashed var(--border);
+  border: 1px dashed var(--glass-border);
   border-radius: 3px;
   color: var(--text-muted);
   cursor: pointer;

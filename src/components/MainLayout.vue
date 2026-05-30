@@ -410,28 +410,33 @@ function handleLogout() {
   height: 100vh;
   width: 100vw;
   overflow: hidden;
+  background: var(--page-bg);
 }
 .top-bar {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 12px 16px;
-  background: var(--surface-bg);
-  border-bottom: 1px solid var(--border);
+  padding: 10px 16px;
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border-bottom: 1px solid var(--glass-border);
   flex-shrink: 0;
+  z-index: 200;
 }
 .header-btn {
   display: flex;
   align-items: center;
   background: none;
   border: none;
-  padding: 4px;
+  padding: 6px;
   cursor: pointer;
   color: var(--text-primary);
-  border-radius: 4px;
+  border-radius: 8px;
+  transition: background var(--transition-duration);
 }
 .header-btn:hover {
-  background: var(--border);
+  background: var(--glass-highlight);
 }
 .spacer {
   flex: 1;
@@ -444,13 +449,19 @@ function handleLogout() {
 }
 .scene-btn {
   gap: 6px;
-  padding: 6px 10px;
-  border: 1px solid var(--border);
-  border-radius: 6px;
+  padding: 6px 12px;
+  border-radius: 8px;
   font-size: 13px;
+  background: var(--glass-highlight);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: blur(0px);
+  -webkit-backdrop-filter: blur(0px);
+  transition: border-color var(--transition-duration), backdrop-filter var(--transition-duration), -webkit-backdrop-filter var(--transition-duration);
 }
 .scene-btn:hover {
   border-color: var(--accent);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
 }
 .scene-icon-small {
   font-size: 16px;
@@ -461,14 +472,15 @@ function handleLogout() {
 }
 .scene-dropdown {
   position: absolute;
-  top: 100%;
+  top: calc(100% + 6px);
   left: 0;
-  margin-top: 4px;
-  min-width: 240px;
-  background: var(--surface-bg);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  min-width: 250px;
+  background: var(--glass-bg);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+  box-shadow: var(--glass-shadow);
   z-index: 201;
   overflow: hidden;
 }
@@ -485,9 +497,10 @@ function handleLogout() {
   cursor: pointer;
   text-align: left;
   font-family: inherit;
+  transition: background var(--transition-duration);
 }
 .scene-option:hover {
-  background: var(--surface-raised);
+  background: var(--glass-highlight);
 }
 .scene-option.active {
   background: var(--accent-dim);
@@ -510,14 +523,15 @@ function handleLogout() {
 }
 .dropdown {
   position: absolute;
-  top: 100%;
+  top: calc(100% + 6px);
   right: 0;
-  margin-top: 4px;
-  min-width: 160px;
-  background: var(--surface-bg);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  min-width: 180px;
+  background: var(--glass-bg);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+  box-shadow: var(--glass-shadow);
   z-index: 201;
   overflow: hidden;
 }
@@ -526,7 +540,7 @@ function handleLogout() {
   align-items: center;
   gap: 8px;
   width: 100%;
-  padding: 10px 14px;
+  padding: 9px 14px;
   background: none;
   border: none;
   color: var(--text-primary);
@@ -534,9 +548,10 @@ function handleLogout() {
   cursor: pointer;
   text-align: left;
   font-family: inherit;
+  transition: background var(--transition-duration);
 }
 .dropdown-item:hover {
-  background: var(--surface-raised);
+  background: var(--glass-highlight);
 }
 .dropdown-item.active {
   color: var(--accent);
@@ -546,15 +561,16 @@ function handleLogout() {
   color: var(--accent);
 }
 .dropdown-label {
-  padding: 6px 14px 2px;
-  font-size: 11px;
+  padding: 8px 14px 3px;
+  font-size: 10px;
   color: var(--text-muted);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.6px;
+  font-weight: 600;
 }
 .dropdown-divider {
   height: 1px;
-  background: var(--border);
+  background: var(--glass-border);
   margin: 4px 0;
 }
 .dropdown-user {
@@ -576,7 +592,6 @@ function handleLogout() {
 .dropdown-logout {
   color: #ef4444 !important;
   font-weight: 600;
-  border-top: none;
 }
 .dropdown-logout:hover {
   background: rgba(239, 68, 68, 0.1) !important;
@@ -589,7 +604,9 @@ function handleLogout() {
 .drawer-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
   z-index: 100;
 }
 .drawer {
@@ -597,14 +614,16 @@ function handleLogout() {
   top: 0;
   right: 0;
   bottom: 0;
-  width: 260px;
-  background: var(--surface-bg);
-  border-left: 1px solid var(--border);
+  width: 280px;
+  background: var(--glass-bg);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
   z-index: 101;
   display: flex;
   flex-direction: column;
   transform: translateX(100%);
-  transition: transform var(--transition-duration) ease;
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: var(--glass-shadow);
 }
 .drawer.open {
   transform: translateX(0);
@@ -613,13 +632,14 @@ function handleLogout() {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px;
-  border-bottom: 1px solid var(--border);
+  padding: 18px 16px;
+  border-bottom: 1px solid var(--glass-border);
 }
 .drawer-header h2 {
   margin: 0;
   font-size: 16px;
   color: var(--text-primary);
+  font-weight: 600;
 }
 .btn-close {
   background: none;
@@ -628,22 +648,29 @@ function handleLogout() {
   font-size: 24px;
   cursor: pointer;
   line-height: 1;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: background var(--transition-duration), color var(--transition-duration);
+}
+.btn-close:hover {
+  background: var(--glass-highlight);
+  color: var(--text-primary);
 }
 .session-list {
   flex: 1;
   overflow-y: auto;
-  padding: 0 8px 8px;
+  padding: 6px 8px 8px;
 }
 .session-item {
   position: relative;
   padding: 10px;
   margin-bottom: 4px;
-  border-radius: 6px;
+  border-radius: 8px;
   cursor: pointer;
-  transition: background var(--transition-duration), color var(--transition-duration);
+  transition: background var(--transition-duration);
 }
 .session-item:hover {
-  background: var(--surface-raised);
+  background: var(--glass-highlight);
 }
 .session-item.active {
   background: var(--accent-dim);
@@ -673,6 +700,7 @@ function handleLogout() {
   font-size: 16px;
   padding: 2px 6px;
   border-radius: 4px;
+  transition: background var(--transition-duration), color var(--transition-duration);
 }
 .btn-delete:hover {
   background: var(--delete-hover-bg);
@@ -714,36 +742,42 @@ function handleLogout() {
   align-items: center;
   gap: 12px;
   justify-content: center;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
 .btn-retry {
   background: var(--danger-hover);
   color: var(--text-primary);
-  border: 1px solid var(--danger-text);
-  border-radius: 4px;
+  border: none;
+  border-radius: 6px;
   padding: 4px 12px;
   cursor: pointer;
   font-size: 12px;
+  transition: background var(--transition-duration);
 }
 .btn-retry:hover {
   background: var(--danger-text);
 }
 .error-toast {
   position: fixed;
-  top: 52px;
+  top: 60px;
   left: 50%;
   transform: translateX(-50%);
-  background: var(--danger);
+  background: var(--glass-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   color: var(--danger-text);
-  padding: 8px 12px;
-  border-radius: 8px;
+  padding: 10px 16px;
+  border-radius: 10px;
   font-size: 13px;
   z-index: 9999;
-  border: 1px solid var(--danger-hover);
+  border: 1px solid var(--glass-border);
   display: flex;
   align-items: center;
   gap: 12px;
   cursor: pointer;
   max-width: 80vw;
+  box-shadow: var(--glass-shadow);
 }
 .error-toast-text {
   flex: 1;
@@ -759,6 +793,7 @@ function handleLogout() {
   cursor: pointer;
   opacity: 0.7;
   padding: 0;
+  transition: opacity var(--transition-duration);
 }
 .error-toast-close:hover {
   opacity: 1;

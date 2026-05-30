@@ -168,7 +168,6 @@ function onKeydown(e: KeyboardEvent) {
   flex: 1;
   display: flex;
   flex-direction: column;
-  background: var(--page-bg);
   min-width: 0;
   min-height: 0;
   position: relative;
@@ -194,30 +193,22 @@ function onKeydown(e: KeyboardEvent) {
   display: flex;
   gap: 8px;
   padding: 10px 12px;
-  border-top: 1px solid var(--border);
-  background: var(--surface-bg);
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border-top: 1px solid var(--glass-border);
 }
-.input-bar input,
 .input-bar textarea {
   flex: 1;
   min-width: 0;
   padding: 10px 14px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: var(--page-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 10px;
+  background: var(--glass-highlight);
   color: var(--text-primary);
   font-size: 14px;
   outline: none;
-}
-.input-bar input:focus,
-.input-bar textarea:focus {
-  border-color: var(--accent);
-}
-.input-bar input::placeholder,
-.input-bar textarea::placeholder {
-  color: var(--text-muted);
-}
-.input-bar textarea {
+  transition: border-color var(--transition-duration), box-shadow var(--transition-duration);
   field-sizing: content;
   max-height: calc(1.5em * 4 + 20px);
   resize: none;
@@ -225,35 +216,55 @@ function onKeydown(e: KeyboardEvent) {
   line-height: 1.5;
   font-family: inherit;
 }
+.input-bar textarea:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-dim);
+}
+.input-bar textarea::placeholder {
+  color: var(--text-muted);
+}
 .input-bar button {
-  padding: 10px 16px;
+  padding: 10px 18px;
   background: var(--accent-dim);
   color: var(--text-primary);
-  border: 1px solid var(--border);
-  border-radius: 8px;
+  border: 1px solid var(--glass-border);
+  border-radius: 10px;
   cursor: pointer;
   font-size: 14px;
   white-space: nowrap;
+  font-weight: 500;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  transition: border-color var(--transition-duration), box-shadow var(--transition-duration), backdrop-filter var(--transition-duration), -webkit-backdrop-filter var(--transition-duration);
 }
 .input-bar button:hover:not(:disabled) {
-  background: var(--accent);
-  color: var(--text-strong);
+  border-color: var(--accent);
+  box-shadow: 0 2px 16px var(--accent-dim);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+.input-bar button:active:not(:disabled) {
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
 .input-bar button:disabled {
   opacity: 0.4;
   cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
 }
 .btn-new-chat {
-  min-width: 36px;
+  min-width: 40px;
   padding: 10px 0 !important;
   text-align: center;
-  font-size: 18px !important;
+  font-size: 20px !important;
   line-height: 1;
-  background: var(--border) !important;
-  border-color: var(--border-hover) !important;
+  background: var(--glass-highlight) !important;
+  border-color: var(--glass-border) !important;
 }
 .btn-new-chat:hover {
-  background: var(--border-hover) !important;
+  background: var(--accent-dim) !important;
+  border-color: var(--accent) !important;
 }
 .btn-cancel {
   background: var(--danger) !important;
@@ -272,16 +283,19 @@ function onKeydown(e: KeyboardEvent) {
   align-items: center;
   justify-content: center;
   gap: 6px;
-  padding: 6px 14px;
-  border: 1px solid var(--border);
+  padding: 6px 16px;
+  border: 1px solid var(--glass-border);
   border-radius: 20px;
-  background: var(--surface-raised);
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
   color: var(--text-secondary);
   font-size: 13px;
   cursor: pointer;
+  box-shadow: var(--glass-shadow);
+  transition: color var(--transition-duration), border-color var(--transition-duration);
 }
 .scroll-to-bottom:hover {
-  background: var(--accent-dim);
   color: var(--accent);
   border-color: var(--accent);
 }
