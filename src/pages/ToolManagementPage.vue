@@ -233,7 +233,7 @@ function formatParametersJson() {
     const parsed = JSON.parse(fullscreenTextContent.value)
     fullscreenTextContent.value = JSON.stringify(parsed, null, 2)
   } catch {
-    alert("Invalid JSON")
+    alert(t("mgmt_tc_invalid_json"))
   }
 }
 
@@ -278,13 +278,13 @@ function loadTool(tool: GeneratedTool) {
 }
 
 async function handleDelete(name: string) {
-  if (!confirm(`Delete tool "${name}"?`)) return
+  if (!confirm(t("mgmt_tc_confirm_delete_tool_name").replace("{name}", name))) return
   try {
     await deleteGeneratedTool(name)
     if (editingName.value === name) newTool()
     await loadSavedTools()
   } catch (e: any) {
-    alert(`Delete failed: ${e.message}`)
+    alert(t("mgmt_tc_delete_failed") + ": " + e.message)
   }
 }
 
@@ -308,7 +308,7 @@ function handleGenerate() {
         editingName.value = null
         initTrialArgs()
       } else if (type === "error") {
-        alert(`Generation error: ${data.message}`)
+        alert(t("mgmt_tc_generation_error") + ": " + data.message)
       }
     },
     () => {
@@ -320,7 +320,7 @@ function handleGenerate() {
       generating.value = false
       genProgress.value = ""
       genAbortController.value = null
-      alert(`Generation failed: ${err.message}`)
+      alert(t("mgmt_tc_generation_failed") + ": " + err.message)
     },
   )
 }
@@ -351,7 +351,7 @@ async function handleSave() {
     try {
       parsedParameters = JSON.parse(creatorParametersText.value)
     } catch {
-      alert("Parameters JSON is invalid")
+      alert(t("mgmt_tc_invalid_json"))
       savingCreator.value = false
       return
     }
@@ -362,7 +362,7 @@ async function handleSave() {
         parameters: parsedParameters,
         source_code: generated.value.source_code,
       })
-      alert("Tool updated!")
+      alert(t("mgmt_tc_tool_updated"))
     } else {
       await saveGeneratedTool({
         name: generated.value.name,
@@ -372,11 +372,11 @@ async function handleSave() {
         source_code: generated.value.source_code,
       })
       editingName.value = generated.value.name
-      alert("Tool saved!")
+      alert(t("mgmt_tc_tool_saved"))
     }
     await loadSavedTools()
   } catch (e: any) {
-    alert(`Save failed: ${e.message}`)
+    alert(t("mgmt_tc_save_failed") + ": " + e.message)
   } finally {
     savingCreator.value = false
   }
@@ -400,7 +400,7 @@ async function handleExecute() {
     (err) => {
       executing.value = false
       abortController = null
-      alert(`Execution error: ${err.message}`)
+      alert(t("mgmt_tc_execution_error") + ": " + err.message)
     },
   )
 }
@@ -560,7 +560,7 @@ function formatOutput(data: any): string {
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="tc-nl-icon">
                     <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
                   </svg>
-                  Describe in Natural Language
+                  {{ t("mgmt_tc_describe_nl") }}
                 </span>
                 <span class="tc-nl-arrow">{{ showNL ? '▲' : '▼' }}</span>
               </button>
@@ -568,7 +568,7 @@ function formatOutput(data: any): string {
                 <textarea
                   v-model="naturalDescription"
                   class="tc-textarea"
-                  placeholder="Describe what the tool should do in natural language..."
+                  :placeholder="t('mgmt_tc_describe_placeholder')"
                   rows="3"
                 />
                 <template v-if="!generating">
@@ -580,48 +580,48 @@ function formatOutput(data: any): string {
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px">
                       <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
                     </svg>
-                    Generate Metadata
+                    {{ t("mgmt_tc_generate_metadata") }}
                   </button>
                 </template>
                 <template v-else>
                   <button class="btn-stop" @click="handleStopGenerate">
-                    Stop Generation
+                    {{ t("mgmt_tc_stop_generation") }}
                   </button>
                   <div v-if="genProgress" class="tc-gen-progress">
-                    <div class="tc-gen-progress-label">Generating...</div>
+                    <div class="tc-gen-progress-label">{{ t("mgmt_tc_generating") }}</div>
                     <pre class="tc-gen-progress-text">{{ genProgress }}</pre>
                   </div>
                 </template>
               </div>
             </div>
 
-            <h2 class="tc-panel-title">Tool Metadata</h2>
+            <h2 class="tc-panel-title">{{ t("mgmt_tc_tool_metadata") }}</h2>
             <div class="tc-field">
-              <label class="tc-label">Name</label>
+              <label class="tc-label">{{ t("mgmt_name") }}</label>
               <input v-model="generated.name" type="text" class="tc-input" />
             </div>
             <div class="tc-field">
-              <label class="tc-label">Display Name</label>
+              <label class="tc-label">{{ t("mgmt_display_name") }}</label>
               <input v-model="generated.display_name" type="text" class="tc-input" />
             </div>
             <div class="tc-field">
               <div class="tc-label-row">
-                <label class="tc-label">Description</label>
-                <button class="tc-fullscreen-btn" @click="openTextFullscreen('Description', generated.description, 'description')" title="Fullscreen">&#x26F6;</button>
+                <label class="tc-label">{{ t("mgmt_description") }}</label>
+                <button class="tc-fullscreen-btn" @click="openTextFullscreen(t('mgmt_description'), generated.description, 'description')" :title="t('mgmt_tc_source_code')">&#x26F6;</button>
               </div>
               <textarea v-model="generated.description" class="tc-input tc-textarea-sm" rows="3" />
             </div>
             <div class="tc-field">
               <div class="tc-label-row">
-                <label class="tc-label">Parameters (JSON Schema)</label>
-                <button class="tc-fullscreen-btn" @click="openTextFullscreen('Parameters', creatorParametersText, 'parameters')" title="Fullscreen">&#x26F6;</button>
+                <label class="tc-label">{{ t("mgmt_tc_params_json_schema") }}</label>
+                <button class="tc-fullscreen-btn" @click="openTextFullscreen(t('mgmt_tc_params_json_schema'), creatorParametersText, 'parameters')" :title="t('mgmt_tc_source_code')">&#x26F6;</button>
               </div>
               <textarea v-model="creatorParametersText" class="tc-input tc-textarea-code" rows="8" />
             </div>
             <div class="tc-field">
               <div class="tc-label-row">
-                <label class="tc-label">Source Code</label>
-                <button class="tc-fullscreen-btn" @click="openCodeFullscreen()" title="Fullscreen">&#x26F6;</button>
+                <label class="tc-label">{{ t("mgmt_tc_source_code") }}</label>
+                <button class="tc-fullscreen-btn" @click="openCodeFullscreen()" :title="t('mgmt_tc_source_code')">&#x26F6;</button>
               </div>
               <textarea
                 v-model="generated.source_code"
@@ -632,16 +632,16 @@ function formatOutput(data: any): string {
             </div>
             <div class="tc-actions">
               <button class="btn-save" :disabled="savingCreator" @click="handleSave">
-                {{ savingCreator ? (editingName ? "Updating..." : "Saving...") : (editingName ? "Update Tool" : "Save Tool") }}
+                {{ savingCreator ? (editingName ? t("mgmt_tc_updating") : t("mgmt_saving")) : (editingName ? t("mgmt_tc_update_tool") : t("mgmt_tc_save_tool")) }}
               </button>
             </div>
 
             <div class="tc-divider" />
             <div class="tc-saved-header">
-              <h2 class="tc-panel-title">My Saved Tools</h2>
-              <button class="btn-new" @click="newTool">+ New</button>
+              <h2 class="tc-panel-title">{{ t("mgmt_tc_my_saved_tools") }}</h2>
+              <button class="btn-new" @click="newTool">{{ t("mgmt_tc_new") }}</button>
             </div>
-            <div v-if="loadingTools" class="tc-placeholder">Loading...</div>
+            <div v-if="loadingTools" class="tc-placeholder">{{ t("mgmt_loading") }}</div>
             <ul v-else-if="savedTools.length" class="tc-tool-list">
               <li
                 v-for="tool in savedTools"
@@ -660,12 +660,12 @@ function formatOutput(data: any): string {
                 </button>
               </li>
             </ul>
-            <div v-else class="tc-placeholder">No saved tools yet.</div>
+            <div v-else class="tc-placeholder">{{ t("mgmt_tc_no_saved_tools") }}</div>
           </div>
 
           <div class="tc-panel tc-right">
-            <h2 class="tc-panel-title">Trial Area</h2>
-            <h3 class="tc-subtitle">Parameters</h3>
+            <h2 class="tc-panel-title">{{ t("mgmt_tc_trial_area") }}</h2>
+            <h3 class="tc-subtitle">{{ t("mgmt_parameters") }}</h3>
             <template v-if="generated.parameters?.properties">
               <div
                 v-for="(schema, key) in generated.parameters.properties"
@@ -693,14 +693,14 @@ function formatOutput(data: any): string {
                 />
               </div>
             </template>
-            <p v-else class="tc-placeholder">No parameters defined.</p>
+            <p v-else class="tc-placeholder">{{ t("mgmt_tc_no_params") }}</p>
 
             <div class="tc-trial-actions">
-              <button v-if="!executing" class="btn-run" @click="handleExecute">Run</button>
-              <button v-else class="btn-stop" @click="handleStop">Stop</button>
+              <button v-if="!executing" class="btn-run" @click="handleExecute">{{ t("mgmt_tc_run") }}</button>
+              <button v-else class="btn-stop" @click="handleStop">{{ t("stop") }}</button>
             </div>
 
-            <h3 class="tc-subtitle">Output</h3>
+            <h3 class="tc-subtitle">{{ t("mgmt_tc_output") }}</h3>
             <div class="tc-output">
               <div
                 v-for="(item, idx) in trialOutput"
@@ -711,7 +711,7 @@ function formatOutput(data: any): string {
                 <pre class="tc-output-data">{{ formatOutput(item.data) }}</pre>
               </div>
               <div v-if="executing && trialOutput.length === 0" class="tc-output-waiting">
-                Waiting for output...
+                {{ t("mgmt_tc_waiting_output") }}
               </div>
             </div>
           </div>
@@ -722,7 +722,7 @@ function formatOutput(data: any): string {
           <div v-if="fullscreenCode" class="tc-overlay" @click.self="closeCodeFullscreen()">
             <div class="tc-overlay-content">
               <div class="tc-overlay-header">
-                <span class="tc-overlay-title">Source Code</span>
+                <span class="tc-overlay-title">{{ t("mgmt_tc_source_code") }}</span>
                 <button class="tc-fullscreen-close" @click="closeCodeFullscreen()">&#x2715;</button>
               </div>
               <div class="tc-overlay-body">
@@ -743,11 +743,11 @@ function formatOutput(data: any): string {
                 <span class="tc-overlay-title">{{ fullscreenTextTitle }}</span>
                 <div class="tc-overlay-header-actions">
                   <button
-                    v-if="fullscreenTextTitle === 'Parameters'"
+                    v-if="fullscreenTextTarget === 'parameters'"
                     class="tc-format-btn"
                     @click="formatParametersJson"
                   >
-                    Format JSON
+                    {{ t("mgmt_tc_format_json") }}
                   </button>
                   <button class="tc-fullscreen-close" @click="closeTextFullscreen()">&#x2715;</button>
                 </div>
