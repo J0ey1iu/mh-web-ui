@@ -14,6 +14,9 @@ export interface AppConfig {
   enableEval: boolean
   loginUrl: string
   logoutUrl: string
+  apiToolGeneratorGenerate: string
+  apiToolGeneratorTools: string
+  apiGeneratedToolTrial: string
 }
 
 declare const __APP_CONFIG__: AppConfig

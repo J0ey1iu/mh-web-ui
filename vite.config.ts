@@ -22,6 +22,9 @@ export default defineConfig(({ mode }) => {
         enableEval: true,
         loginUrl: isProd ? "{wcm_login_url}" : "//localhost:8005/api/v1/dev/login",
         logoutUrl: isProd ? "{wcm_logout_url}" : "//localhost:8005/api/v1/dev/logout",
+        apiToolGeneratorGenerate: isProd ? "{wcm_api_tool_generator_generate}" : "//localhost:8005/api/v1/tool-generator/generate",
+        apiToolGeneratorTools: isProd ? "{wcm_api_tool_generator_tools}" : "//localhost:8005/api/v1/tool-generator/tools",
+        apiGeneratedToolTrial: isProd ? "{wcm_api_generated_tool_trial}" : "//localhost:8005/api/v1/tool-generator/tools/{name}/trial",
       }),
     },
   }

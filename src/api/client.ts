@@ -1,4 +1,4 @@
-import type { AgentInfo, EvalJob, EvalJobConfig, MessageItem, ScenarioDetail, ScenarioInfo, SessionInfo, UserInfo, SSEEventName } from "../types"
+import type { AgentInfo, EvalJob, EvalJobConfig, GeneratedTool, MessageItem, ScenarioDetail, ScenarioInfo, SessionInfo, UserInfo, SSEEventName } from "../types"
 import { appConfig } from "../config"
 
 function fillUrl(template: string, params?: Record<string, string>): string {
@@ -78,11 +78,30 @@ export async function fetchAgents(scenarioId?: string): Promise<AgentInfo[]> {
   return request<AgentInfo[]>(u)
 }
 
+async function consumeSSE(response: Response, onLine: (line: string) => void): Promise<void> {
+  if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+  const reader = response.body?.getReader()
+  if (!reader) throw new Error("No response body")
+  const decoder = new TextDecoder()
+  let buffer = ""
+  while (true) {
+    const { done, value } = await reader.read()
+    if (done) break
+    buffer += decoder.decode(value, { stream: true })
+    const lines = buffer.split("\n")
+    buffer = lines.pop() ?? ""
+    for (const line of lines) {
+      onLine(line)
+    }
+  }
+}
+
 export type SSEEventCallback = (event: SSEEventName, data: any) => void
 
 export function streamChat(memoryId: string, message: string, onEvent: SSEEventCallback, onDone: () => void, onError: (err: Error) => void): AbortController {
   const controller = new AbortController()
   const headers: Record<string, string> = { "Content-Type": "application/json", "Accept-Language": getLocale() }
+  let eventName = ""
 
   fetch(fillUrl(appConfig.apiChat, { id: memoryId }), {
     method: "POST",
@@ -92,26 +111,13 @@ export function streamChat(memoryId: string, message: string, onEvent: SSEEventC
     signal: controller.signal,
   })
     .then(async (res) => {
-      if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`)
-      const reader = res.body?.getReader()
-      if (!reader) throw new Error("No response body")
-      const decoder = new TextDecoder()
-      let buffer = ""
-      let eventName = ""
-      while (true) {
-        const { done, value } = await reader.read()
-        if (done) break
-        buffer += decoder.decode(value, { stream: true })
-        const lines = buffer.split("\n")
-        buffer = lines.pop() ?? ""
-        for (const line of lines) {
-          if (line.startsWith("event: ")) eventName = line.slice(7).trim()
-          else if (line.startsWith("data: ")) {
-            const dataStr = line.slice(6).trim()
-            try { const data = JSON.parse(dataStr); onEvent(eventName as SSEEventName, data) } catch {}
-          }
+      await consumeSSE(res, (line) => {
+        if (line.startsWith("event: ")) eventName = line.slice(7).trim()
+        else if (line.startsWith("data: ")) {
+          const dataStr = line.slice(6).trim()
+          try { const data = JSON.parse(dataStr); onEvent(eventName as SSEEventName, data) } catch {}
         }
-      }
+      })
       onDone()
     })
     .catch((err) => {
@@ -138,4 +144,112 @@ export async function fetchEvalJob(jobId: string): Promise<EvalJob> {
 
 export function getEvalReportUrl(jobId: string): string {
   return fillUrl(appConfig.apiEvalResults, { id: jobId, filename: "report.html" })
+}
+
+export function generateToolMetadata(
+  description: string,
+  onEvent: (type: string, data: any) => void,
+  onDone: () => void,
+  onError: (err: Error) => void,
+): AbortController {
+  const controller = new AbortController()
+  const headers: Record<string, string> = { "Content-Type": "application/json", "Accept-Language": getLocale() }
+
+  fetch(appConfig.apiToolGeneratorGenerate, {
+    method: "POST",
+    credentials: "include",
+    headers,
+    body: JSON.stringify({ natural_description: description }),
+    signal: controller.signal,
+  })
+    .then(async (res) => {
+      await consumeSSE(res, (line) => {
+        if (line.startsWith("data: ")) {
+          const dataStr = line.slice(6).trim()
+          try {
+            const payload = JSON.parse(dataStr)
+            onEvent(payload.type as string, payload.data)
+          } catch { /* skip */ }
+        }
+      })
+      onDone()
+    })
+    .catch((err) => {
+      if (err.name !== "AbortError") onError(err instanceof Error ? err : new Error(String(err)))
+    })
+
+  return controller
+}
+
+export async function fetchGeneratedTools(): Promise<GeneratedTool[]> {
+  return request<GeneratedTool[]>(appConfig.apiToolGeneratorTools)
+}
+
+export async function saveGeneratedTool(tool: {
+  name: string
+  display_name: string
+  description: string
+  parameters: Record<string, any>
+  source_code: string
+}): Promise<GeneratedTool> {
+  return request<GeneratedTool>(appConfig.apiToolGeneratorTools, {
+    method: "POST",
+    body: JSON.stringify(tool),
+  })
+}
+
+export async function updateGeneratedTool(
+  name: string,
+  tool: {
+    display_name: string
+    description: string
+    parameters: Record<string, any>
+    source_code: string
+  },
+): Promise<GeneratedTool> {
+  return request<GeneratedTool>(fillUrl(`${appConfig.apiToolGeneratorTools}/${name}`, {}), {
+    method: "PUT",
+    body: JSON.stringify(tool),
+  })
+}
+
+export async function deleteGeneratedTool(name: string): Promise<void> {
+  await request<{ status: string }>(fillUrl(`${appConfig.apiToolGeneratorTools}/${name}`, {}), { method: "DELETE" })
+}
+
+export function executeGeneratedTool(
+  name: string,
+  args: Record<string, any>,
+  sourceCode: string,
+  onEvent: (type: string, data: any) => void,
+  onDone: () => void,
+  onError: (err: Error) => void,
+): AbortController {
+  const controller = new AbortController()
+  const headers: Record<string, string> = { "Content-Type": "application/json", "Accept-Language": getLocale() }
+
+  fetch(fillUrl(appConfig.apiGeneratedToolTrial, { name }), {
+    method: "POST",
+    credentials: "include",
+    headers,
+    body: JSON.stringify({ args, source_code: sourceCode }),
+    signal: controller.signal,
+  })
+    .then(async (res) => {
+      await consumeSSE(res, (line) => {
+        if (line.startsWith("data: ")) {
+          const dataStr = line.slice(6).trim()
+          try {
+            const payload = JSON.parse(dataStr)
+            onEvent(payload.type as string, payload.data)
+          } catch { /* skip */ }
+        }
+      })
+      onDone()
+    })
+    .catch((err) => {
+      if (err.name !== "AbortError") onError(err instanceof Error ? err : new Error(String(err)))
+    })
+
+  return controller
 }

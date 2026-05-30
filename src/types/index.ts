@@ -183,3 +183,14 @@ export interface EvalJob {
   report_url?: string
   summary?: EvalSummary
 }
+
+export interface GeneratedTool {
+  name: string
+  display_name: string
+  description: string
+  parameters: Record<string, any>
+  source_code: string
+  user_id?: string
+  created_at?: string
+  updated_at?: string
+}
