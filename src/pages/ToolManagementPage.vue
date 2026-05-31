@@ -77,9 +77,9 @@ const saving = ref(false)
 const mgmtFs = ref(false)
 const mgmtFsTitle = ref("")
 const mgmtFsContent = ref("")
-let mgmtFsTarget: "description" | "parameters" | "source_code" | null = null
+let mgmtFsTarget: "description" | "parameters" | "source_code" | "locale_desc_zh" | "locale_desc_en" | null = null
 
-function openMgmtFs(title: string, content: string, target: "description" | "parameters" | "source_code") {
+function openMgmtFs(title: string, content: string, target: "description" | "parameters" | "source_code" | "locale_desc_zh" | "locale_desc_en") {
   mgmtFsTitle.value = title
   mgmtFsContent.value = content
   mgmtFsTarget = target
@@ -93,6 +93,10 @@ function closeMgmtFs() {
     parametersText.value = mgmtFsContent.value
   } else if (mgmtFsTarget === "source_code" && form.value) {
     form.value.source_code = mgmtFsContent.value
+  } else if (mgmtFsTarget === "locale_desc_zh") {
+    localeForm.value.desc_zh = mgmtFsContent.value
+  } else if (mgmtFsTarget === "locale_desc_en") {
+    localeForm.value.desc_en = mgmtFsContent.value
   }
   mgmtFs.value = false
   mgmtFsTarget = null
@@ -242,9 +246,9 @@ function closeCodeFullscreen() {
 const fullscreenText = ref(false)
 const fullscreenTextTitle = ref("")
 const fullscreenTextContent = ref("")
-let fullscreenTextTarget: "description" | "parameters" | null = null
+let fullscreenTextTarget: "description" | "parameters" | "natural_desc" | null = null
 
-function openTextFullscreen(title: string, content: string, target: "description" | "parameters") {
+function openTextFullscreen(title: string, content: string, target: "description" | "parameters" | "natural_desc") {
   fullscreenTextTitle.value = title
   fullscreenTextContent.value = content
   fullscreenTextTarget = target
@@ -256,6 +260,8 @@ function closeTextFullscreen() {
     generated.value.description = fullscreenTextContent.value
   } else if (fullscreenTextTarget === "parameters") {
     creatorParametersText.value = fullscreenTextContent.value
+  } else if (fullscreenTextTarget === "natural_desc") {
+    naturalDescription.value = fullscreenTextContent.value
   }
   fullscreenText.value = false
   fullscreenTextTarget = null
@@ -531,8 +537,8 @@ function formatOutput(data: any): string {
                 <div class="locale-field">
                   <div class="locale-field-label">{{ t("mgmt_locale_desc") }}</div>
                   <div class="locale-input-row">
-                    <label class="locale-lang">zh <textarea v-model="localeForm.desc_zh" rows="2" placeholder="中文描述"></textarea></label>
-                    <label class="locale-lang">en <textarea v-model="localeForm.desc_en" rows="2" :placeholder="t('mgmt_placeholder_desc')"></textarea></label>
+                    <label class="locale-lang">zh <button class="tc-fullscreen-btn" @click="openMgmtFs('zh ' + t('mgmt_locale_desc'), localeForm.desc_zh, 'locale_desc_zh')" :title="t('mgmt_tc_source_code')">&#x26F6;</button> <textarea v-model="localeForm.desc_zh" rows="2" placeholder="中文描述"></textarea></label>
+                    <label class="locale-lang">en <button class="tc-fullscreen-btn" @click="openMgmtFs('en ' + t('mgmt_locale_desc'), localeForm.desc_en, 'locale_desc_en')" :title="t('mgmt_tc_source_code')">&#x26F6;</button> <textarea v-model="localeForm.desc_en" rows="2" :placeholder="t('mgmt_placeholder_desc')"></textarea></label>
                   </div>
                 </div>
               </details>
@@ -580,6 +586,10 @@ function formatOutput(data: any): string {
                 <span class="tc-nl-arrow">{{ showNL ? '▲' : '▼' }}</span>
               </button>
               <div v-if="showNL" class="tc-nl-body">
+                <div class="tc-label-row">
+                  <span></span>
+                  <button class="tc-fullscreen-btn" @click="openTextFullscreen(t('mgmt_tc_describe_nl'), naturalDescription, 'natural_desc')" :title="t('mgmt_tc_source_code')">&#x26F6;</button>
+                </div>
                 <textarea
                   v-model="naturalDescription"
                   class="tc-textarea"
@@ -866,29 +876,6 @@ function formatOutput(data: any): string {
   align-items: center;
   margin-bottom: 5px;
 }
-.tc-label {
-  display: block;
-  font-size: 12px;
-  font-weight: 600;
-  margin-bottom: 5px;
-  color: var(--text-secondary);
-}
-.tc-fullscreen-btn {
-  background: var(--glass-highlight);
-  border: 1px solid var(--glass-border);
-  border-radius: 6px;
-  color: var(--text-secondary);
-  cursor: pointer;
-  font-size: 15px;
-  line-height: 1;
-  padding: 3px 8px;
-  transition: all 0.15s;
-}
-.tc-fullscreen-btn:hover {
-  color: var(--text-primary);
-  border-color: var(--accent);
-  background: var(--glass-bg);
-}
 .tc-input {
   width: 100%;
   padding: 9px 12px;
@@ -1089,104 +1076,6 @@ function formatOutput(data: any): string {
   color: var(--text-primary);
   line-height: 1.5;
 }
-.tc-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 9999;
-  background: rgba(0, 0, 0, 0.75);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.tc-overlay-content {
-  background: var(--surface-bg);
-  border: 1px solid var(--glass-border);
-  border-radius: 14px;
-  width: 92vw;
-  height: 92vh;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.5);
-  animation: tcOverlaySlide 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-}
-@keyframes tcOverlaySlide {
-  from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-.tc-overlay-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 18px 24px;
-  border-bottom: 1px solid var(--glass-border);
-  background: var(--glass-highlight);
-}
-.tc-overlay-header-actions {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-.tc-format-btn {
-  background: var(--glass-highlight);
-  border: 1px solid var(--glass-border);
-  border-radius: 8px;
-  color: var(--text-primary);
-  font-size: 12px;
-  font-weight: 600;
-  padding: 6px 14px;
-  cursor: pointer;
-  transition: all 0.15s;
-}
-.tc-format-btn:hover {
-  border-color: var(--accent);
-  color: var(--accent);
-}
-.tc-overlay-title {
-  font-size: 17px;
-  font-weight: 700;
-  letter-spacing: -0.2px;
-}
-.tc-fullscreen-close {
-  background: none;
-  border: none;
-  color: var(--text-secondary);
-  font-size: 22px;
-  cursor: pointer;
-  padding: 4px 8px;
-  border-radius: 6px;
-  line-height: 1;
-  transition: all 0.15s;
-}
-.tc-fullscreen-close:hover {
-  color: var(--text-primary);
-  background: var(--glass-highlight);
-}
-.tc-overlay-body {
-  flex: 1;
-  overflow: auto;
-  padding: 24px;
-}
-.tc-overlay-textarea {
-  width: 100%;
-  height: 100%;
-  background: var(--glass-highlight);
-  border: 1px solid var(--glass-border);
-  border-radius: 10px;
-  color: var(--text-primary);
-  font-family: "SF Mono", "Cascadia Code", "Fira Code", Menlo, Consolas, monospace;
-  font-size: 13px;
-  padding: 14px;
-  resize: none;
-  box-sizing: border-box;
-  line-height: 1.6;
-}
-.tc-overlay-textarea:focus {
-  outline: none;
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px var(--accent-dim);
-}
-
 @media (max-width: 768px) {
   .tc-panels {
     flex-direction: column;

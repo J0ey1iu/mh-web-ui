@@ -326,6 +326,10 @@ export async function deleteManageAgent(name: string): Promise<void> {
   await request(fillUrl(appConfig.apiManagementAgent, { name }), { method: "DELETE" })
 }
 
+export async function fetchProviders(): Promise<string[]> {
+  return request<string[]>(appConfig.apiManagementProviders)
+}
+
 export async function fetchManageTools(params?: FetchListParams): Promise<PaginatedResponse<ManageTool>> {
   return fetchManageOrEmpty<ManageTool>(appConfig.apiManagementTools, params)
 }

@@ -119,6 +119,8 @@ export interface AgentInfo {
   description: string
   tool_names: string[]
   tools: ToolInfo[]
+  provider?: string
+  model?: string
 }
 
 export interface EvalInput {
@@ -218,6 +220,9 @@ export interface ManageAgent {
   system_prompt: string
   system_prompt_locale?: string
   endpoint_url?: string
+  provider?: string
+  model?: string
+  llm_config?: Record<string, any>
   created_at?: string
   updated_at?: string
   created_by?: string

@@ -23,6 +23,7 @@ export interface AppConfig {
   apiManagementAgent: string
   apiManagementTools: string
   apiManagementTool: string
+  apiManagementProviders: string
 }
 
 declare const __APP_CONFIG__: AppConfig

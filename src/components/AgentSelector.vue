@@ -38,7 +38,10 @@ const { t } = useI18nStore()
           @click="emit('select', agent.name)"
         >
           <div class="agent-info">
-            <h3 class="agent-name">{{ agent.display_name || agent.name }}</h3>
+            <h3 class="agent-name">
+              {{ agent.display_name || agent.name }}
+              <span v-if="agent.model" class="model-badge">{{ agent.model }}</span>
+            </h3>
             <p class="agent-desc">{{ agent.description }}</p>
           </div>
           <div class="agent-tools">
@@ -128,6 +131,24 @@ const { t } = useI18nStore()
   font-weight: 600;
   color: var(--text-primary);
   text-transform: capitalize;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.model-badge {
+  font-size: 10px;
+  padding: 2px 7px;
+  border-radius: 6px;
+  background: var(--accent-dim);
+  color: var(--accent);
+  border: 1px solid transparent;
+  font-family: monospace;
+  font-weight: 500;
+  text-transform: none;
+  white-space: nowrap;
+}
+.agent-card:hover .model-badge {
+  border-color: var(--accent);
 }
 .agent-desc {
   margin: 0;

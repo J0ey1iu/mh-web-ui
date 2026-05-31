@@ -5,12 +5,14 @@ import {
   createManageAgent,
   updateManageAgent,
   deleteManageAgent,
+  fetchProviders,
 } from "../api/client"
 import type { ManageAgent } from "../types"
 import ManagementNav from "../components/ManagementNav.vue"
 import { useI18nStore } from "../stores/i18n"
 
 const { t, localeVal } = useI18nStore()
+const providers = ref<string[]>([])
 const agents = ref<ManageAgent[]>([])
 const loading = ref(false)
 const showDialog = ref(false)
@@ -24,6 +26,9 @@ const form = ref<Partial<ManageAgent>>({
   system_prompt: "",
   system_prompt_locale: "",
   endpoint_url: "",
+  provider: "openai",
+  model: "",
+  llm_config: {},
 })
 
 const localeForm = ref({
@@ -71,6 +76,49 @@ const totalPages = computed(() => Math.max(1, Math.ceil(total.value / pageSize.v
 
 const saving = ref(false)
 
+const llmConfigStr = ref("")
+
+// Fullscreen overlay
+const fsVisible = ref(false)
+const fsTitle = ref("")
+const fsContent = ref("")
+let fsTarget: string | null = null
+
+function openFs(title: string, content: string, target: string) {
+  fsTitle.value = title
+  fsContent.value = content
+  fsTarget = target
+  fsVisible.value = true
+}
+
+function closeFs() {
+  if (fsTarget === "description") {
+    form.value.description = fsContent.value
+  } else if (fsTarget === "system_prompt") {
+    form.value.system_prompt = fsContent.value
+  } else if (fsTarget === "llm_config") {
+    llmConfigStr.value = fsContent.value
+  } else if (fsTarget === "locale_desc_zh") {
+    localeForm.value.desc_zh = fsContent.value
+  } else if (fsTarget === "locale_desc_en") {
+    localeForm.value.desc_en = fsContent.value
+  } else if (fsTarget === "locale_prompt_zh") {
+    localeForm.value.prompt_zh = fsContent.value
+  } else if (fsTarget === "locale_prompt_en") {
+    localeForm.value.prompt_en = fsContent.value
+  }
+  fsVisible.value = false
+  fsTarget = null
+}
+
+async function loadProviders() {
+  try {
+    providers.value = await fetchProviders()
+  } catch {
+    providers.value = ["openai", "anthropic"]
+  }
+}
+
 async function load() {
   loading.value = true
   try {
@@ -101,20 +149,32 @@ function onPageSizeChange() {
 
 function openCreate() {
   editing.value = false
-  form.value = { name: "", display_name: "", display_name_locale: "", description: "", description_locale: "", system_prompt: "", system_prompt_locale: "", endpoint_url: "" }
+  form.value = { name: "", display_name: "", display_name_locale: "", description: "", description_locale: "", system_prompt: "", system_prompt_locale: "", endpoint_url: "", provider: "openai", model: "", llm_config: {} }
   localeForm.value = { display_zh: "", display_en: "", desc_zh: "", desc_en: "", prompt_zh: "", prompt_en: "" }
+  llmConfigStr.value = ""
   showDialog.value = true
 }
 
 function openEdit(a: ManageAgent) {
   editing.value = true
   form.value = { ...a }
+  llmConfigStr.value = a.llm_config ? JSON.stringify(a.llm_config, null, 2) : ""
   loadLocaleFromForm()
   showDialog.value = true
 }
 
 async function save() {
   applyLocaleToForm()
+  if (llmConfigStr.value.trim()) {
+    try {
+      form.value.llm_config = JSON.parse(llmConfigStr.value)
+    } catch {
+      alert("Invalid JSON in model config")
+      return
+    }
+  } else {
+    form.value.llm_config = {}
+  }
   saving.value = true
   try {
     if (editing.value && form.value.name) {
@@ -147,7 +207,10 @@ async function remove(name: string) {
   }
 }
 
-onMounted(load)
+onMounted(() => {
+  loadProviders()
+  load()
+})
 </script>
 
 <template>
@@ -224,17 +287,43 @@ onMounted(load)
               <input v-model="form.display_name" :placeholder="t('mgmt_placeholder_display_name')" />
             </div>
             <div class="form-group">
-              <label>{{ t("mgmt_description") }}</label>
+              <div class="tc-label-row">
+                <label>{{ t("mgmt_description") }}</label>
+                <button class="tc-fullscreen-btn" @click="openFs(t('mgmt_description'), form.description ?? '', 'description')" :title="t('mgmt_tc_source_code')">&#x26F6;</button>
+              </div>
               <textarea v-model="form.description" rows="2"></textarea>
             </div>
             <div class="form-group">
-              <label>{{ t("mgmt_system_prompt") }}</label>
+              <div class="tc-label-row">
+                <label>{{ t("mgmt_system_prompt") }}</label>
+                <button class="tc-fullscreen-btn" @click="openFs(t('mgmt_system_prompt'), form.system_prompt ?? '', 'system_prompt')" :title="t('mgmt_tc_source_code')">&#x26F6;</button>
+              </div>
               <textarea v-model="form.system_prompt" rows="6" class="mono"></textarea>
             </div>
             <div class="form-group">
               <label>{{ t("mgmt_endpoint") }}</label>
               <input v-model="form.endpoint_url" :placeholder="t('mgmt_placeholder_endpoint')" />
             </div>
+            <div class="form-group">
+              <label>{{ t("mgmt_provider") }}</label>
+              <select v-model="form.provider">
+                <option v-for="p in providers" :key="p" :value="p">{{ p }}</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>{{ t("mgmt_model") }}</label>
+              <input v-model="form.model" :placeholder="t('mgmt_model_placeholder')" />
+            </div>
+            <details class="locale-section">
+              <summary>{{ t("mgmt_llm_config") }}</summary>
+              <div class="form-group">
+                <div class="tc-label-row">
+                  <span></span>
+                  <button class="tc-fullscreen-btn" @click="openFs(t('mgmt_llm_config'), llmConfigStr, 'llm_config')" :title="t('mgmt_tc_source_code')">&#x26F6;</button>
+                </div>
+                <textarea v-model="llmConfigStr" rows="4" class="mono" :placeholder="t('mgmt_llm_config_placeholder')"></textarea>
+              </div>
+            </details>
             <details class="locale-section">
               <summary>{{ t("mgmt_translations") }}</summary>
               <div class="locale-field">
@@ -247,15 +336,15 @@ onMounted(load)
               <div class="locale-field">
                 <div class="locale-field-label">{{ t("mgmt_locale_desc") }}</div>
                 <div class="locale-input-row">
-                  <label class="locale-lang">zh <textarea v-model="localeForm.desc_zh" rows="2" placeholder="中文描述"></textarea></label>
-                  <label class="locale-lang">en <textarea v-model="localeForm.desc_en" rows="2" :placeholder="t('mgmt_placeholder_desc')"></textarea></label>
+                  <label class="locale-lang">zh <button class="tc-fullscreen-btn" @click="openFs('zh ' + t('mgmt_locale_desc'), localeForm.desc_zh, 'locale_desc_zh')" :title="t('mgmt_tc_source_code')">&#x26F6;</button> <textarea v-model="localeForm.desc_zh" rows="2" placeholder="中文描述"></textarea></label>
+                  <label class="locale-lang">en <button class="tc-fullscreen-btn" @click="openFs('en ' + t('mgmt_locale_desc'), localeForm.desc_en, 'locale_desc_en')" :title="t('mgmt_tc_source_code')">&#x26F6;</button> <textarea v-model="localeForm.desc_en" rows="2" :placeholder="t('mgmt_placeholder_desc')"></textarea></label>
                 </div>
               </div>
               <div class="locale-field">
                 <div class="locale-field-label">{{ t("mgmt_locale_prompt") }}</div>
                 <div class="locale-input-row">
-                  <label class="locale-lang">zh <textarea v-model="localeForm.prompt_zh" rows="3" placeholder="中文系统提示"></textarea></label>
-                  <label class="locale-lang">en <textarea v-model="localeForm.prompt_en" rows="3" :placeholder="t('mgmt_placeholder_prompt')"></textarea></label>
+                  <label class="locale-lang">zh <button class="tc-fullscreen-btn" @click="openFs('zh ' + t('mgmt_locale_prompt'), localeForm.prompt_zh, 'locale_prompt_zh')" :title="t('mgmt_tc_source_code')">&#x26F6;</button> <textarea v-model="localeForm.prompt_zh" rows="3" placeholder="中文系统提示"></textarea></label>
+                  <label class="locale-lang">en <button class="tc-fullscreen-btn" @click="openFs('en ' + t('mgmt_locale_prompt'), localeForm.prompt_en, 'locale_prompt_en')" :title="t('mgmt_tc_source_code')">&#x26F6;</button> <textarea v-model="localeForm.prompt_en" rows="3" :placeholder="t('mgmt_placeholder_prompt')"></textarea></label>
                 </div>
               </div>
             </details>
@@ -264,6 +353,26 @@ onMounted(load)
               <button class="btn-primary" :disabled="saving || !form.name" @click="save">
                 {{ saving ? t("mgmt_saving") : t("mgmt_save") }}
               </button>
+            </div>
+          </div>
+        </div>
+      </Teleport>
+
+      <Teleport to="body">
+        <div v-if="fsVisible" class="tc-overlay" @click.self="closeFs">
+          <div class="tc-overlay-content">
+            <div class="tc-overlay-header">
+              <span class="tc-overlay-title">{{ fsTitle }}</span>
+              <div class="tc-overlay-header-actions">
+                <button class="tc-fullscreen-close" @click="closeFs">&#x2715;</button>
+              </div>
+            </div>
+            <div class="tc-overlay-body">
+              <textarea
+                v-model="fsContent"
+                :class="fsTarget === 'system_prompt' || fsTarget === 'llm_config' || fsTarget?.startsWith('locale_prompt') ? 'tc-overlay-textarea' : 'tc-overlay-textarea tc-overlay-textarea-text'"
+                spellcheck="false"
+              />
             </div>
           </div>
         </div>

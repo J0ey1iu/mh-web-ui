@@ -31,6 +31,7 @@ export default defineConfig(({ mode }) => {
         apiManagementAgent: isProd ? "{wcm_api_management_agent}" : "//localhost:8005/api/v1/management/agents/{name}",
         apiManagementTools: isProd ? "{wcm_api_management_tools}" : "//localhost:8005/api/v1/management/tools",
         apiManagementTool: isProd ? "{wcm_api_management_tool}" : "//localhost:8005/api/v1/management/tools/{name}",
+        apiManagementProviders: isProd ? "{wcm_api_management_providers}" : "//localhost:8005/api/v1/management/providers",
       }),
     },
   }

@@ -74,6 +74,31 @@ const totalPages = computed(() => Math.max(1, Math.ceil(total.value / pageSize.v
 
 const saving = ref(false)
 
+// Fullscreen overlay
+const fsVisible = ref(false)
+const fsTitle = ref("")
+const fsContent = ref("")
+let fsTarget: string | null = null
+
+function openFs(title: string, content: string, target: string) {
+  fsTitle.value = title
+  fsContent.value = content
+  fsTarget = target
+  fsVisible.value = true
+}
+
+function closeFs() {
+  if (fsTarget === "description") {
+    form.value.description = fsContent.value
+  } else if (fsTarget === "locale_desc_zh") {
+    localeForm.value.desc_zh = fsContent.value
+  } else if (fsTarget === "locale_desc_en") {
+    localeForm.value.desc_en = fsContent.value
+  }
+  fsVisible.value = false
+  fsTarget = null
+}
+
 // detail panel
 const detailScenario = ref<ManageScenario | null>(null)
 const showDetail = ref(false)
@@ -329,7 +354,10 @@ onMounted(load)
             <input v-model="form.icon" :placeholder="t('mgmt_placeholder_icon')" />
           </div>
           <div class="form-group">
-            <label>{{ t("mgmt_description") }}</label>
+            <div class="tc-label-row">
+              <label>{{ t("mgmt_description") }}</label>
+              <button class="tc-fullscreen-btn" @click="openFs(t('mgmt_description'), form.description ?? '', 'description')" :title="t('mgmt_tc_source_code')">&#x26F6;</button>
+            </div>
             <textarea v-model="form.description" rows="3"></textarea>
           </div>
           <details class="locale-section">
@@ -344,8 +372,8 @@ onMounted(load)
             <div class="locale-field">
               <div class="locale-field-label">{{ t("mgmt_locale_desc") }}</div>
               <div class="locale-input-row">
-                <label class="locale-lang">zh <textarea v-model="localeForm.desc_zh" rows="2" placeholder="场景描述"></textarea></label>
-                <label class="locale-lang">en <textarea v-model="localeForm.desc_en" rows="2" :placeholder="t('mgmt_placeholder_desc')"></textarea></label>
+                <label class="locale-lang">zh <button class="tc-fullscreen-btn" @click="openFs('zh ' + t('mgmt_locale_desc'), localeForm.desc_zh, 'locale_desc_zh')" :title="t('mgmt_tc_source_code')">&#x26F6;</button> <textarea v-model="localeForm.desc_zh" rows="2" placeholder="场景描述"></textarea></label>
+                <label class="locale-lang">en <button class="tc-fullscreen-btn" @click="openFs('en ' + t('mgmt_locale_desc'), localeForm.desc_en, 'locale_desc_en')" :title="t('mgmt_tc_source_code')">&#x26F6;</button> <textarea v-model="localeForm.desc_en" rows="2" :placeholder="t('mgmt_placeholder_desc')"></textarea></label>
               </div>
             </div>
           </details>
@@ -426,6 +454,22 @@ onMounted(load)
               </div>
               <button v-if="showAddTool !== a.name" class="btn-sm" @click="showAddTool = a.name; addToolName = ''">{{ t("mgmt_add_tool") }}</button>
             </div>
+          </div>
+        </div>
+      </div>
+    </Teleport>
+
+    <Teleport to="body">
+      <div v-if="fsVisible" class="tc-overlay" @click.self="closeFs">
+        <div class="tc-overlay-content">
+          <div class="tc-overlay-header">
+            <span class="tc-overlay-title">{{ fsTitle }}</span>
+            <div class="tc-overlay-header-actions">
+              <button class="tc-fullscreen-close" @click="closeFs">&#x2715;</button>
+            </div>
+          </div>
+          <div class="tc-overlay-body">
+            <textarea v-model="fsContent" class="tc-overlay-textarea tc-overlay-textarea-text" spellcheck="false" />
           </div>
         </div>
       </div>
