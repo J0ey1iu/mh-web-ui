@@ -526,9 +526,7 @@ function handleLogout() {
   top: calc(100% + 6px);
   right: 0;
   min-width: 180px;
-  background: var(--glass-bg);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  background: var(--surface-raised);
   border: 1px solid var(--glass-border);
   border-radius: 12px;
   box-shadow: var(--glass-shadow);
