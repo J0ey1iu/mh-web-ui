@@ -106,18 +106,18 @@
 }
 
 @keyframes orbPulse1 {
-  0%, 100% { opacity: 0.5; }
-  50% { opacity: 0.9; }
-}
-
-@keyframes orbPulse2 {
-  0%, 100% { opacity: 0.8; }
+  0%, 100% { opacity: 0.3; }
   50% { opacity: 0.4; }
 }
 
+@keyframes orbPulse2 {
+  0%, 100% { opacity: 0.35; }
+  50% { opacity: 0.28; }
+}
+
 @keyframes orbPulse3 {
-  0%, 100% { opacity: 0.6; }
-  33% { opacity: 0.9; }
-  66% { opacity: 0.4; }
+  0%, 100% { opacity: 0.3; }
+  33% { opacity: 0.4; }
+  66% { opacity: 0.28; }
 }
 </style>
