@@ -770,7 +770,7 @@ function formatOutput(data: any): string {
 }
 
 .tc-overlay-content {
-  background: var(--glass-bg);
+  background: var(--surface-bg);
   border: 1px solid var(--glass-border);
   border-radius: 12px;
   width: 90vw;

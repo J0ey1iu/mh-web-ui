@@ -1097,15 +1097,9 @@ function formatOutput(data: any): string {
   display: flex;
   align-items: center;
   justify-content: center;
-  backdrop-filter: blur(4px);
-  animation: tcOverlayIn 0.15s ease;
-}
-@keyframes tcOverlayIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
 }
 .tc-overlay-content {
-  background: var(--glass-bg);
+  background: var(--surface-bg);
   border: 1px solid var(--glass-border);
   border-radius: 14px;
   width: 92vw;
@@ -1117,8 +1111,8 @@ function formatOutput(data: any): string {
   animation: tcOverlaySlide 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 @keyframes tcOverlaySlide {
-  from { opacity: 0; transform: scale(0.96); }
-  to { opacity: 1; transform: scale(1); }
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 .tc-overlay-header {
   display: flex;
