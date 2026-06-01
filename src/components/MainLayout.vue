@@ -94,6 +94,7 @@ function removeSessionHandler(id: string) {
 }
 
 function handleNewChat() {
+  chatStore.pendingAgent = null
   showAgentSelector.value = true
 }
 
