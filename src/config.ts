@@ -24,6 +24,9 @@ export interface AppConfig {
   apiManagementTools: string
   apiManagementTool: string
   apiManagementProviders: string
+  apiAgentGeneratorGenerate: string
+  apiAgentGeneratorAgents: string
+  apiAgentGeneratorTrial: string
 }
 
 declare const __APP_CONFIG__: AppConfig

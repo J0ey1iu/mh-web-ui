@@ -32,6 +32,9 @@ export default defineConfig(({ mode }) => {
         apiManagementTools: isProd ? "{wcm_api_management_tools}" : "//localhost:8005/api/v1/management/tools",
         apiManagementTool: isProd ? "{wcm_api_management_tool}" : "//localhost:8005/api/v1/management/tools/{name}",
         apiManagementProviders: isProd ? "{wcm_api_management_providers}" : "//localhost:8005/api/v1/management/providers",
+        apiAgentGeneratorGenerate: isProd ? "{wcm_api_agent_generator_generate}" : "//localhost:8005/api/v1/agent-generator/generate",
+        apiAgentGeneratorAgents: isProd ? "{wcm_api_agent_generator_agents}" : "//localhost:8005/api/v1/agent-generator/agents",
+        apiAgentGeneratorTrial: isProd ? "{wcm_api_agent_generator_trial}" : "//localhost:8005/api/v1/agent-generator/agents/{name}/trial",
       }),
     },
   }

@@ -187,6 +187,19 @@ export interface EvalJob {
   summary?: EvalSummary
 }
 
+export interface GeneratedAgent {
+  name: string
+  display_name: string
+  description: string
+  system_prompt: string
+  provider: string
+  model: string
+  llm_config: Record<string, any>
+  user_id?: string
+  created_at?: string
+  updated_at?: string
+}
+
 export interface GeneratedTool {
   name: string
   display_name: string

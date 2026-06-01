@@ -1,4 +1,4 @@
-import type { AgentInfo, EvalJob, EvalJobConfig, FetchListParams, GeneratedTool, ManageAgent, ManageScenario, ManageTool, MessageItem, PaginatedResponse, ScenarioDetail, ScenarioInfo, SessionInfo, UserInfo, SSEEventName } from "../types"
+import type { AgentInfo, EvalJob, EvalJobConfig, FetchListParams, GeneratedAgent, GeneratedTool, ManageAgent, ManageScenario, ManageTool, MessageItem, PaginatedResponse, ScenarioDetail, ScenarioInfo, SessionInfo, UserInfo, SSEEventName } from "../types"
 import { appConfig } from "../config"
 
 function fillUrl(template: string, params?: Record<string, string>): string {
@@ -233,6 +233,123 @@ export function executeGeneratedTool(
     credentials: "include",
     headers,
     body: JSON.stringify({ args, source_code: sourceCode }),
+    signal: controller.signal,
+  })
+    .then(async (res) => {
+      await consumeSSE(res, (line) => {
+        if (line.startsWith("data: ")) {
+          const dataStr = line.slice(6).trim()
+          try {
+            const payload = JSON.parse(dataStr)
+            onEvent(payload.type as string, payload.data)
+          } catch { /* skip */ }
+        }
+      })
+      onDone()
+    })
+    .catch((err) => {
+      if (err.name !== "AbortError") onError(err instanceof Error ? err : new Error(String(err)))
+    })
+
+  return controller
+}
+
+// ── Agent Generator ──
+
+export function generateAgentMetadata(
+  description: string,
+  onEvent: (type: string, data: any) => void,
+  onDone: () => void,
+  onError: (err: Error) => void,
+): AbortController {
+  const controller = new AbortController()
+  const headers: Record<string, string> = { "Content-Type": "application/json", "Accept-Language": getLocale() }
+
+  fetch(appConfig.apiAgentGeneratorGenerate, {
+    method: "POST",
+    credentials: "include",
+    headers,
+    body: JSON.stringify({ natural_description: description }),
+    signal: controller.signal,
+  })
+    .then(async (res) => {
+      await consumeSSE(res, (line) => {
+        if (line.startsWith("data: ")) {
+          const dataStr = line.slice(6).trim()
+          try {
+            const payload = JSON.parse(dataStr)
+            onEvent(payload.type as string, payload.data)
+          } catch { /* skip */ }
+        }
+      })
+      onDone()
+    })
+    .catch((err) => {
+      if (err.name !== "AbortError") onError(err instanceof Error ? err : new Error(String(err)))
+    })
+
+  return controller
+}
+
+export async function fetchGeneratedAgents(): Promise<GeneratedAgent[]> {
+  return request<GeneratedAgent[]>(appConfig.apiAgentGeneratorAgents)
+}
+
+export async function saveGeneratedAgent(agent: {
+  name: string
+  display_name: string
+  description: string
+  system_prompt: string
+  provider?: string
+  model?: string
+  llm_config?: Record<string, any>
+}): Promise<GeneratedAgent> {
+  return request<GeneratedAgent>(appConfig.apiAgentGeneratorAgents, {
+    method: "POST",
+    body: JSON.stringify(agent),
+  })
+}
+
+export async function updateGeneratedAgent(
+  name: string,
+  agent: {
+    display_name: string
+    description: string
+    system_prompt: string
+    provider?: string
+    model?: string
+    llm_config?: Record<string, any>
+  },
+): Promise<GeneratedAgent> {
+  return request<GeneratedAgent>(fillUrl(`${appConfig.apiAgentGeneratorAgents}/${name}`, {}), {
+    method: "PUT",
+    body: JSON.stringify(agent),
+  })
+}
+
+export async function deleteGeneratedAgent(name: string): Promise<void> {
+  await request<{ status: string }>(fillUrl(`${appConfig.apiAgentGeneratorAgents}/${name}`, {}), { method: "DELETE" })
+}
+
+export function executeAgentTrial(
+  name: string,
+  message: string,
+  systemPrompt: string,
+  provider: string,
+  model: string,
+  llmConfig: Record<string, any>,
+  onEvent: (type: string, data: any) => void,
+  onDone: () => void,
+  onError: (err: Error) => void,
+): AbortController {
+  const controller = new AbortController()
+  const headers: Record<string, string> = { "Content-Type": "application/json", "Accept-Language": getLocale() }
+
+  fetch(fillUrl(appConfig.apiAgentGeneratorTrial, { name }), {
+    method: "POST",
+    credentials: "include",
+    headers,
+    body: JSON.stringify({ message, system_prompt: systemPrompt, provider, model, llm_config: llmConfig }),
     signal: controller.signal,
   })
     .then(async (res) => {
