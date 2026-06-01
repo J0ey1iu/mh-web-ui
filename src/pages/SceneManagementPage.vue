@@ -16,8 +16,11 @@ import {
 import type { ManageScenario, ManageAgent, ManageTool } from "../types"
 import ManagementNav from "../components/ManagementNav.vue"
 import { useI18nStore } from "../stores/i18n"
+import { useAlertStore } from "../stores/alert"
+import SearchSelect from "../components/SearchSelect.vue"
 
 const { t, localeVal } = useI18nStore()
+const alertStore = useAlertStore()
 const scenarios = ref<ManageScenario[]>([])
 const allAgents = ref<ManageAgent[]>([])
 const allTools = ref<ManageTool[]>([])
@@ -70,6 +73,13 @@ const currentPage = ref(1)
 const pageSize = ref(15)
 const total = ref(0)
 
+const pageSizeOptions = [
+  { value: 10, label: "10" },
+  { value: 15, label: "15" },
+  { value: 20, label: "20" },
+  { value: 50, label: "50" },
+]
+
 const totalPages = computed(() => Math.max(1, Math.ceil(total.value / pageSize.value)))
 
 const saving = ref(false)
@@ -107,6 +117,21 @@ const showAddAgent = ref(false)
 const addToolName = ref("")
 const showAddTool = ref("")  // agent name
 
+const addAgentOptions = computed(() =>
+  unusedAgents().map(a => ({
+    value: a.name,
+    label: `${localeVal(a.display_name_locale, a.display_name)} (${a.name})`,
+  }))
+)
+
+const addToolOptions = computed(() => {
+  if (!showAddTool.value) return []
+  return unusedTools(showAddTool.value).map(tl => ({
+    value: tl.name,
+    label: `${localeVal(tl.display_name_locale, tl.display_name)} (${tl.name})`,
+  }))
+})
+
 async function load() {
   loading.value = true
   try {
@@ -120,7 +145,7 @@ async function load() {
     allAgents.value = agentList.items
     allTools.value = toolList.items
   } catch (e) {
-    alert("Failed to load: " + (e as Error).message)
+    alertStore.show("Failed to load: " + (e as Error).message)
   } finally {
     loading.value = false
   }
@@ -167,14 +192,14 @@ async function save() {
     showDialog.value = false
     await load()
   } catch (e) {
-    alert("Failed to save: " + (e as Error).message)
+    alertStore.show("Failed to save: " + (e as Error).message)
   } finally {
     saving.value = false
   }
 }
 
 async function remove(id: string) {
-  if (!confirm("Delete this scenario?")) return
+  if (!await alertStore.confirm(t("alert_confirm_delete_scenario"))) return
   try {
     await deleteManageScenario(id)
     if (detailScenario.value?.id === id) {
@@ -183,7 +208,7 @@ async function remove(id: string) {
     }
     await load()
   } catch (e) {
-    alert("Failed to delete: " + (e as Error).message)
+    alertStore.show("Failed to delete: " + (e as Error).message)
   }
 }
 
@@ -207,17 +232,17 @@ async function handleAddAgent() {
     showAddAgent.value = false
     await load()
   } catch (e) {
-    alert("Failed to add agent: " + (e as Error).message)
+    alertStore.show("Failed to add agent: " + (e as Error).message)
   }
 }
 
 async function handleRemoveAgent(agentName: string) {
-  if (!detailScenario.value || !confirm(`Remove agent "${agentName}" from this scene?`)) return
+  if (!detailScenario.value || !await alertStore.confirm(t("alert_confirm_remove_agent", { name: agentName }))) return
   try {
     detailScenario.value = await removeScenarioAgent(detailScenario.value.id, agentName)
     await load()
   } catch (e) {
-    alert("Failed to remove agent: " + (e as Error).message)
+    alertStore.show("Failed to remove agent: " + (e as Error).message)
   }
 }
 
@@ -229,18 +254,18 @@ async function handleAddTool(agentName: string) {
     showAddTool.value = ""
     await load()
   } catch (e) {
-    alert("Failed to add tool: " + (e as Error).message)
+    alertStore.show("Failed to add tool: " + (e as Error).message)
   }
 }
 
 async function handleRemoveTool(agentName: string, toolName: string) {
   if (!detailScenario.value) return
-  if (!confirm(`Remove tool "${getToolDisplay(toolName)}" from agent "${getAgentDisplay(agentName)}"?`)) return
+  if (!await alertStore.confirm(t("alert_confirm_remove_tool", { tool: getToolDisplay(toolName), agent: getAgentDisplay(agentName) }))) return
   try {
     detailScenario.value = await removeAgentTool(detailScenario.value.id, agentName, toolName)
     await load()
   } catch (e) {
-    alert("Failed to remove tool: " + (e as Error).message)
+    alertStore.show("Failed to remove tool: " + (e as Error).message)
   }
 }
 
@@ -328,12 +353,7 @@ onMounted(load)
           <button class="btn-page" :disabled="currentPage <= 1" @click="goToPage(currentPage - 1)">{{ t("mgmt_prev_page") }}</button>
           <span class="mgmt-page-info">{{ currentPage }} / {{ totalPages }}</span>
           <button class="btn-page" :disabled="currentPage >= totalPages" @click="goToPage(currentPage + 1)">{{ t("mgmt_next_page") }}</button>
-          <select v-model.number="pageSize" class="mgmt-page-size" @change="onPageSizeChange">
-            <option :value="10">10</option>
-            <option :value="15">15</option>
-            <option :value="20">20</option>
-            <option :value="50">50</option>
-          </select>
+          <SearchSelect v-model.number="pageSize" :options="pageSizeOptions" :searchable="false" @change="onPageSizeChange" />
         </div>
       </div>
 
@@ -415,12 +435,7 @@ onMounted(load)
             </div>
 
             <div v-if="showAddAgent" class="inline-form">
-              <select v-model="addAgentName" class="sel">
-                <option value="" disabled>{{ t("mgmt_select_agent") }}</option>
-                <option v-for="a in unusedAgents()" :key="a.name" :value="a.name">
-                  {{ localeVal(a.display_name_locale, a.display_name) }} ({{ a.name }})
-                </option>
-              </select>
+              <SearchSelect v-model="addAgentName" :options="addAgentOptions" :placeholder="t('mgmt_select_agent')" />
               <button class="btn-sm btn-primary" :disabled="!addAgentName" @click="handleAddAgent">{{ t("mgmt_save") }}</button>
             </div>
 
@@ -443,12 +458,7 @@ onMounted(load)
                 <span v-if="!a.tool_names || a.tool_names.length === 0" class="text-muted">{{ t("mgmt_no_tools_assigned") }}</span>
               </div>
               <div v-if="showAddTool === a.name" class="inline-form compact">
-                <select v-model="addToolName" class="sel">
-                  <option value="" disabled>{{ t("mgmt_select_tool") }}</option>
-                  <option v-for="tl in unusedTools(a.name)" :key="tl.name" :value="tl.name">
-                    {{ localeVal(tl.display_name_locale, tl.display_name) }} ({{ tl.name }})
-                  </option>
-                </select>
+                <SearchSelect v-model="addToolName" :options="addToolOptions" :placeholder="t('mgmt_select_tool')" />
                 <button class="btn-sm btn-primary" :disabled="!addToolName" @click="handleAddTool(a.name)">{{ t("mgmt_save") }}</button>
                 <button class="btn-sm" @click="showAddTool = ''; addToolName = ''">{{ t("mgmt_cancel") }}</button>
               </div>

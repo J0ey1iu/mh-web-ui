@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { ref, onMounted, watch } from "vue"
+import { ref, computed, onMounted, watch } from "vue"
 import { useRoute, useRouter } from "vue-router"
 import { useI18nStore } from "../stores/i18n"
+import SearchSelect from "./SearchSelect.vue"
 import { storeToRefs } from "pinia"
 
 const route = useRoute()
@@ -18,6 +19,10 @@ const themes = [
   { value: "lemonade", labelKey: "theme_lemonade" },
   { value: "eclipse", labelKey: "theme_eclipse" },
 ]
+
+const themeOptions = computed(() =>
+  themes.map(th => ({ value: th.value, label: t(th.labelKey) }))
+)
 
 const currentTheme = ref(localStorage.getItem("theme") || "light")
 const scrolled = ref(false)
@@ -84,9 +89,7 @@ function toggleLang() {
       </div>
 
       <div class="nav-controls">
-        <select v-model="currentTheme" class="nav-select" :title="t('theme')">
-          <option v-for="th in themes" :key="th.value" :value="th.value">{{ t(th.labelKey) }}</option>
-        </select>
+        <SearchSelect v-model="currentTheme" :options="themeOptions" :searchable="false" />
         <button class="nav-lang-btn" @click="toggleLang">{{ locale === "zh" ? "EN" : "中" }}</button>
       </div>
     </div>

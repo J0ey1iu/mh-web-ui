@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, reactive, computed, provide, onMounted, watch } from "vue"
+import SearchSelect from "../components/SearchSelect.vue"
 import type { Component } from "vue"
 import {
   ensureComponentsLoaded,
@@ -58,6 +59,12 @@ const loadingAll = ref(false)
 const error = ref<string | null>(null)
 
 const mockStates = reactive<Record<string, MockToolState>>({})
+
+const statusOptions = [
+  { value: "running", label: "running" },
+  { value: "success", label: "success" },
+  { value: "error", label: "error" },
+]
 
 const selectedComponent = ref<string | null>(null)
 const sourcesOpen = ref(false)
@@ -448,11 +455,7 @@ const compCount = computed(() => registeredComponents.value.length)
           <div class="mock-panel">
             <div class="mock-field">
               <label>Status</label>
-              <select v-model="mockStates[selectedComponent].status">
-                <option value="running">running</option>
-                <option value="success">success</option>
-                <option value="error">error</option>
-              </select>
+              <SearchSelect v-model="mockStates[selectedComponent].status" :options="statusOptions" :searchable="false" />
             </div>
 
             <div class="mock-field">

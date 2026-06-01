@@ -14,12 +14,20 @@ import {
 import type { GeneratedAgent, ManageAgent } from "../types"
 import ManagementNav from "../components/ManagementNav.vue"
 import { useI18nStore } from "../stores/i18n"
+import { useAlertStore } from "../stores/alert"
+import SearchSelect from "../components/SearchSelect.vue"
 
 const { t, localeVal } = useI18nStore()
+const alertStore = useAlertStore()
 
 const activeTab = ref<"manage" | "create">("manage")
 
 const providers = ref<string[]>([])
+
+const providerOptions = computed(() =>
+  providers.value.map(p => ({ value: p, label: p }))
+)
+
 const agents = ref<ManageAgent[]>([])
 const loading = ref(false)
 const showDialog = ref(false)
@@ -79,6 +87,13 @@ const currentPage = ref(1)
 const pageSize = ref(15)
 const total = ref(0)
 
+const pageSizeOptions = [
+  { value: 10, label: "10" },
+  { value: 15, label: "15" },
+  { value: 20, label: "20" },
+  { value: 50, label: "50" },
+]
+
 const totalPages = computed(() => Math.max(1, Math.ceil(total.value / pageSize.value)))
 
 const saving = ref(false)
@@ -133,7 +148,7 @@ async function load() {
     agents.value = resp.items
     total.value = resp.total
   } catch (e) {
-    alert("Failed to load agents: " + (e as Error).message)
+    alertStore.show("Failed to load agents: " + (e as Error).message)
   } finally {
     loading.value = false
   }
@@ -176,7 +191,7 @@ async function save() {
     try {
       form.value.llm_config = JSON.parse(llmConfigStr.value)
     } catch {
-      alert("Invalid JSON in model config")
+      alertStore.show("Invalid JSON in model config")
       return
     }
   } else {
@@ -192,7 +207,7 @@ async function save() {
     showDialog.value = false
     await load()
   } catch (e) {
-    alert("Failed to save: " + (e as Error).message)
+    alertStore.show("Failed to save: " + (e as Error).message)
   } finally {
     saving.value = false
   }
@@ -205,12 +220,12 @@ function fmtAudit(dt: string | undefined, by: string | undefined): string {
 }
 
 async function remove(name: string) {
-  if (!confirm(`Delete agent "${name}"?`)) return
+  if (!await alertStore.confirm(t("alert_confirm_delete_agent", { name }))) return
   try {
     await deleteManageAgent(name)
     await load()
   } catch (e) {
-    alert("Failed to delete: " + (e as Error).message)
+    alertStore.show("Failed to delete: " + (e as Error).message)
   }
 }
 
@@ -276,7 +291,7 @@ function formatLlmConfigJson() {
     const parsed = JSON.parse(creatorFsContent.value)
     creatorFsContent.value = JSON.stringify(parsed, null, 2)
   } catch {
-    alert(t("mgmt_tc_invalid_json"))
+    alertStore.show(t("mgmt_tc_invalid_json"))
   }
 }
 
@@ -296,7 +311,7 @@ function handleGenerate() {
           : ""
         editingName.value = null
       } else if (type === "error") {
-        alert(t("mgmt_tc_generation_error") + ": " + data.message)
+        alertStore.show(t("mgmt_tc_generation_error") + ": " + data.message)
       }
     },
     () => {
@@ -308,7 +323,7 @@ function handleGenerate() {
       generating.value = false
       genProgress.value = ""
       genAbortController.value = null
-      alert(t("mgmt_tc_generation_failed") + ": " + err.message)
+      alertStore.show(t("mgmt_tc_generation_failed") + ": " + err.message)
     },
   )
 }
@@ -329,7 +344,7 @@ async function handleSave() {
       try {
         parsedLlmConfig = JSON.parse(creatorLlmConfigStr.value)
       } catch {
-        alert(t("mgmt_tc_invalid_json"))
+        alertStore.show(t("mgmt_tc_invalid_json"))
         savingCreator.value = false
         return
       }
@@ -343,7 +358,7 @@ async function handleSave() {
         model: generated.value.model,
         llm_config: parsedLlmConfig,
       })
-      alert(t("mgmt_tc_agent_updated"))
+      alertStore.show(t("mgmt_tc_agent_updated"))
     } else {
       await saveGeneratedAgent({
         name: generated.value.name,
@@ -355,10 +370,10 @@ async function handleSave() {
         llm_config: parsedLlmConfig,
       })
       editingName.value = generated.value.name
-      alert(t("mgmt_tc_agent_saved"))
+      alertStore.show(t("mgmt_tc_agent_saved"))
     }
   } catch (e: any) {
-    alert(t("mgmt_tc_save_failed") + ": " + e.message)
+    alertStore.show(t("mgmt_tc_save_failed") + ": " + e.message)
   } finally {
     savingCreator.value = false
   }
@@ -479,12 +494,7 @@ onMounted(() => {
             <button class="btn-page" :disabled="currentPage <= 1" @click="goToPage(currentPage - 1)">{{ t("mgmt_prev_page") }}</button>
             <span class="mgmt-page-info">{{ currentPage }} / {{ totalPages }}</span>
             <button class="btn-page" :disabled="currentPage >= totalPages" @click="goToPage(currentPage + 1)">{{ t("mgmt_next_page") }}</button>
-            <select v-model.number="pageSize" class="mgmt-page-size" @change="onPageSizeChange">
-              <option :value="10">10</option>
-              <option :value="15">15</option>
-              <option :value="20">20</option>
-              <option :value="50">50</option>
-            </select>
+            <SearchSelect v-model.number="pageSize" :options="pageSizeOptions" :searchable="false" @change="onPageSizeChange" />
           </div>
         </div>
 
@@ -520,9 +530,7 @@ onMounted(() => {
               </div>
               <div class="form-group">
                 <label>{{ t("mgmt_provider") }}</label>
-                <select v-model="form.provider">
-                  <option v-for="p in providers" :key="p" :value="p">{{ p }}</option>
-                </select>
+                <SearchSelect v-model="form.provider" :options="providerOptions" :searchable="false" />
               </div>
               <div class="form-group">
                 <label>{{ t("mgmt_model") }}</label>

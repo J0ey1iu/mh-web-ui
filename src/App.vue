@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import AlertModal from "./components/AlertModal.vue"
 </script>
 
 <template>
@@ -10,6 +11,7 @@
     <div class="bg-orb orb-5" />
   </div>
   <router-view />
+  <AlertModal />
 </template>
 
 <style>
@@ -106,18 +108,18 @@
 }
 
 @keyframes orbPulse1 {
-  0%, 100% { opacity: 0.3; }
-  50% { opacity: 0.4; }
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 0.6; }
 }
 
 @keyframes orbPulse2 {
-  0%, 100% { opacity: 0.35; }
-  50% { opacity: 0.28; }
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 0.4; }
 }
 
 @keyframes orbPulse3 {
-  0%, 100% { opacity: 0.3; }
-  33% { opacity: 0.4; }
-  66% { opacity: 0.28; }
+  0%, 100% { opacity: 0.4; }
+  33% { opacity: 0.6; }
+  66% { opacity: 0.5; }
 }
 </style>

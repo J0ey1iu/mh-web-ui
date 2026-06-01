@@ -5,6 +5,7 @@ import { useEvalStore } from "../stores/eval"
 import { fetchScenarioDetail, fetchScenarios, getEvalReportUrl } from "../api/client"
 import type { EvalInput, ScenarioDetail, ScenarioInfo } from "../types"
 import ManagementNav from "../components/ManagementNav.vue"
+import SearchSelect from "../components/SearchSelect.vue"
 import * as XLSX from "xlsx"
 
 const i18nStore = useI18nStore()
@@ -49,6 +50,14 @@ const inputs = ref<EvalInput[]>([])
 const availableAgents = computed(() => {
   return scenarioDetail.value?.agents ?? []
 })
+
+const scenarioOptions = computed(() =>
+  scenarios.value.map(s => ({ value: s.id, label: `${s.icon} ${s.name}` }))
+)
+
+const agentOptions = computed(() =>
+  availableAgents.value.map(a => ({ value: a.name, label: a.display_name || a.name }))
+)
 
 function addInput() {
   const firstAgent = availableAgents.value[0]?.name ?? ""
@@ -227,12 +236,7 @@ onUnmounted(() => {
       <div v-if="activeTab === 'new'" class="tab-panel">
         <div class="form-card">
           <h2 class="form-section-title">{{ t("eval_scenario") }}</h2>
-          <select v-model="selectedScenarioId" class="form-select" @change="selectScenario(selectedScenarioId)">
-            <option value="" disabled>{{ scenariosLoading ? 'Loading...' : t("select_scene") }}</option>
-            <option v-for="s in scenarios" :key="s.id" :value="s.id">
-              {{ s.icon }} {{ s.name }}
-            </option>
-          </select>
+          <SearchSelect v-model="selectedScenarioId" :options="scenarioOptions" :placeholder="scenariosLoading ? 'Loading...' : t('select_scene')" @change="selectScenario" />
         </div>
 
         <div v-if="scenarioDetail" class="form-card">
@@ -243,11 +247,7 @@ onUnmounted(() => {
             :key="idx"
             class="input-row"
           >
-            <select v-model="inp.agent_name" class="form-select agent-select">
-              <option v-for="a in availableAgents" :key="a.name" :value="a.name">
-                {{ a.display_name || a.name }}
-              </option>
-            </select>
+            <SearchSelect v-model="inp.agent_name" :options="agentOptions" :searchable="false" />
             <textarea
               v-model="inp.input_text"
               class="form-textarea"

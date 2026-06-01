@@ -104,6 +104,13 @@ const messages: Record<Locale, Record<string, string>> = {
     mgmt_load_failed: "加载失败",
     mgmt_save_failed: "保存失败",
     mgmt_delete_failed: "删除失败",
+    alert_ok: "确定",
+    alert_cancel: "取消",
+    alert_confirm_delete_scenario: "确定删除该场景？",
+    alert_confirm_delete_agent: "确定删除 Agent「{name}」？",
+    alert_confirm_delete_tool: "确定删除工具「{name}」？",
+    alert_confirm_remove_agent: "确定从场景中移除 Agent「{name}」？",
+    alert_confirm_remove_tool: "确定从 Agent「{agent}」中移除工具「{tool}」？",
     mgmt_confirm_delete: "确定删除？",
     mgmt_loading: "加载中…",
     mgmt_no_scenes: "暂无场景",
@@ -299,6 +306,13 @@ const messages: Record<Locale, Record<string, string>> = {
     mgmt_load_failed: "Failed to load",
     mgmt_save_failed: "Failed to save",
     mgmt_delete_failed: "Failed to delete",
+    alert_ok: "OK",
+    alert_cancel: "Cancel",
+    alert_confirm_delete_scenario: "Delete this scenario?",
+    alert_confirm_delete_agent: "Delete agent \"{name}\"?",
+    alert_confirm_delete_tool: "Delete tool \"{name}\"?",
+    alert_confirm_remove_agent: "Remove agent \"{name}\" from this scene?",
+    alert_confirm_remove_tool: "Remove tool \"{tool}\" from agent \"{agent}\"?",
     mgmt_confirm_delete: "Delete?",
     mgmt_loading: "Loading…",
     mgmt_no_scenes: "No scenes yet.",
@@ -419,8 +433,14 @@ export const useI18nStore = defineStore("i18n", () => {
     }
   })
 
-  function t(key: string): string {
-    return messages[locale.value][key] ?? key
+  function t(key: string, args?: Record<string, string>): string {
+    let msg = messages[locale.value][key] ?? key
+    if (args) {
+      for (const [k, v] of Object.entries(args)) {
+        msg = msg.replace(`{${k}}`, v)
+      }
+    }
+    return msg
   }
 
   function setLocale(l: Locale) {

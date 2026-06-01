@@ -13,8 +13,11 @@ import {
 import type { ManageTool, GeneratedTool } from "../types"
 import ManagementNav from "../components/ManagementNav.vue"
 import { useI18nStore } from "../stores/i18n"
+import { useAlertStore } from "../stores/alert"
+import SearchSelect from "../components/SearchSelect.vue"
 
 const { t, localeVal } = useI18nStore()
+const alertStore = useAlertStore()
 
 const activeTab = ref<"manage" | "create">("manage")
 
@@ -26,6 +29,13 @@ const searchQuery = ref("")
 const currentPage = ref(1)
 const pageSize = ref(15)
 const total = ref(0)
+
+const pageSizeOptions = [
+  { value: 10, label: "10" },
+  { value: 15, label: "15" },
+  { value: 20, label: "20" },
+  { value: 50, label: "50" },
+]
 
 const totalPages = computed(() => Math.max(1, Math.ceil(total.value / pageSize.value)))
 
@@ -107,7 +117,7 @@ function formatMgmtFsJson() {
     const parsed = JSON.parse(mgmtFsContent.value)
     mgmtFsContent.value = JSON.stringify(parsed, null, 2)
   } catch {
-    alert(t("mgmt_tc_invalid_json"))
+    alertStore.show(t("mgmt_tc_invalid_json"))
   }
 }
 
@@ -118,7 +128,7 @@ async function load() {
     tools.value = resp.items
     total.value = resp.total
   } catch (e) {
-    alert("Failed to load tools: " + (e as Error).message)
+    alertStore.show("Failed to load tools: " + (e as Error).message)
   } finally {
     loading.value = false
   }
@@ -160,7 +170,7 @@ function applyParametersJson() {
     const parsed = JSON.parse(parametersText.value)
     form.value.parameters = parsed
   } catch {
-    alert("Invalid JSON in parameters field")
+    alertStore.show("Invalid JSON in parameters field")
   }
 }
 
@@ -177,7 +187,7 @@ async function save() {
     showDialog.value = false
     await load()
   } catch (e) {
-    alert("Failed to save: " + (e as Error).message)
+    alertStore.show("Failed to save: " + (e as Error).message)
   } finally {
     saving.value = false
   }
@@ -190,12 +200,12 @@ function fmtAudit(dt: string | undefined, by: string | undefined): string {
 }
 
 async function remove(name: string) {
-  if (!confirm(`Delete tool "${name}"?`)) return
+  if (!await alertStore.confirm(t("alert_confirm_delete_tool", { name }))) return
   try {
     await deleteManageTool(name)
     await load()
   } catch (e) {
-    alert("Failed to delete: " + (e as Error).message)
+    alertStore.show("Failed to delete: " + (e as Error).message)
   }
 }
 
@@ -272,7 +282,7 @@ function formatParametersJson() {
     const parsed = JSON.parse(fullscreenTextContent.value)
     fullscreenTextContent.value = JSON.stringify(parsed, null, 2)
   } catch {
-    alert(t("mgmt_tc_invalid_json"))
+    alertStore.show(t("mgmt_tc_invalid_json"))
   }
 }
 
@@ -299,7 +309,7 @@ function handleGenerate() {
         editingName.value = null
         initTrialArgs()
       } else if (type === "error") {
-        alert(t("mgmt_tc_generation_error") + ": " + data.message)
+        alertStore.show(t("mgmt_tc_generation_error") + ": " + data.message)
       }
     },
     () => {
@@ -311,7 +321,7 @@ function handleGenerate() {
       generating.value = false
       genProgress.value = ""
       genAbortController.value = null
-      alert(t("mgmt_tc_generation_failed") + ": " + err.message)
+      alertStore.show(t("mgmt_tc_generation_failed") + ": " + err.message)
     },
   )
 }
@@ -342,7 +352,7 @@ async function handleSave() {
     try {
       parsedParameters = JSON.parse(creatorParametersText.value)
     } catch {
-      alert(t("mgmt_tc_invalid_json"))
+      alertStore.show(t("mgmt_tc_invalid_json"))
       savingCreator.value = false
       return
     }
@@ -353,7 +363,7 @@ async function handleSave() {
         parameters: parsedParameters,
         source_code: generated.value.source_code,
       })
-      alert(t("mgmt_tc_tool_updated"))
+      alertStore.show(t("mgmt_tc_tool_updated"))
     } else {
       await saveGeneratedTool({
         name: generated.value.name,
@@ -363,10 +373,10 @@ async function handleSave() {
         source_code: generated.value.source_code,
       })
       editingName.value = generated.value.name
-      alert(t("mgmt_tc_tool_saved"))
+      alertStore.show(t("mgmt_tc_tool_saved"))
     }
   } catch (e: any) {
-    alert(t("mgmt_tc_save_failed") + ": " + e.message)
+    alertStore.show(t("mgmt_tc_save_failed") + ": " + e.message)
   } finally {
     savingCreator.value = false
   }
@@ -390,7 +400,7 @@ async function handleExecute() {
     (err) => {
       executing.value = false
       abortController = null
-      alert(t("mgmt_tc_execution_error") + ": " + err.message)
+      alertStore.show(t("mgmt_tc_execution_error") + ": " + err.message)
     },
   )
 }
@@ -479,12 +489,7 @@ function formatOutput(data: any): string {
             <button class="btn-page" :disabled="currentPage <= 1" @click="goToPage(currentPage - 1)">{{ t("mgmt_prev_page") }}</button>
             <span class="mgmt-page-info">{{ currentPage }} / {{ totalPages }}</span>
             <button class="btn-page" :disabled="currentPage >= totalPages" @click="goToPage(currentPage + 1)">{{ t("mgmt_next_page") }}</button>
-            <select v-model.number="pageSize" class="mgmt-page-size" @change="onPageSizeChange">
-              <option :value="10">10</option>
-              <option :value="15">15</option>
-              <option :value="20">20</option>
-              <option :value="50">50</option>
-            </select>
+            <SearchSelect v-model.number="pageSize" :options="pageSizeOptions" :searchable="false" @change="onPageSizeChange" />
           </div>
         </div>
 
