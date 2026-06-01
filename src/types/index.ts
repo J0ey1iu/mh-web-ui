@@ -5,6 +5,7 @@ export interface SessionInfo {
   message_count: number
   agent_name: string
   scenario_id?: string
+  display_name?: string
 }
 
 export interface ToolCall {

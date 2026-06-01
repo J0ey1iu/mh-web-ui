@@ -356,7 +356,7 @@ function handleLogout() {
           >
             <div class="session-title">{{ s.title }}</div>
             <div class="session-meta">
-              {{ s.agent_name }} &middot; {{ s.message_count }} msgs
+              {{ s.display_name || s.agent_name }} &middot; {{ s.message_count }} msgs
             </div>
             <button
               class="btn-delete"

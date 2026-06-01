@@ -363,6 +363,7 @@ export const useChatStore = defineStore("chat", () => {
 
   async function refreshLocaleData() {
     await loadScenarios()
+    await loadSessions(currentScenario.value?.id)
     if (currentScenario.value) {
       const updated = availableScenarios.value.find(
         (s) => s.id === currentScenario.value!.id
