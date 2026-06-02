@@ -315,7 +315,34 @@ onMounted(load)
         <button class="btn-search" @click="onSearch">{{ t("mgmt_search") }}</button>
       </div>
 
-      <div v-if="loading" class="mgmt-loading">{{ t("mgmt_loading") }}</div>
+      <div v-if="loading" class="table-wrap">
+        <table class="mgmt-table">
+          <thead>
+            <tr>
+              <th>{{ t("mgmt_icon") }}</th>
+              <th>{{ t("mgmt_id") }}</th>
+              <th>{{ t("mgmt_name") }}</th>
+              <th>{{ t("mgmt_description") }}</th>
+              <th>{{ t("mgmt_agent_count") }}</th>
+              <th>{{ t("mgmt_created_at") }}</th>
+              <th>{{ t("mgmt_updated_at") }}</th>
+              <th>{{ t("mgmt_actions") }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="i in 5" :key="i" class="mgmt-skeleton-row">
+              <td><div class="mgmt-skeleton-cell mgmt-skeleton-cell-icon"></div></td>
+              <td><div class="mgmt-skeleton-cell" style="width:60%"></div></td>
+              <td><div class="mgmt-skeleton-cell" style="width:50%"></div></td>
+              <td><div class="mgmt-skeleton-cell" style="width:70%"></div></td>
+              <td><div class="mgmt-skeleton-cell" style="width:40%"></div></td>
+              <td><div class="mgmt-skeleton-cell mgmt-skeleton-cell-sm" style="width:65%"></div></td>
+              <td><div class="mgmt-skeleton-cell mgmt-skeleton-cell-sm" style="width:65%"></div></td>
+              <td><div class="mgmt-skeleton-cell" style="width:50%"></div></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
       <div v-else-if="scenarios.length === 0" class="mgmt-empty">{{ searchQuery ? t("mgmt_no_results") : t("mgmt_no_scenes") }}</div>
       <div v-else>
         <div class="table-wrap">
@@ -335,12 +362,12 @@ onMounted(load)
           <tbody>
             <tr v-for="s in scenarios" :key="s.id" class="clickable-row" @click="openDetail(s)">
           <td class="cell-icon">{{ s.icon }}</td>
-          <td><code>{{ s.id }}</code></td>
-          <td>{{ localeVal(s.name_locale, s.name) }}</td>
-          <td class="cell-desc">{{ localeVal(s.description_locale, s.description) }}</td>
-          <td>{{ s.agents?.length ?? 0 }}</td>
-          <td class="cell-audit">{{ fmtAudit(s.created_at, s.created_by) }}</td>
-          <td class="cell-audit">{{ fmtAudit(s.updated_at, s.updated_by) }}</td>
+          <td :title="s.id"><code>{{ s.id }}</code></td>
+          <td :title="localeVal(s.name_locale, s.name)">{{ localeVal(s.name_locale, s.name) }}</td>
+          <td class="cell-desc" :title="localeVal(s.description_locale, s.description)">{{ localeVal(s.description_locale, s.description) }}</td>
+          <td :title="String(s.agents?.length ?? 0)">{{ s.agents?.length ?? 0 }}</td>
+          <td class="cell-audit" :title="fmtAudit(s.created_at, s.created_by)">{{ fmtAudit(s.created_at, s.created_by) }}</td>
+          <td class="cell-audit" :title="fmtAudit(s.updated_at, s.updated_by)">{{ fmtAudit(s.updated_at, s.updated_by) }}</td>
             <td class="cell-actions" @click.stop>
               <button class="btn-action" @click="openEdit(s)">{{ t("mgmt_edit") }}</button>
               <button class="btn-action btn-danger" @click="remove(s.id)">{{ t("mgmt_delete") }}</button>
@@ -418,7 +445,7 @@ onMounted(load)
           </div>
           <div class="detail-meta">
             <div class="detail-meta-row">
-              <code class="detail-id">ID: {{ detailScenario.id }}</code>
+              <code class="detail-id" :title="detailScenario.id">ID: {{ detailScenario.id }}</code>
               <span class="badge badge-neutral">{{ (detailScenario.agents ?? []).length }} agents</span>
             </div>
             <p>{{ localeVal(detailScenario.description_locale, detailScenario.description) }}</p>
@@ -501,6 +528,7 @@ onMounted(load)
 }
 .detail-id {
   font-size: 12px;
+  font-family: var(--font-mono);
   opacity: 0.7;
 }
 .agent-card-info {

@@ -295,7 +295,17 @@ onUnmounted(() => {
 
       <!-- ── Tab: Job History ── -->
       <div v-else class="tab-panel">
-        <div v-if="evalStore.loading" class="loading-hint">{{ t("loading") }}</div>
+        <div v-if="evalStore.loading" class="job-list">
+          <div v-for="i in 3" :key="i" class="job-item" style="pointer-events:none">
+            <div class="job-header">
+              <span class="job-id"><span class="mgmt-skeleton-cell" style="width:80px;height:12px"></span></span>
+              <span class="job-scenario"><span class="mgmt-skeleton-cell" style="width:100px;height:12px"></span></span>
+              <span class="job-status"><span class="mgmt-skeleton-cell" style="width:60px;height:16px;border-radius:4px"></span></span>
+              <span class="job-created"><span class="mgmt-skeleton-cell" style="width:120px;height:12px"></span></span>
+              <span class="job-expand-icon"><span class="mgmt-skeleton-cell" style="width:12px;height:12px"></span></span>
+            </div>
+          </div>
+        </div>
 
         <div v-else-if="evalStore.jobs.length === 0" class="empty-hint">
           {{ t("eval_no_jobs") }}

@@ -456,7 +456,32 @@ onMounted(() => {
           <button class="btn-search" @click="onSearch">{{ t("mgmt_search") }}</button>
         </div>
 
-        <div v-if="loading" class="mgmt-loading">{{ t("mgmt_loading") }}</div>
+        <div v-if="loading" class="table-wrap">
+          <table class="mgmt-table">
+            <thead>
+              <tr>
+                <th>{{ t("mgmt_name") }}</th>
+                <th>{{ t("mgmt_display_name") }}</th>
+                <th>{{ t("mgmt_description") }}</th>
+                <th>{{ t("mgmt_endpoint") }}</th>
+                <th>{{ t("mgmt_created_at") }}</th>
+                <th>{{ t("mgmt_updated_at") }}</th>
+                <th>{{ t("mgmt_actions") }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="i in 5" :key="i" class="mgmt-skeleton-row">
+                <td><div class="mgmt-skeleton-cell" style="width:60%"></div></td>
+                <td><div class="mgmt-skeleton-cell" style="width:50%"></div></td>
+                <td><div class="mgmt-skeleton-cell" style="width:70%"></div></td>
+                <td><div class="mgmt-skeleton-cell" style="width:50%"></div></td>
+                <td><div class="mgmt-skeleton-cell mgmt-skeleton-cell-sm" style="width:65%"></div></td>
+                <td><div class="mgmt-skeleton-cell mgmt-skeleton-cell-sm" style="width:65%"></div></td>
+                <td><div class="mgmt-skeleton-cell" style="width:50%"></div></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
         <div v-else-if="agents.length === 0" class="mgmt-empty">{{ searchQuery ? t("mgmt_no_results") : t("mgmt_no_agents") }}</div>
         <div v-else>
           <div class="table-wrap">
@@ -474,14 +499,12 @@ onMounted(() => {
               </thead>
               <tbody>
                 <tr v-for="a in agents" :key="a.name">
-              <td><code>{{ a.name }}</code></td>
-              <td>{{ localeVal(a.display_name_locale, a.display_name) }}</td>
-              <td class="cell-desc">{{ localeVal(a.description_locale, a.description) }}</td>
-              <td><code class="cell-url">{{ a.endpoint_url || t("mgmt_local") }}</code>
-                <span v-if="!a.endpoint_url" class="badge badge-neutral" style="margin-left:6px">{{ t("mgmt_local") }}</span>
-              </td>
-              <td class="cell-audit">{{ fmtAudit(a.created_at, a.created_by) }}</td>
-              <td class="cell-audit">{{ fmtAudit(a.updated_at, a.updated_by) }}</td>
+              <td :title="a.name"><code>{{ a.name }}</code></td>
+              <td :title="localeVal(a.display_name_locale, a.display_name)">{{ localeVal(a.display_name_locale, a.display_name) }}</td>
+              <td class="cell-desc" :title="localeVal(a.description_locale, a.description)">{{ localeVal(a.description_locale, a.description) }}</td>
+              <td><code class="cell-url" :title="a.endpoint_url || t('mgmt_local')">{{ a.endpoint_url || t("mgmt_local") }}</code></td>
+              <td class="cell-audit" :title="fmtAudit(a.created_at, a.created_by)">{{ fmtAudit(a.created_at, a.created_by) }}</td>
+              <td class="cell-audit" :title="fmtAudit(a.updated_at, a.updated_by)">{{ fmtAudit(a.updated_at, a.updated_by) }}</td>
               <td class="cell-actions">
                 <button class="btn-action" @click="openEdit(a)">{{ t("mgmt_edit") }}</button>
                 <button class="btn-action btn-danger" @click="remove(a.name)">{{ t("mgmt_delete") }}</button>

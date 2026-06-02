@@ -59,6 +59,7 @@ const theme = ref(localStorage.getItem("theme") || "light")
 
 const showAgentSelector = ref(false)
 const skipUrlWatch = ref(false)
+const pageLoading = ref(true)
 
 watch(theme, (t) => {
   document.documentElement.setAttribute("data-theme", t)
@@ -144,6 +145,7 @@ onMounted(async () => {
   })
 
   skipUrlWatch.value = false
+  pageLoading.value = false
 })
 
 watch(() => [route.query.scene as string | undefined, route.query.session as string | undefined], async ([newScene, newSession], [oldScene, oldSession]) => {
@@ -361,23 +363,48 @@ function handleLogout() {
         <button class="error-toast-close" @click.stop="chatStore.clearError()">&times;</button>
       </div>
 
-      <div v-if="showAgentSelector" class="agent-selector-center">
-        <AgentSelector
-          :scenario="currentScenario"
-          :agents="availableAgents"
-          @select="handleAgentSelect"
+      <template v-if="pageLoading">
+        <div class="agent-selector-center">
+          <div class="page-loading-skeleton agent-selector">
+            <div class="selector-header">
+              <div style="display:flex;flex-direction:column;align-items:center">
+                <SkeletonBlock variant="circle" width="48px" height="48px" />
+                <div style="margin-top:12px"><SkeletonBlock width="60%" height="24px" borderRadius="6px" /></div>
+                <div style="margin-top:8px"><SkeletonBlock width="80%" height="14px" /></div>
+              </div>
+            </div>
+            <div class="agent-list">
+              <div v-for="i in 3" :key="i" class="agent-card-skeleton">
+                <SkeletonBlock width="35%" height="18px" borderRadius="4px" />
+                <div style="margin:10px 0"><SkeletonBlock width="75%" height="13px" /></div>
+                <div style="display:flex;gap:6px">
+                  <SkeletonBlock width="60px" height="20px" borderRadius="4px" />
+                  <SkeletonBlock width="80px" height="20px" borderRadius="4px" />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </template>
+      <template v-else>
+        <div v-if="showAgentSelector" class="agent-selector-center">
+          <AgentSelector
+            :scenario="currentScenario"
+            :agents="availableAgents"
+            @select="handleAgentSelect"
+          />
+        </div>
+        <ChatView
+          v-else
+          :messages="messages"
+          :messages-loading="messagesLoading"
+          :streaming="streaming"
+          :disabled="!backendOnline"
+          @send="handleSendMessage"
+          @cancel="cancelStream"
+          @new-chat="handleNewChat"
         />
-      </div>
-      <ChatView
-        v-else
-        :messages="messages"
-        :messages-loading="messagesLoading"
-        :streaming="streaming"
-        :disabled="!backendOnline"
-        @send="handleSendMessage"
-        @cancel="cancelStream"
-        @new-chat="handleNewChat"
-      />
+      </template>
     </div>
   </div>
 </template>
@@ -511,7 +538,6 @@ function handleLogout() {
 .drawer-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.5);
   z-index: 210;
 }
 .drawer {
@@ -616,6 +642,13 @@ function handleLogout() {
   color: var(--text-muted);
   padding: 32px 16px;
   font-size: 13px;
+}
+.agent-card-skeleton {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 14px;
+  padding: 18px;
+  pointer-events: none;
 }
 .main-content {
   flex: 1;

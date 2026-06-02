@@ -225,6 +225,37 @@
   text-align: center;
 }
 
+/* ── Skeleton loading ── */
+@keyframes mgmt-shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.mgmt-skeleton-row td {
+  padding: 16px 14px !important;
+  border-bottom: 1px solid var(--glass-border);
+}
+
+.mgmt-skeleton-cell {
+  display: block;
+  height: 14px;
+  border-radius: 4px;
+  background: linear-gradient(110deg, var(--glass-highlight) 25%, var(--glass-border) 50%, var(--glass-highlight) 75%);
+  background-size: 200% 100%;
+  animation: mgmt-shimmer 1.5s ease-in-out infinite;
+}
+
+.mgmt-skeleton-cell-sm {
+  height: 11px;
+}
+
+.mgmt-skeleton-cell-icon {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  margin: 0 auto;
+}
+
 /* ── Table ── */
 .table-wrap {
   overflow-x: auto;
@@ -264,6 +295,13 @@
   padding: 12px 14px;
   border-bottom: 1px solid var(--glass-border);
   vertical-align: middle;
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+}
+
+.mgmt-table td code {
+  font-family: var(--font-mono);
+  font-size: 12px;
 }
 
 .mgmt-table tbody tr:last-child td {
