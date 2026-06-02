@@ -318,7 +318,7 @@
   display: inline-block;
   vertical-align: middle;
   color: var(--text-muted);
-  font-family: "SF Mono", "Fira Code", "Fira Mono", Menlo, Consolas, monospace;
+  font-family: var(--font-mono);
 }
 
 /* ── Toolbar / Search ── */
@@ -547,7 +547,7 @@
 }
 
 .form-group .mono {
-  font-family: "SF Mono", "Cascadia Code", "Fira Code", "Fira Mono", Menlo, Consolas, monospace;
+  font-family: var(--font-mono);
   font-size: 12px;
 }
 
@@ -1080,7 +1080,7 @@
   border: 1px solid var(--glass-border);
   border-radius: 10px;
   color: var(--text-primary);
-  font-family: "SF Mono", "Cascadia Code", "Fira Code", Menlo, Consolas, monospace;
+  font-family: var(--font-mono);
   font-size: 13px;
   padding: 14px;
   resize: none;
@@ -1162,9 +1162,10 @@
 }
 .tc-textarea-code {
   min-height: 120px;
-  font-family: "SF Mono", "Cascadia Code", "Fira Code", Menlo, Consolas, monospace;
+  font-family: var(--font-mono);
   font-size: 12px;
 }
+
 .tc-actions {
   margin-top: 18px;
 }

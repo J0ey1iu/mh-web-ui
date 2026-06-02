@@ -68,7 +68,6 @@ const statusIcon = computed(() => {
 }
 .tool-name {
   font-weight: 600;
-  font-family: monospace;
 }
 .tool-spinner {
   display: inline-block;
@@ -87,13 +86,13 @@ const statusIcon = computed(() => {
 .tool-progress {
   margin-top: 4px;
   color: var(--text-secondary);
-  font-family: monospace;
+  font-family: var(--font-mono);
   font-size: 12px;
 }
 .tool-result {
   margin-top: 4px;
   color: var(--text-primary);
-  font-family: monospace;
+  font-family: var(--font-mono);
   font-size: 12px;
   white-space: pre-wrap;
   word-break: break-word;

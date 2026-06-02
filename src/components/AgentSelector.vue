@@ -142,7 +142,6 @@ const { t } = useI18nStore()
   background: var(--accent-dim);
   color: var(--accent);
   border: 1px solid transparent;
-  font-family: monospace;
   font-weight: 500;
   text-transform: none;
   white-space: nowrap;
@@ -168,7 +167,6 @@ const { t } = useI18nStore()
   background: var(--glass-highlight);
   color: var(--text-secondary);
   border: 1px solid var(--glass-border);
-  font-family: monospace;
 }
 .agent-card:hover .tool-badge {
   border-color: var(--accent);

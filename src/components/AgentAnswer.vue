@@ -36,7 +36,7 @@ const rendered = computed(() => {
   background: var(--code-bg);
   padding: 2px 6px;
   border-radius: 4px;
-  font-family: "SF Mono", "Fira Code", "Fira Mono", Menlo, Consolas, monospace;
+  font-family: var(--font-mono);
   font-size: 13px;
   color: var(--text-primary);
   border: 1px solid var(--glass-border);

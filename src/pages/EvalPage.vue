@@ -657,7 +657,7 @@ onUnmounted(() => {
 }
 
 .job-id {
-  font-family: monospace;
+  font-family: var(--font-mono);
   font-size: 12px;
   color: var(--text-secondary);
   min-width: 70px;
@@ -792,7 +792,7 @@ onUnmounted(() => {
 }
 
 .cell-mono {
-  font-family: monospace;
+  font-family: var(--font-mono);
   font-size: 11px;
 }
 

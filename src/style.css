@@ -9,6 +9,7 @@
 :root {
   --transition-duration: 0.2s;
   --glass-blur: 20px;
+  --font-mono: ui-monospace, "SF Mono", "Cascadia Code", "Consolas", Menlo, monospace;
 }
 
 :root,

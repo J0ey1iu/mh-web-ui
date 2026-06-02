@@ -774,7 +774,7 @@ function formatOutput(data: any): string {
 /* Tool-specific creator styles (trial area, output) */
 .tc-textarea-code-source {
   min-height: 200px;
-  font-family: "SF Mono", "Cascadia Code", "Fira Code", Menlo, Consolas, monospace;
+  font-family: var(--font-mono);
   font-size: 12px;
 }
 .tc-checkbox {
