@@ -48,7 +48,8 @@ function setTheme(v: string) {
 }
 
 watch(currentTheme, setTheme)
-onMounted(() => {
+onMounted(async () => {
+  await authStore.checkAuth()
   setTheme(currentTheme.value)
   window.addEventListener("scroll", onScroll, { passive: true })
 })
