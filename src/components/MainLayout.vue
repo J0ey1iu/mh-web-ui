@@ -55,7 +55,6 @@ provide(TOOL_CONTEXT_KEY, { streaming, currentSessionId })
 
 const drawerOpen = ref(false)
 const menuOpen = ref(false)
-const sceneMenuOpen = ref(false)
 const theme = ref(localStorage.getItem("theme") || "light")
 
 const showAgentSelector = ref(false)
@@ -103,12 +102,6 @@ function handleAgentSelect(agentName: string) {
   showAgentSelector.value = false
 }
 
-async function handleScenarioSelect(id: string) {
-  sceneMenuOpen.value = false
-  showAgentSelector.value = true
-  await selectScenario(id)
-}
-
 onMounted(async () => {
   skipUrlWatch.value = true
   await checkAuth()
@@ -119,17 +112,25 @@ onMounted(async () => {
   const sceneId = typeof route.query.scene === "string" ? route.query.scene : undefined
   const sessionId = typeof route.query.session === "string" ? route.query.session : undefined
 
-  if (sceneId && availableScenarios.value.find((s) => s.id === sceneId)) {
-    await selectScenario(sceneId)
-  } else if (availableScenarios.value.length > 0) {
-    await selectScenario(availableScenarios.value[0].id)
+  let validScene = false
+  if (sceneId) {
+    if (availableScenarios.value.find((s) => s.id === sceneId)) {
+      await selectScenario(sceneId)
+      validScene = true
+    } else {
+      error.value = t("scene_not_found")
+    }
+  } else {
+    error.value = t("scene_missing")
   }
 
-  if (sessionId) {
+  if (validScene && sessionId) {
     await selectSession(sessionId)
     showAgentSelector.value = false
-  } else {
+  } else if (validScene) {
     showAgentSelector.value = true
+  } else {
+    showAgentSelector.value = false
   }
 
   await router.replace({
@@ -146,11 +147,22 @@ onMounted(async () => {
 watch(() => [route.query.scene as string | undefined, route.query.session as string | undefined], async ([newScene, newSession], [oldScene, oldSession]) => {
   if (skipUrlWatch.value) return
   if (newScene && newScene !== oldScene && newScene !== currentScenario.value?.id) {
-    if (availableScenarios.value.find((s) => s.id === newScene)) {
+    const found = availableScenarios.value.find((s) => s.id === newScene)
+    if (found) {
       await selectScenario(newScene)
+      showAgentSelector.value = !currentSessionId.value
+    } else {
+      error.value = t("scene_not_found")
+      currentScenario.value = null
+      availableAgents.value = []
+      currentSessionId.value = null
+      messages.value = []
+      showAgentSelector.value = false
+      await router.replace({ query: { ...route.query, scene: undefined, session: undefined } })
     }
   }
   if (newSession !== oldSession && newSession !== currentSessionId.value) {
+    if (!currentScenario.value) return
     if (newSession) {
       await selectSession(newSession)
       showAgentSelector.value = false
@@ -175,43 +187,11 @@ function handleLogout() {
 <template>
   <div class="layout">
     <header class="top-bar">
-      <div class="scene-selector-wrap">
-        <button class="header-btn scene-btn" @click="sceneMenuOpen = !sceneMenuOpen">
-          <template v-if="currentScenario">
-            <span class="scene-icon-small">{{ currentScenario.icon }}</span>
-            <span class="scene-name">{{ currentScenario.name }}</span>
-          </template>
-          <SkeletonBlock v-else width="80px" height="18px" />
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <polyline points="6 9 12 15 18 9"/>
-          </svg>
-        </button>
-        <div v-if="sceneMenuOpen" class="scene-dropdown">
-          <template v-if="availableScenarios.length > 0">
-            <button
-              v-for="s in availableScenarios"
-              :key="s.id"
-              class="scene-option"
-              :class="{ active: s.id === currentScenario?.id }"
-              @click="handleScenarioSelect(s.id)"
-            >
-              <span class="scene-opt-icon">{{ s.icon }}</span>
-              <div class="scene-opt-info">
-                <span class="scene-opt-name">{{ s.name }}</span>
-                <span class="scene-opt-desc">{{ s.description }}</span>
-              </div>
-            </button>
-          </template>
-          <div v-else class="scene-option-skel">
-            <div v-for="i in 3" :key="i" class="scene-option" style="pointer-events:none">
-              <SkeletonBlock variant="circle" width="20px" height="20px" />
-              <div class="scene-opt-info">
-                <SkeletonBlock width="100px" height="14px" />
-                <div style="margin-top:2px"><SkeletonBlock width="140px" height="11px" /></div>
-              </div>
-            </div>
-          </div>
-        </div>
+      <div class="scene-label">
+        <template v-if="currentScenario">
+          <span class="scene-icon-small">{{ currentScenario.icon }}</span>
+          <span class="scene-name">{{ currentScenario.name }}</span>
+        </template>
       </div>
 
       <div class="spacer"></div>
@@ -317,11 +297,6 @@ function handleLogout() {
       </div>
     </header>
 
-    <div
-      v-if="sceneMenuOpen"
-      class="menu-overlay"
-      @click="sceneMenuOpen = false"
-    ></div>
     <div
       v-if="menuOpen"
       class="menu-overlay"
@@ -445,82 +420,12 @@ function handleLogout() {
 .hamburger-wrap {
   position: relative;
 }
-.scene-selector-wrap {
-  position: relative;
-}
-.scene-btn {
-  gap: 6px;
-  padding: 6px 12px;
-  border-radius: 8px;
-  font-size: 13px;
-  background: var(--glass-highlight);
-  border: 1px solid var(--glass-border);
-  backdrop-filter: blur(0px);
-  -webkit-backdrop-filter: blur(0px);
-  transition: border-color var(--transition-duration), backdrop-filter var(--transition-duration), -webkit-backdrop-filter var(--transition-duration);
-}
-.scene-btn:hover {
-  border-color: var(--accent);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-}
 .scene-icon-small {
   font-size: 16px;
 }
 .scene-name {
   color: var(--text-primary);
   font-weight: 500;
-}
-.scene-dropdown {
-  position: absolute;
-  top: calc(100% + 6px);
-  left: 0;
-  min-width: 250px;
-  background: var(--glass-bg);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid var(--glass-border);
-  border-radius: 12px;
-  box-shadow: var(--glass-shadow);
-  z-index: 201;
-  overflow: hidden;
-}
-.scene-option {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  width: 100%;
-  padding: 10px 14px;
-  background: none;
-  border: none;
-  color: var(--text-primary);
-  font-size: 13px;
-  cursor: pointer;
-  text-align: left;
-  font-family: inherit;
-  transition: background var(--transition-duration);
-}
-.scene-option:hover {
-  background: var(--glass-highlight);
-}
-.scene-option.active {
-  background: var(--accent-dim);
-}
-.scene-opt-icon {
-  font-size: 20px;
-  flex-shrink: 0;
-}
-.scene-opt-info {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-.scene-opt-name {
-  font-weight: 500;
-}
-.scene-opt-desc {
-  font-size: 11px;
-  color: var(--text-secondary);
 }
 .dropdown {
   position: absolute;
@@ -603,10 +508,8 @@ function handleLogout() {
 .drawer-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.4);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
-  z-index: 100;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 210;
 }
 .drawer {
   position: fixed;
@@ -617,7 +520,7 @@ function handleLogout() {
   background: var(--glass-bg);
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
-  z-index: 101;
+  z-index: 220;
   display: flex;
   flex-direction: column;
   transform: translateX(100%);
