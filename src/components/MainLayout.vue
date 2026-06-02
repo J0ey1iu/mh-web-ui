@@ -103,7 +103,10 @@ function removeSessionHandler(id: string) {
 
 function handleNewChat() {
   chatStore.pendingAgent = null
+  currentSessionId.value = null
+  messages.value = []
   showAgentSelector.value = true
+  router.replace({ query: { ...route.query, session: undefined } })
 }
 
 function handleAgentSelect(agentName: string) {
