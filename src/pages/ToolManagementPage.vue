@@ -233,7 +233,6 @@ const trialArgs = ref<Record<string, any>>({})
 const trialOutput = ref<{ type: string; data: any }[]>([])
 let abortController: AbortController | null = null
 
-const genProgress = ref("")
 const genAbortController = ref<AbortController | null>(null)
 
 const fullscreenCode = ref(false)
@@ -292,14 +291,11 @@ const showNL = ref(false)
 function handleGenerate() {
   if (!naturalDescription.value.trim()) return
   generating.value = true
-  genProgress.value = ""
   trialOutput.value = []
   genAbortController.value = generateToolMetadata(
     naturalDescription.value.trim(),
     (type, data) => {
-      if (type === "generating") {
-        genProgress.value = data.content_preview || data.message || ""
-      } else if (type === "generated") {
+      if (type === "generated") {
         generated.value = data as unknown as GeneratedTool
         creatorParametersText.value = JSON.stringify(
           (generated.value as any).parameters,
@@ -314,12 +310,10 @@ function handleGenerate() {
     },
     () => {
       generating.value = false
-      genProgress.value = ""
       genAbortController.value = null
     },
     (err) => {
       generating.value = false
-      genProgress.value = ""
       genAbortController.value = null
       alertStore.show(t("mgmt_tc_generation_failed") + ": " + err.message)
     },
@@ -329,7 +323,6 @@ function handleGenerate() {
 function handleStopGenerate() {
   genAbortController.value?.abort()
   generating.value = false
-  genProgress.value = ""
   genAbortController.value = null
 }
 
@@ -625,6 +618,7 @@ function formatOutput(data: any): string {
                   class="tc-textarea"
                   :placeholder="t('mgmt_tc_describe_placeholder')"
                   rows="3"
+                  :disabled="generating"
                 />
                 <template v-if="!generating">
                   <button
@@ -639,13 +633,8 @@ function formatOutput(data: any): string {
                   </button>
                 </template>
                 <template v-else>
-                  <button class="btn-stop" @click="handleStopGenerate">
-                    {{ t("mgmt_tc_stop_generation") }}
-                  </button>
-                  <div v-if="genProgress" class="tc-gen-progress">
-                    <div class="tc-gen-progress-label">{{ t("mgmt_tc_generating") }}</div>
-                    <pre class="tc-gen-progress-text">{{ genProgress }}</pre>
-                  </div>
+                  <button class="btn-stop" @click="handleStopGenerate">{{ t("mgmt_tc_stop_generation") }}</button>
+                  <div class="tc-gen-hint">{{ t("mgmt_tc_generating_hint") }}</div>
                 </template>
               </div>
             </div>
@@ -653,25 +642,25 @@ function formatOutput(data: any): string {
             <h2 class="tc-panel-title">{{ t("mgmt_tc_tool_metadata") }}</h2>
             <div class="tc-field">
               <label class="tc-label">{{ t("mgmt_name") }}</label>
-              <input v-model="generated.name" type="text" class="tc-input" />
+              <input v-model="generated.name" type="text" class="tc-input" :disabled="generating" :placeholder="generating ? t('mgmt_tc_generating') : ''" />
             </div>
             <div class="tc-field">
               <label class="tc-label">{{ t("mgmt_display_name") }}</label>
-              <input v-model="generated.display_name" type="text" class="tc-input" />
+              <input v-model="generated.display_name" type="text" class="tc-input" :disabled="generating" :placeholder="generating ? t('mgmt_tc_generating') : ''" />
             </div>
             <div class="tc-field">
               <div class="tc-label-row">
                 <label class="tc-label">{{ t("mgmt_description") }}</label>
                 <button class="tc-fullscreen-btn" @click="openTextFullscreen(t('mgmt_description'), generated.description, 'description')" :title="t('mgmt_tc_source_code')">&#x26F6;</button>
               </div>
-              <textarea v-model="generated.description" class="tc-input tc-textarea-sm" rows="3" />
+              <textarea v-model="generated.description" class="tc-input tc-textarea-sm" rows="3" :disabled="generating" :placeholder="generating ? t('mgmt_tc_generating') : ''" />
             </div>
             <div class="tc-field">
               <div class="tc-label-row">
                 <label class="tc-label">{{ t("mgmt_tc_params_json_schema") }}</label>
                 <button class="tc-fullscreen-btn" @click="openTextFullscreen(t('mgmt_tc_params_json_schema'), creatorParametersText, 'parameters')" :title="t('mgmt_tc_source_code')">&#x26F6;</button>
               </div>
-              <textarea v-model="creatorParametersText" class="tc-input tc-textarea-code" rows="8" />
+              <textarea v-model="creatorParametersText" class="tc-input tc-textarea-code" rows="8" :disabled="generating" :placeholder="generating ? t('mgmt_tc_generating') : ''" />
             </div>
             <div class="tc-field">
               <div class="tc-label-row">
@@ -683,10 +672,12 @@ function formatOutput(data: any): string {
                 class="tc-input tc-textarea-code-source"
                 rows="10"
                 spellcheck="false"
+                :disabled="generating"
+                :placeholder="generating ? t('mgmt_tc_generating') : ''"
               />
             </div>
             <div class="tc-actions">
-              <button class="btn-save" :disabled="savingCreator" @click="handleSave">
+              <button class="btn-save" :disabled="savingCreator || generating" @click="handleSave">
                 {{ savingCreator ? (editingName ? t("mgmt_tc_updating") : t("mgmt_saving")) : (editingName ? t("mgmt_tc_update_tool") : t("mgmt_tc_save_tool")) }}
               </button>
             </div>

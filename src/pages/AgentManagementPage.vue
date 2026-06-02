@@ -248,7 +248,6 @@ const generated = ref<GeneratedAgent>({
 })
 const creatorLlmConfigStr = ref("")
 
-const genProgress = ref("")
 const genAbortController = ref<AbortController | null>(null)
 
 const showNL = ref(false)
@@ -298,13 +297,10 @@ function formatLlmConfigJson() {
 function handleGenerate() {
   if (!naturalDescription.value.trim()) return
   generating.value = true
-  genProgress.value = ""
   genAbortController.value = generateAgentMetadata(
     naturalDescription.value.trim(),
     (type, data) => {
-      if (type === "generating") {
-        genProgress.value = data.content_preview || data.message || ""
-      } else if (type === "generated") {
+      if (type === "generated") {
         generated.value = data as unknown as GeneratedAgent
         creatorLlmConfigStr.value = generated.value.llm_config
           ? JSON.stringify(generated.value.llm_config, null, 2)
@@ -316,12 +312,10 @@ function handleGenerate() {
     },
     () => {
       generating.value = false
-      genProgress.value = ""
       genAbortController.value = null
     },
     (err) => {
       generating.value = false
-      genProgress.value = ""
       genAbortController.value = null
       alertStore.show(t("mgmt_tc_generation_failed") + ": " + err.message)
     },
@@ -331,7 +325,6 @@ function handleGenerate() {
 function handleStopGenerate() {
   genAbortController.value?.abort()
   generating.value = false
-  genProgress.value = ""
   genAbortController.value = null
 }
 
@@ -648,6 +641,7 @@ onMounted(() => {
                   class="tc-textarea"
                   :placeholder="t('mgmt_ac_describe_placeholder')"
                   rows="3"
+                  :disabled="generating"
                 />
                 <template v-if="!generating">
                   <button class="btn-generate" :disabled="!naturalDescription.trim()" @click="handleGenerate">
@@ -659,10 +653,7 @@ onMounted(() => {
                 </template>
                 <template v-else>
                   <button class="btn-stop" @click="handleStopGenerate">{{ t("mgmt_tc_stop_generation") }}</button>
-                  <div v-if="genProgress" class="tc-gen-progress">
-                    <div class="tc-gen-progress-label">{{ t("mgmt_tc_generating") }}</div>
-                    <pre class="tc-gen-progress-text">{{ genProgress }}</pre>
-                  </div>
+                  <div class="tc-gen-hint">{{ t("mgmt_tc_generating_hint") }}</div>
                 </template>
               </div>
             </div>
@@ -670,43 +661,43 @@ onMounted(() => {
             <h2 class="tc-panel-title">{{ t("mgmt_ac_agent_metadata") }}</h2>
             <div class="tc-field">
               <label class="tc-label">{{ t("mgmt_name") }}</label>
-              <input v-model="generated.name" type="text" class="tc-input" />
+              <input v-model="generated.name" type="text" class="tc-input" :disabled="generating" :placeholder="generating ? t('mgmt_tc_generating') : ''" />
             </div>
             <div class="tc-field">
               <label class="tc-label">{{ t("mgmt_display_name") }}</label>
-              <input v-model="generated.display_name" type="text" class="tc-input" />
+              <input v-model="generated.display_name" type="text" class="tc-input" :disabled="generating" :placeholder="generating ? t('mgmt_tc_generating') : ''" />
             </div>
             <div class="tc-field">
               <div class="tc-label-row">
                 <label class="tc-label">{{ t("mgmt_description") }}</label>
                 <button class="tc-fullscreen-btn" @click="openCreatorFs(t('mgmt_description'), generated.description, 'description')" :title="t('mgmt_tc_source_code')">&#x26F6;</button>
               </div>
-              <textarea v-model="generated.description" class="tc-input tc-textarea-sm" rows="3" />
+              <textarea v-model="generated.description" class="tc-input tc-textarea-sm" rows="3" :disabled="generating" :placeholder="generating ? t('mgmt_tc_generating') : ''" />
             </div>
             <div class="tc-field">
               <div class="tc-label-row">
                 <label class="tc-label">{{ t("mgmt_system_prompt") }}</label>
                 <button class="tc-fullscreen-btn" @click="openCreatorFs(t('mgmt_system_prompt'), generated.system_prompt, 'system_prompt')" :title="t('mgmt_tc_source_code')">&#x26F6;</button>
               </div>
-              <textarea v-model="generated.system_prompt" class="tc-input tc-textarea-code" rows="8" />
+              <textarea v-model="generated.system_prompt" class="tc-input tc-textarea-code" rows="8" :disabled="generating" :placeholder="generating ? t('mgmt_tc_generating') : ''" />
             </div>
             <div class="tc-field">
               <label class="tc-label">{{ t("mgmt_provider") }}</label>
-              <input v-model="generated.provider" type="text" class="tc-input" />
+              <input v-model="generated.provider" type="text" class="tc-input" :disabled="generating" :placeholder="generating ? t('mgmt_tc_generating') : ''" />
             </div>
             <div class="tc-field">
               <label class="tc-label">{{ t("mgmt_model") }}</label>
-              <input v-model="generated.model" type="text" class="tc-input" :placeholder="t('mgmt_model_placeholder')" />
+              <input v-model="generated.model" type="text" class="tc-input" :disabled="generating" :placeholder="generating ? t('mgmt_tc_generating') : t('mgmt_model_placeholder')" />
             </div>
             <div class="tc-field">
               <div class="tc-label-row">
                 <label class="tc-label">{{ t("mgmt_llm_config") }}</label>
                 <button class="tc-fullscreen-btn" @click="openCreatorFs(t('mgmt_llm_config'), creatorLlmConfigStr, 'llm_config')" :title="t('mgmt_tc_source_code')">&#x26F6;</button>
               </div>
-              <textarea v-model="creatorLlmConfigStr" class="tc-input tc-textarea-code" rows="4" :placeholder="t('mgmt_llm_config_placeholder')" />
+              <textarea v-model="creatorLlmConfigStr" class="tc-input tc-textarea-code" rows="4" :disabled="generating" :placeholder="generating ? t('mgmt_tc_generating') : t('mgmt_llm_config_placeholder')" />
             </div>
             <div class="tc-actions">
-              <button class="btn-save" :disabled="savingCreator || !generated.name" @click="handleSave">
+              <button class="btn-save" :disabled="savingCreator || !generated.name || generating" @click="handleSave">
                 {{ savingCreator ? (editingName ? t("mgmt_tc_updating") : t("mgmt_saving")) : (editingName ? t("mgmt_ac_update_agent") : t("mgmt_ac_save_agent")) }}
               </button>
             </div>

@@ -210,6 +210,7 @@ const messages: Record<Locale, Record<string, string>> = {
     mgmt_ac_trial_empty: "发送一条消息开始测试",
     mgmt_tc_agent_saved: "Agent 已保存",
     mgmt_tc_agent_updated: "Agent 已更新",
+    mgmt_tc_generating_hint: "大约需要等待 1 分钟，请耐心等待",
   },
   en: {
     sessions: "Sessions",
@@ -414,6 +415,7 @@ const messages: Record<Locale, Record<string, string>> = {
     mgmt_ac_trial_empty: "Send a message to start testing",
     mgmt_tc_agent_saved: "Agent saved!",
     mgmt_tc_agent_updated: "Agent updated!",
+    mgmt_tc_generating_hint: "This may take about 1 minute, please be patient",
   },
 }
 
