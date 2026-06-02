@@ -1,15 +1,29 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from "vue"
 import { useRoute, useRouter } from "vue-router"
+import { useAuthStore } from "../stores/auth"
 import { useI18nStore } from "../stores/i18n"
 import SearchSelect from "./SearchSelect.vue"
 import { storeToRefs } from "pinia"
 
 const route = useRoute()
 const router = useRouter()
+const authStore = useAuthStore()
+const { user: authUser } = storeToRefs(authStore)
 const i18nStore = useI18nStore()
 const { t, setLocale } = i18nStore
 const { locale } = storeToRefs(i18nStore)
+
+function hasAnyPermission(prefix: string): boolean {
+  const perms = authUser.value?.permissions
+  if (!perms) return false
+  return perms.some(p => p === "*" || p.startsWith(prefix))
+}
+
+const hasScenePermission = computed(() => hasAnyPermission("manage:scene:"))
+const hasAgentPermission = computed(() => hasAnyPermission("manage:agent:"))
+const hasToolPermission = computed(() => hasAnyPermission("manage:tool:"))
+const hasEvalPermission = computed(() => hasAnyPermission("use:eval:"))
 
 const themes = [
   { value: "light", labelKey: "theme_light" },
@@ -62,25 +76,25 @@ function toggleLang() {
       </button>
 
       <div class="nav-tabs">
-        <router-link to="/manage/scenes" class="nav-tab" :class="{ active: isActive('/manage/scenes') }">
+        <router-link v-if="hasScenePermission" to="/manage/scenes" class="nav-tab" :class="{ active: isActive('/manage/scenes') }">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>
           </svg>
           <span>{{ t("mgmt_scenes") }}</span>
         </router-link>
-        <router-link to="/manage/agents" class="nav-tab" :class="{ active: isActive('/manage/agents') }">
+        <router-link v-if="hasAgentPermission" to="/manage/agents" class="nav-tab" :class="{ active: isActive('/manage/agents') }">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
           </svg>
           <span>{{ t("mgmt_agents") }}</span>
         </router-link>
-        <router-link to="/manage/tools" class="nav-tab" :class="{ active: isActive('/manage/tools') }">
+        <router-link v-if="hasToolPermission" to="/manage/tools" class="nav-tab" :class="{ active: isActive('/manage/tools') }">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
           </svg>
           <span>{{ t("mgmt_tools") }}</span>
         </router-link>
-        <router-link v-if="route.path.startsWith('/manage/eval')" to="/manage/eval" class="nav-tab" :class="{ active: isActive('/manage/eval') }">
+        <router-link v-if="hasEvalPermission && route.path.startsWith('/manage/eval')" to="/manage/eval" class="nav-tab" :class="{ active: isActive('/manage/eval') }">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
           </svg>

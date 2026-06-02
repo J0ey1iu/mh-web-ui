@@ -44,12 +44,20 @@ const authStore = useAuthStore()
 const { user: authUser } = storeToRefs(authStore)
 const { checkAuth } = authStore
 
-const hasEvalPermission = computed(() => {
-  if (!appConfig.enableEval) return false
+function hasAnyPermission(prefix: string): boolean {
   const perms = authUser.value?.permissions
   if (!perms) return false
-  return perms.some(p => p === "use:eval:*" || p === "*")
+  return perms.some(p => p === "*" || p.startsWith(prefix))
+}
+
+const hasEvalPermission = computed(() => {
+  if (!appConfig.enableEval) return false
+  return hasAnyPermission("use:eval:")
 })
+
+const hasScenePermission = computed(() => hasAnyPermission("manage:scene:"))
+const hasAgentPermission = computed(() => hasAnyPermission("manage:agent:"))
+const hasToolPermission = computed(() => hasAnyPermission("manage:tool:"))
 
 provide(TOOL_CONTEXT_KEY, { streaming, currentSessionId })
 
@@ -263,21 +271,21 @@ function handleLogout() {
           <div class="dropdown-divider"></div>
           <div class="dropdown-label">{{ t("management") }}</div>
           <button
-            v-if="authUser"
+            v-if="authUser && hasScenePermission"
             class="dropdown-item"
             @click="router.push('/manage/scenes'); menuOpen = false"
           >
             Scenes
           </button>
           <button
-            v-if="authUser"
+            v-if="authUser && hasAgentPermission"
             class="dropdown-item"
             @click="router.push('/manage/agents'); menuOpen = false"
           >
             Agents
           </button>
           <button
-            v-if="authUser"
+            v-if="authUser && hasToolPermission"
             class="dropdown-item"
             @click="router.push('/manage/tools'); menuOpen = false"
           >
