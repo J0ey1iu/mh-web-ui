@@ -119,9 +119,11 @@ onMounted(async () => {
       validScene = true
     } else {
       error.value = t("scene_not_found")
+      console.error(`Invalid scene parameter in URL: "${sceneId}"`)
     }
   } else {
     error.value = t("scene_missing")
+    console.error("Missing scene parameter in URL")
   }
 
   if (validScene && sessionId) {
@@ -153,6 +155,7 @@ watch(() => [route.query.scene as string | undefined, route.query.session as str
       showAgentSelector.value = !currentSessionId.value
     } else {
       error.value = t("scene_not_found")
+      console.error(`Invalid scene parameter in URL: "${newScene}"`)
       currentScenario.value = null
       availableAgents.value = []
       currentSessionId.value = null
