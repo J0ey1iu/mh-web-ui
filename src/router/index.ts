@@ -10,6 +10,21 @@ const routes: RouteRecordRaw[] = [
     component: ComponentsDemoPage,
   },
   {
+    path: "/manage/scenes",
+    name: "scenes",
+    component: () => import("../pages/SceneManagementPage.vue"),
+  },
+  {
+    path: "/manage/agents",
+    name: "agents",
+    component: () => import("../pages/AgentManagementPage.vue"),
+  },
+  {
+    path: "/manage/tools",
+    name: "tools",
+    component: () => import("../pages/ToolManagementPage.vue"),
+  },
+  {
     path: "/",
     name: "chat",
     component: MainLayout,
@@ -18,7 +33,7 @@ const routes: RouteRecordRaw[] = [
 
 if (appConfig.enableEval) {
   routes.push({
-    path: "/eval",
+    path: "/manage/eval",
     name: "eval",
     component: () => import("../pages/EvalPage.vue"),
   })

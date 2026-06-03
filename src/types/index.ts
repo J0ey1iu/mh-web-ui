@@ -5,6 +5,7 @@ export interface SessionInfo {
   message_count: number
   agent_name: string
   scenario_id?: string
+  display_name?: string
 }
 
 export interface ToolCall {
@@ -119,6 +120,8 @@ export interface AgentInfo {
   description: string
   tool_names: string[]
   tools: ToolInfo[]
+  provider?: string
+  model?: string
 }
 
 export interface EvalInput {
@@ -182,4 +185,88 @@ export interface EvalJob {
   error: string | null
   report_url?: string
   summary?: EvalSummary
+}
+
+export interface GeneratedAgent {
+  name: string
+  display_name: string
+  description: string
+  system_prompt: string
+  provider: string
+  model: string
+  llm_config: Record<string, any>
+  user_id?: string
+  created_at?: string
+  updated_at?: string
+}
+
+export interface GeneratedTool {
+  name: string
+  display_name: string
+  description: string
+  parameters: Record<string, any>
+  source_code: string
+  user_id?: string
+  created_at?: string
+  updated_at?: string
+}
+
+export interface ManageScenario {
+  id: string
+  name: string
+  name_locale?: string
+  icon: string
+  description: string
+  description_locale?: string
+  agents?: Array<{ name: string; tool_names: string[] }>
+  created_at?: string
+  updated_at?: string
+  created_by?: string
+  updated_by?: string
+}
+
+export interface ManageAgent {
+  name: string
+  display_name: string
+  display_name_locale?: string
+  description: string
+  description_locale?: string
+  system_prompt: string
+  system_prompt_locale?: string
+  endpoint_url?: string
+  provider?: string
+  model?: string
+  llm_config?: Record<string, any>
+  created_at?: string
+  updated_at?: string
+  created_by?: string
+  updated_by?: string
+}
+
+export interface ManageTool {
+  name: string
+  display_name: string
+  display_name_locale?: string
+  description: string
+  description_locale?: string
+  parameters: Record<string, any>
+  source_code?: string
+  endpoint_url?: string
+  created_at?: string
+  updated_at?: string
+  created_by?: string
+  updated_by?: string
+}
+
+export interface PaginatedResponse<T> {
+  items: T[]
+  total: number
+  page: number
+  page_size: number
+}
+
+export interface FetchListParams {
+  q?: string
+  page?: number
+  page_size?: number
 }

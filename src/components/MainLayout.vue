@@ -44,22 +44,30 @@ const authStore = useAuthStore()
 const { user: authUser } = storeToRefs(authStore)
 const { checkAuth } = authStore
 
-const hasEvalPermission = computed(() => {
-  if (!appConfig.enableEval) return false
+function hasAnyPermission(prefix: string): boolean {
   const perms = authUser.value?.permissions
   if (!perms) return false
-  return perms.some(p => p === "use:eval:*" || p === "*")
+  return perms.some(p => p === "*" || p.startsWith(prefix))
+}
+
+const hasEvalPermission = computed(() => {
+  if (!appConfig.enableEval) return false
+  return hasAnyPermission("use:eval:")
 })
+
+const hasScenePermission = computed(() => hasAnyPermission("manage:scene:"))
+const hasAgentPermission = computed(() => hasAnyPermission("manage:agent:"))
+const hasToolPermission = computed(() => hasAnyPermission("manage:tool:"))
 
 provide(TOOL_CONTEXT_KEY, { streaming, currentSessionId })
 
 const drawerOpen = ref(false)
 const menuOpen = ref(false)
-const sceneMenuOpen = ref(false)
 const theme = ref(localStorage.getItem("theme") || "light")
 
 const showAgentSelector = ref(false)
 const skipUrlWatch = ref(false)
+const pageLoading = ref(true)
 
 watch(theme, (t) => {
   document.documentElement.setAttribute("data-theme", t)
@@ -94,18 +102,16 @@ function removeSessionHandler(id: string) {
 }
 
 function handleNewChat() {
+  chatStore.pendingAgent = null
+  currentSessionId.value = null
+  messages.value = []
   showAgentSelector.value = true
+  router.replace({ query: { ...route.query, session: undefined } })
 }
 
 function handleAgentSelect(agentName: string) {
   createSessionWithAgent(agentName)
   showAgentSelector.value = false
-}
-
-async function handleScenarioSelect(id: string) {
-  sceneMenuOpen.value = false
-  showAgentSelector.value = true
-  await selectScenario(id)
 }
 
 onMounted(async () => {
@@ -118,17 +124,27 @@ onMounted(async () => {
   const sceneId = typeof route.query.scene === "string" ? route.query.scene : undefined
   const sessionId = typeof route.query.session === "string" ? route.query.session : undefined
 
-  if (sceneId && availableScenarios.value.find((s) => s.id === sceneId)) {
-    await selectScenario(sceneId)
-  } else if (availableScenarios.value.length > 0) {
-    await selectScenario(availableScenarios.value[0].id)
+  let validScene = false
+  if (sceneId) {
+    if (availableScenarios.value.find((s) => s.id === sceneId)) {
+      await selectScenario(sceneId)
+      validScene = true
+    } else {
+      error.value = t("scene_not_found")
+      console.error(`Invalid scene parameter in URL: "${sceneId}"`)
+    }
+  } else {
+    error.value = t("scene_missing")
+    console.error("Missing scene parameter in URL")
   }
 
-  if (sessionId) {
+  if (validScene && sessionId) {
     await selectSession(sessionId)
     showAgentSelector.value = false
-  } else {
+  } else if (validScene) {
     showAgentSelector.value = true
+  } else {
+    showAgentSelector.value = false
   }
 
   await router.replace({
@@ -140,16 +156,29 @@ onMounted(async () => {
   })
 
   skipUrlWatch.value = false
+  pageLoading.value = false
 })
 
 watch(() => [route.query.scene as string | undefined, route.query.session as string | undefined], async ([newScene, newSession], [oldScene, oldSession]) => {
   if (skipUrlWatch.value) return
   if (newScene && newScene !== oldScene && newScene !== currentScenario.value?.id) {
-    if (availableScenarios.value.find((s) => s.id === newScene)) {
+    const found = availableScenarios.value.find((s) => s.id === newScene)
+    if (found) {
       await selectScenario(newScene)
+      showAgentSelector.value = !currentSessionId.value
+    } else {
+      error.value = t("scene_not_found")
+      console.error(`Invalid scene parameter in URL: "${newScene}"`)
+      currentScenario.value = null
+      availableAgents.value = []
+      currentSessionId.value = null
+      messages.value = []
+      showAgentSelector.value = false
+      await router.replace({ query: { ...route.query, scene: undefined, session: undefined } })
     }
   }
   if (newSession !== oldSession && newSession !== currentSessionId.value) {
+    if (!currentScenario.value) return
     if (newSession) {
       await selectSession(newSession)
       showAgentSelector.value = false
@@ -174,43 +203,11 @@ function handleLogout() {
 <template>
   <div class="layout">
     <header class="top-bar">
-      <div class="scene-selector-wrap">
-        <button class="header-btn scene-btn" @click="sceneMenuOpen = !sceneMenuOpen">
-          <template v-if="currentScenario">
-            <span class="scene-icon-small">{{ currentScenario.icon }}</span>
-            <span class="scene-name">{{ currentScenario.name }}</span>
-          </template>
-          <SkeletonBlock v-else width="80px" height="18px" />
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <polyline points="6 9 12 15 18 9"/>
-          </svg>
-        </button>
-        <div v-if="sceneMenuOpen" class="scene-dropdown">
-          <template v-if="availableScenarios.length > 0">
-            <button
-              v-for="s in availableScenarios"
-              :key="s.id"
-              class="scene-option"
-              :class="{ active: s.id === currentScenario?.id }"
-              @click="handleScenarioSelect(s.id)"
-            >
-              <span class="scene-opt-icon">{{ s.icon }}</span>
-              <div class="scene-opt-info">
-                <span class="scene-opt-name">{{ s.name }}</span>
-                <span class="scene-opt-desc">{{ s.description }}</span>
-              </div>
-            </button>
-          </template>
-          <div v-else class="scene-option-skel">
-            <div v-for="i in 3" :key="i" class="scene-option" style="pointer-events:none">
-              <SkeletonBlock variant="circle" width="20px" height="20px" />
-              <div class="scene-opt-info">
-                <SkeletonBlock width="100px" height="14px" />
-                <div style="margin-top:2px"><SkeletonBlock width="140px" height="11px" /></div>
-              </div>
-            </div>
-          </div>
-        </div>
+      <div class="scene-label">
+        <template v-if="currentScenario">
+          <span class="scene-icon-small">{{ currentScenario.icon }}</span>
+          <span class="scene-name">{{ currentScenario.name }}</span>
+        </template>
       </div>
 
       <div class="spacer"></div>
@@ -275,10 +272,33 @@ function handleLogout() {
             </template>
           </div>
           <div class="dropdown-divider"></div>
+          <div class="dropdown-label">{{ t("management") }}</div>
+          <button
+            v-if="authUser && hasScenePermission"
+            class="dropdown-item"
+            @click="router.push('/manage/scenes'); menuOpen = false"
+          >
+            Scenes
+          </button>
+          <button
+            v-if="authUser && hasAgentPermission"
+            class="dropdown-item"
+            @click="router.push('/manage/agents'); menuOpen = false"
+          >
+            Agents
+          </button>
+          <button
+            v-if="authUser && hasToolPermission"
+            class="dropdown-item"
+            @click="router.push('/manage/tools'); menuOpen = false"
+          >
+            Tools
+          </button>
+          <div class="dropdown-divider"></div>
           <button
             v-if="authUser && hasEvalPermission"
             class="dropdown-item"
-            @click="router.push('/eval'); menuOpen = false"
+            @click="router.push('/manage/eval'); menuOpen = false"
           >
             {{ t("evaluation") }}
           </button>
@@ -293,11 +313,6 @@ function handleLogout() {
       </div>
     </header>
 
-    <div
-      v-if="sceneMenuOpen"
-      class="menu-overlay"
-      @click="sceneMenuOpen = false"
-    ></div>
     <div
       v-if="menuOpen"
       class="menu-overlay"
@@ -332,7 +347,7 @@ function handleLogout() {
           >
             <div class="session-title">{{ s.title }}</div>
             <div class="session-meta">
-              {{ s.agent_name }} &middot; {{ s.message_count }} msgs
+              {{ s.display_name || s.agent_name }} &middot; {{ s.message_count }} msgs
             </div>
             <button
               class="btn-delete"
@@ -359,23 +374,48 @@ function handleLogout() {
         <button class="error-toast-close" @click.stop="chatStore.clearError()">&times;</button>
       </div>
 
-      <div v-if="showAgentSelector" class="agent-selector-center">
-        <AgentSelector
-          :scenario="currentScenario"
-          :agents="availableAgents"
-          @select="handleAgentSelect"
+      <template v-if="pageLoading">
+        <div class="agent-selector-center">
+          <div class="page-loading-skeleton agent-selector">
+            <div class="selector-header">
+              <div style="display:flex;flex-direction:column;align-items:center">
+                <SkeletonBlock variant="circle" width="48px" height="48px" />
+                <div style="margin-top:12px"><SkeletonBlock width="60%" height="24px" borderRadius="6px" /></div>
+                <div style="margin-top:8px"><SkeletonBlock width="80%" height="14px" /></div>
+              </div>
+            </div>
+            <div class="agent-list">
+              <div v-for="i in 3" :key="i" class="agent-card-skeleton">
+                <SkeletonBlock width="35%" height="18px" borderRadius="4px" />
+                <div style="margin:10px 0"><SkeletonBlock width="75%" height="13px" /></div>
+                <div style="display:flex;gap:6px">
+                  <SkeletonBlock width="60px" height="20px" borderRadius="4px" />
+                  <SkeletonBlock width="80px" height="20px" borderRadius="4px" />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </template>
+      <template v-else>
+        <div v-if="showAgentSelector" class="agent-selector-center">
+          <AgentSelector
+            :scenario="currentScenario"
+            :agents="availableAgents"
+            @select="handleAgentSelect"
+          />
+        </div>
+        <ChatView
+          v-else
+          :messages="messages"
+          :messages-loading="messagesLoading"
+          :streaming="streaming"
+          :disabled="!backendOnline"
+          @send="handleSendMessage"
+          @cancel="cancelStream"
+          @new-chat="handleNewChat"
         />
-      </div>
-      <ChatView
-        v-else
-        :messages="messages"
-        :messages-loading="messagesLoading"
-        :streaming="streaming"
-        :disabled="!backendOnline"
-        @send="handleSendMessage"
-        @cancel="cancelStream"
-        @new-chat="handleNewChat"
-      />
+      </template>
     </div>
   </div>
 </template>
@@ -387,47 +427,39 @@ function handleLogout() {
   height: 100vh;
   width: 100vw;
   overflow: hidden;
+  background: var(--page-bg);
 }
 .top-bar {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 12px 16px;
-  background: var(--surface-bg);
-  border-bottom: 1px solid var(--border);
+  padding: 10px 16px;
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border-bottom: 1px solid var(--glass-border);
   flex-shrink: 0;
+  z-index: 200;
 }
 .header-btn {
   display: flex;
   align-items: center;
   background: none;
   border: none;
-  padding: 4px;
+  padding: 6px;
   cursor: pointer;
   color: var(--text-primary);
-  border-radius: 4px;
+  border-radius: 8px;
+  transition: background var(--transition-duration);
 }
 .header-btn:hover {
-  background: var(--border);
+  background: var(--glass-highlight);
 }
 .spacer {
   flex: 1;
 }
 .hamburger-wrap {
   position: relative;
-}
-.scene-selector-wrap {
-  position: relative;
-}
-.scene-btn {
-  gap: 6px;
-  padding: 6px 10px;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  font-size: 13px;
-}
-.scene-btn:hover {
-  border-color: var(--accent);
 }
 .scene-icon-small {
   font-size: 16px;
@@ -436,65 +468,15 @@ function handleLogout() {
   color: var(--text-primary);
   font-weight: 500;
 }
-.scene-dropdown {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  margin-top: 4px;
-  min-width: 240px;
-  background: var(--surface-bg);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
-  z-index: 201;
-  overflow: hidden;
-}
-.scene-option {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  width: 100%;
-  padding: 10px 14px;
-  background: none;
-  border: none;
-  color: var(--text-primary);
-  font-size: 13px;
-  cursor: pointer;
-  text-align: left;
-  font-family: inherit;
-}
-.scene-option:hover {
-  background: var(--surface-raised);
-}
-.scene-option.active {
-  background: var(--accent-dim);
-}
-.scene-opt-icon {
-  font-size: 20px;
-  flex-shrink: 0;
-}
-.scene-opt-info {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-.scene-opt-name {
-  font-weight: 500;
-}
-.scene-opt-desc {
-  font-size: 11px;
-  color: var(--text-secondary);
-}
 .dropdown {
   position: absolute;
-  top: 100%;
+  top: calc(100% + 6px);
   right: 0;
-  margin-top: 4px;
-  min-width: 160px;
-  background: var(--surface-bg);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  min-width: 180px;
+  background: var(--surface-raised);
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+  box-shadow: var(--glass-shadow);
   z-index: 201;
   overflow: hidden;
 }
@@ -503,7 +485,7 @@ function handleLogout() {
   align-items: center;
   gap: 8px;
   width: 100%;
-  padding: 10px 14px;
+  padding: 9px 14px;
   background: none;
   border: none;
   color: var(--text-primary);
@@ -511,9 +493,10 @@ function handleLogout() {
   cursor: pointer;
   text-align: left;
   font-family: inherit;
+  transition: background var(--transition-duration);
 }
 .dropdown-item:hover {
-  background: var(--surface-raised);
+  background: var(--glass-highlight);
 }
 .dropdown-item.active {
   color: var(--accent);
@@ -523,15 +506,16 @@ function handleLogout() {
   color: var(--accent);
 }
 .dropdown-label {
-  padding: 6px 14px 2px;
-  font-size: 11px;
+  padding: 8px 14px 3px;
+  font-size: 10px;
   color: var(--text-muted);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.6px;
+  font-weight: 600;
 }
 .dropdown-divider {
   height: 1px;
-  background: var(--border);
+  background: var(--glass-border);
   margin: 4px 0;
 }
 .dropdown-user {
@@ -553,7 +537,6 @@ function handleLogout() {
 .dropdown-logout {
   color: #ef4444 !important;
   font-weight: 600;
-  border-top: none;
 }
 .dropdown-logout:hover {
   background: rgba(239, 68, 68, 0.1) !important;
@@ -566,22 +549,23 @@ function handleLogout() {
 .drawer-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.5);
-  z-index: 100;
+  z-index: 210;
 }
 .drawer {
   position: fixed;
   top: 0;
   right: 0;
   bottom: 0;
-  width: 260px;
-  background: var(--surface-bg);
-  border-left: 1px solid var(--border);
-  z-index: 101;
+  width: 280px;
+  background: var(--glass-bg);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  z-index: 220;
   display: flex;
   flex-direction: column;
   transform: translateX(100%);
-  transition: transform var(--transition-duration) ease;
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: var(--glass-shadow);
 }
 .drawer.open {
   transform: translateX(0);
@@ -590,13 +574,14 @@ function handleLogout() {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px;
-  border-bottom: 1px solid var(--border);
+  padding: 18px 16px;
+  border-bottom: 1px solid var(--glass-border);
 }
 .drawer-header h2 {
   margin: 0;
   font-size: 16px;
   color: var(--text-primary);
+  font-weight: 600;
 }
 .btn-close {
   background: none;
@@ -605,22 +590,29 @@ function handleLogout() {
   font-size: 24px;
   cursor: pointer;
   line-height: 1;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: background var(--transition-duration), color var(--transition-duration);
+}
+.btn-close:hover {
+  background: var(--glass-highlight);
+  color: var(--text-primary);
 }
 .session-list {
   flex: 1;
   overflow-y: auto;
-  padding: 0 8px 8px;
+  padding: 6px 8px 8px;
 }
 .session-item {
   position: relative;
   padding: 10px;
   margin-bottom: 4px;
-  border-radius: 6px;
+  border-radius: 8px;
   cursor: pointer;
-  transition: background var(--transition-duration), color var(--transition-duration);
+  transition: background var(--transition-duration);
 }
 .session-item:hover {
-  background: var(--surface-raised);
+  background: var(--glass-highlight);
 }
 .session-item.active {
   background: var(--accent-dim);
@@ -650,6 +642,7 @@ function handleLogout() {
   font-size: 16px;
   padding: 2px 6px;
   border-radius: 4px;
+  transition: background var(--transition-duration), color var(--transition-duration);
 }
 .btn-delete:hover {
   background: var(--delete-hover-bg);
@@ -660,6 +653,13 @@ function handleLogout() {
   color: var(--text-muted);
   padding: 32px 16px;
   font-size: 13px;
+}
+.agent-card-skeleton {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 14px;
+  padding: 18px;
+  pointer-events: none;
 }
 .main-content {
   flex: 1;
@@ -691,36 +691,42 @@ function handleLogout() {
   align-items: center;
   gap: 12px;
   justify-content: center;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
 .btn-retry {
   background: var(--danger-hover);
   color: var(--text-primary);
-  border: 1px solid var(--danger-text);
-  border-radius: 4px;
+  border: none;
+  border-radius: 6px;
   padding: 4px 12px;
   cursor: pointer;
   font-size: 12px;
+  transition: background var(--transition-duration);
 }
 .btn-retry:hover {
   background: var(--danger-text);
 }
 .error-toast {
   position: fixed;
-  top: 52px;
+  top: 60px;
   left: 50%;
   transform: translateX(-50%);
-  background: var(--danger);
+  background: var(--glass-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   color: var(--danger-text);
-  padding: 8px 12px;
-  border-radius: 8px;
+  padding: 10px 16px;
+  border-radius: 10px;
   font-size: 13px;
   z-index: 9999;
-  border: 1px solid var(--danger-hover);
+  border: 1px solid var(--glass-border);
   display: flex;
   align-items: center;
   gap: 12px;
   cursor: pointer;
   max-width: 80vw;
+  box-shadow: var(--glass-shadow);
 }
 .error-toast-text {
   flex: 1;
@@ -736,6 +742,7 @@ function handleLogout() {
   cursor: pointer;
   opacity: 0.7;
   padding: 0;
+  transition: opacity var(--transition-duration);
 }
 .error-toast-close:hover {
   opacity: 1;

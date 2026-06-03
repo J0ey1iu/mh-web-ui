@@ -21,6 +21,8 @@ function freshState(): StreamingState {
 export const useChatStore = defineStore("chat", () => {
   const sessions = ref<SessionInfo[]>([])
   const currentSessionId = ref<string | null>(null)
+  const pendingAgent = ref<string | null>(null)
+  const creatingSession = ref(false)
   const messages = ref<Message[]>([])
   const error = ref<string | null>(null)
   const backendOnline = ref<boolean | null>(null)
@@ -272,6 +274,7 @@ export const useChatStore = defineStore("chat", () => {
 
   async function selectSession(memoryId: string) {
     currentSessionId.value = memoryId
+    pendingAgent.value = null
     messages.value = []
     messagesLoading.value = true
     try {
@@ -286,7 +289,25 @@ export const useChatStore = defineStore("chat", () => {
   }
 
   async function sendMessage(text: string) {
-    if (!text.trim() || !currentSessionId.value) return
+    if (!text.trim()) return
+    if (!currentSessionId.value && pendingAgent.value) {
+      if (creatingSession.value) return
+      creatingSession.value = true
+      const agentName = pendingAgent.value
+      pendingAgent.value = null
+      try {
+        const session = await createSession(agentName, currentScenario.value?.id)
+        currentSessionId.value = session.memory_id
+        messages.value = []
+        await router.replace({ query: { ...router.currentRoute.value.query, session: session.memory_id } })
+      } catch (e) {
+        error.value = String(e)
+        return
+      } finally {
+        creatingSession.value = false
+      }
+    }
+    if (!currentSessionId.value) return
     const userMsg: Message = { id: `msg-${Date.now()}`, role: "user", content: text }
     messages.value.push(userMsg)
     Object.assign(pending, freshState(), { isStreaming: true })
@@ -303,7 +324,7 @@ export const useChatStore = defineStore("chat", () => {
   }
 
   async function createSessionWithAgent(agentName: string) {
-    await newSession(agentName)
+    pendingAgent.value = agentName
   }
 
   async function loadScenarios() {
@@ -326,6 +347,7 @@ export const useChatStore = defineStore("chat", () => {
       toolDisplayNames.value = map
     } catch { /* */ }
     currentSessionId.value = null
+    pendingAgent.value = null
     messages.value = []
     await loadSessions(scenarioId)
     await router.replace({ query: { ...router.currentRoute.value.query, scene: scenarioId, session: undefined } })
@@ -341,6 +363,7 @@ export const useChatStore = defineStore("chat", () => {
 
   async function refreshLocaleData() {
     await loadScenarios()
+    await loadSessions(currentScenario.value?.id)
     if (currentScenario.value) {
       const updated = availableScenarios.value.find(
         (s) => s.id === currentScenario.value!.id
@@ -428,7 +451,7 @@ export const useChatStore = defineStore("chat", () => {
   }
 
   return {
-    sessions, currentSessionId, currentSession, messages, streaming, error,
+    sessions, currentSessionId, currentSession, pendingAgent, messages, streaming, error,
     backendOnline, availableScenarios, currentScenario, availableAgents, toolDisplayNames,
     sessionsLoading, messagesLoading,
     loadSessions, newSession, removeSession, selectSession, sendMessage, cancelStream,

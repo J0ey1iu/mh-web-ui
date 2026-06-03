@@ -38,7 +38,10 @@ const { t } = useI18nStore()
           @click="emit('select', agent.name)"
         >
           <div class="agent-info">
-            <h3 class="agent-name">{{ agent.display_name || agent.name }}</h3>
+            <h3 class="agent-name">
+              {{ agent.display_name || agent.name }}
+              <span v-if="agent.model" class="model-badge">{{ agent.model }}</span>
+            </h3>
             <p class="agent-desc">{{ agent.description }}</p>
           </div>
           <div class="agent-tools">
@@ -97,19 +100,27 @@ const { t } = useI18nStore()
 .agent-list {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
 }
 .agent-card {
-  background: var(--surface-bg);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 16px;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 14px;
+  padding: 18px;
   cursor: pointer;
-  transition: border-color var(--transition-duration), background var(--transition-duration), color var(--transition-duration);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  transition: border-color var(--transition-duration), box-shadow var(--transition-duration), transform var(--transition-duration), backdrop-filter var(--transition-duration), -webkit-backdrop-filter var(--transition-duration);
 }
 .agent-card:hover {
   border-color: var(--accent);
-  background: var(--surface-raised);
+  transform: translateY(-1px);
+  box-shadow: var(--glass-shadow);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+.agent-card:active {
+  transform: translateY(0);
 }
 .agent-info {
   margin-bottom: 10px;
@@ -120,6 +131,23 @@ const { t } = useI18nStore()
   font-weight: 600;
   color: var(--text-primary);
   text-transform: capitalize;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.model-badge {
+  font-size: 10px;
+  padding: 2px 7px;
+  border-radius: 6px;
+  background: var(--accent-dim);
+  color: var(--accent);
+  border: 1px solid transparent;
+  font-weight: 500;
+  text-transform: none;
+  white-space: nowrap;
+}
+.agent-card:hover .model-badge {
+  border-color: var(--accent);
 }
 .agent-desc {
   margin: 0;
@@ -135,11 +163,13 @@ const { t } = useI18nStore()
 .tool-badge {
   font-size: 11px;
   padding: 3px 8px;
-  border-radius: 4px;
-  background: var(--accent-dim);
+  border-radius: 6px;
+  background: var(--glass-highlight);
   color: var(--text-secondary);
-  border: 1px solid var(--border);
-  font-family: monospace;
+  border: 1px solid var(--glass-border);
+}
+.agent-card:hover .tool-badge {
+  border-color: var(--accent);
 }
 .empty-hint {
   text-align: center;

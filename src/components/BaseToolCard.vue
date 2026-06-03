@@ -42,13 +42,15 @@ const statusIcon = computed(() => {
 .tool-card {
   margin: 4px 0;
   padding: 8px 12px;
-  border-radius: 6px;
+  border-radius: 8px;
   font-size: 13px;
-  background: var(--surface-alt);
-  border: 1px solid var(--border);
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  transition: border-color var(--transition-duration);
 }
 .tool-card.running {
   border-color: var(--accent);
+  box-shadow: 0 0 12px rgba(96, 165, 250, 0.15);
 }
 .tool-card.success {
   border-color: var(--success);
@@ -66,7 +68,6 @@ const statusIcon = computed(() => {
 }
 .tool-name {
   font-weight: 600;
-  font-family: monospace;
 }
 .tool-spinner {
   display: inline-block;
@@ -85,13 +86,13 @@ const statusIcon = computed(() => {
 .tool-progress {
   margin-top: 4px;
   color: var(--text-secondary);
-  font-family: monospace;
+  font-family: var(--font-mono);
   font-size: 12px;
 }
 .tool-result {
   margin-top: 4px;
   color: var(--text-primary);
-  font-family: monospace;
+  font-family: var(--font-mono);
   font-size: 12px;
   white-space: pre-wrap;
   word-break: break-word;

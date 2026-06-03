@@ -1,34 +1,19 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed } from "vue"
-import { useRouter } from "vue-router"
-import { useAuthStore } from "../stores/auth"
 import { useI18nStore } from "../stores/i18n"
 import { useEvalStore } from "../stores/eval"
 import { fetchScenarioDetail, fetchScenarios, getEvalReportUrl } from "../api/client"
 import type { EvalInput, ScenarioDetail, ScenarioInfo } from "../types"
+import ManagementNav from "../components/ManagementNav.vue"
+import SearchSelect from "../components/SearchSelect.vue"
 import * as XLSX from "xlsx"
 
-const router = useRouter()
-const authStore = useAuthStore()
 const i18nStore = useI18nStore()
 const evalStore = useEvalStore()
-const { t, setLocale } = i18nStore
+const { t } = i18nStore
 const selectedJob = computed(() => evalStore.selectedJob)
 
 const activeTab = ref<"new" | "history">("new")
-
-// ── Theme ──
-const theme = ref(localStorage.getItem("theme") || "light")
-const menuOpen = ref(false)
-
-function setTheme(t: string) {
-  theme.value = t
-  menuOpen.value = false
-  document.documentElement.setAttribute("data-theme", t)
-  localStorage.setItem("theme", t)
-}
-
-document.documentElement.setAttribute("data-theme", theme.value)
 
 // ── Scenarios ──
 const scenarios = ref<ScenarioInfo[]>([])
@@ -65,6 +50,14 @@ const inputs = ref<EvalInput[]>([])
 const availableAgents = computed(() => {
   return scenarioDetail.value?.agents ?? []
 })
+
+const scenarioOptions = computed(() =>
+  scenarios.value.map(s => ({ value: s.id, label: `${s.icon} ${s.name}` }))
+)
+
+const agentOptions = computed(() =>
+  availableAgents.value.map(a => ({ value: a.name, label: a.display_name || a.name }))
+)
 
 function addInput() {
   const firstAgent = availableAgents.value[0]?.name ?? ""
@@ -218,102 +211,32 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="eval-page">
-    <header class="top-bar">
-      <div class="top-bar-left">
-        <h1 class="eval-title">{{ t("evaluation") }}</h1>
-        <div class="tab-switcher">
-          <button
-            :class="['tab-btn', { active: activeTab === 'new' }]"
-            @click="activeTab = 'new'"
-          >
+  <div class="mgmt-page">
+    <ManagementNav />
+    <div class="mgmt-page-content eval-content">
+      <header class="mgmt-header">
+        <h1>{{ t("evaluation") }}</h1>
+        <div class="mgmt-tabs">
+          <button :class="['tab-btn', { active: activeTab === 'new' }]" @click="activeTab = 'new'">
             {{ t("eval_new_job") }}
           </button>
-          <button
-            :class="['tab-btn', { active: activeTab === 'history' }]"
-            @click="activeTab = 'history'"
-          >
+          <button :class="['tab-btn', { active: activeTab === 'history' }]" @click="activeTab = 'history'">
             {{ t("eval_job_list") }}
           </button>
         </div>
-      </div>
-      <div class="spacer"></div>
-      <div class="hamburger-wrap">
-        <button class="header-btn" @click="menuOpen = !menuOpen" aria-label="Menu">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <line x1="3" y1="6" x2="21" y2="6"/>
-            <line x1="3" y1="12" x2="21" y2="12"/>
-            <line x1="3" y1="18" x2="21" y2="18"/>
-          </svg>
-        </button>
-        <div v-if="menuOpen" class="dropdown">
-          <div class="dropdown-label">{{ t("theme") }}</div>
-          <button class="dropdown-item" :class="{ active: theme === 'dark' }" @click="setTheme('dark')">
-            {{ t("theme_dark") }}
-            <span v-if="theme === 'dark'" class="check">✓</span>
-          </button>
-          <button class="dropdown-item" :class="{ active: theme === 'light' }" @click="setTheme('light')">
-            {{ t("theme_light") }}
-            <span v-if="theme === 'light'" class="check">✓</span>
-          </button>
-          <button class="dropdown-item" :class="{ active: theme === 'dusk' }" @click="setTheme('dusk')">
-            {{ t("theme_dusk") }}
-            <span v-if="theme === 'dusk'" class="check">✓</span>
-          </button>
-          <button class="dropdown-item" :class="{ active: theme === 'sepia' }" @click="setTheme('sepia')">
-            {{ t("theme_sepia") }}
-            <span v-if="theme === 'sepia'" class="check">✓</span>
-          </button>
-          <button class="dropdown-item" :class="{ active: theme === 'lemonade' }" @click="setTheme('lemonade')">
-            {{ t("theme_lemonade") }}
-            <span v-if="theme === 'lemonade'" class="check">✓</span>
-          </button>
-          <button class="dropdown-item" :class="{ active: theme === 'eclipse' }" @click="setTheme('eclipse')">
-            {{ t("theme_eclipse") }}
-            <span v-if="theme === 'eclipse'" class="check">✓</span>
-          </button>
-          <div class="dropdown-divider"></div>
-          <div class="dropdown-label">{{ t("language") }}</div>
-          <button class="dropdown-item" :class="{ active: i18nStore.locale === 'zh' }" @click="setLocale('zh')">
-            中文
-            <span v-if="i18nStore.locale === 'zh'" class="check">✓</span>
-          </button>
-          <button class="dropdown-item" :class="{ active: i18nStore.locale === 'en' }" @click="setLocale('en')">
-            English
-            <span v-if="i18nStore.locale === 'en'" class="check">✓</span>
-          </button>
-          <div class="dropdown-divider"></div>
-          <div class="dropdown-user">
-            <template v-if="authStore.user">
-              <span class="user-name">{{ authStore.user.username }}</span>
-              <span class="user-role">{{ authStore.user.roles[0]?.name }}</span>
-            </template>
-          </div>
-          <button class="dropdown-item" @click="router.push('/')">
-            {{ t("new_chat") }}
-          </button>
-        </div>
-      </div>
-      <div v-if="menuOpen" class="menu-overlay" @click="menuOpen = false"></div>
-    </header>
+      </header>
 
-    <div class="eval-content">
       <!-- Error banner -->
-      <div v-if="evalStore.error" class="error-toast" @click="evalStore.setError(null)">
-        <span class="error-toast-text">{{ evalStore.error }}</span>
-        <button class="error-toast-close" @click.stop="evalStore.setError(null)">&times;</button>
+      <div v-if="evalStore.error" class="eval-error" @click="evalStore.setError(null)">
+        <span class="eval-error-text">{{ evalStore.error }}</span>
+        <button class="eval-error-close" @click.stop="evalStore.setError(null)">&times;</button>
       </div>
 
       <!-- ── Tab: New Job ── -->
       <div v-if="activeTab === 'new'" class="tab-panel">
         <div class="form-card">
           <h2 class="form-section-title">{{ t("eval_scenario") }}</h2>
-          <select v-model="selectedScenarioId" class="form-select" @change="selectScenario(selectedScenarioId)">
-            <option value="" disabled>{{ scenariosLoading ? 'Loading...' : t("select_scene") }}</option>
-            <option v-for="s in scenarios" :key="s.id" :value="s.id">
-              {{ s.icon }} {{ s.name }}
-            </option>
-          </select>
+          <SearchSelect v-model="selectedScenarioId" :options="scenarioOptions" :placeholder="scenariosLoading ? 'Loading...' : t('select_scene')" @change="selectScenario" />
         </div>
 
         <div v-if="scenarioDetail" class="form-card">
@@ -324,11 +247,7 @@ onUnmounted(() => {
             :key="idx"
             class="input-row"
           >
-            <select v-model="inp.agent_name" class="form-select agent-select">
-              <option v-for="a in availableAgents" :key="a.name" :value="a.name">
-                {{ a.display_name || a.name }}
-              </option>
-            </select>
+            <SearchSelect v-model="inp.agent_name" :options="agentOptions" :searchable="false" />
             <textarea
               v-model="inp.input_text"
               class="form-textarea"
@@ -376,7 +295,17 @@ onUnmounted(() => {
 
       <!-- ── Tab: Job History ── -->
       <div v-else class="tab-panel">
-        <div v-if="evalStore.loading" class="loading-hint">{{ t("loading") }}</div>
+        <div v-if="evalStore.loading" class="job-list">
+          <div v-for="i in 3" :key="i" class="job-item" style="pointer-events:none">
+            <div class="job-header">
+              <span class="job-id"><span class="mgmt-skeleton-cell" style="width:80px;height:12px"></span></span>
+              <span class="job-scenario"><span class="mgmt-skeleton-cell" style="width:100px;height:12px"></span></span>
+              <span class="job-status"><span class="mgmt-skeleton-cell" style="width:60px;height:16px;border-radius:4px"></span></span>
+              <span class="job-created"><span class="mgmt-skeleton-cell" style="width:120px;height:12px"></span></span>
+              <span class="job-expand-icon"><span class="mgmt-skeleton-cell" style="width:12px;height:12px"></span></span>
+            </div>
+          </div>
+        </div>
 
         <div v-else-if="evalStore.jobs.length === 0" class="empty-hint">
           {{ t("eval_no_jobs") }}
@@ -486,215 +415,52 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
-.eval-page {
-  display: flex;
-  flex-direction: column;
-  height: 100vh;
-  width: 100vw;
-  overflow: hidden;
-  background: var(--bg);
-  color: var(--text-primary);
-}
-
-.top-bar {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px 16px;
-  background: var(--surface-bg);
-  border-bottom: 1px solid var(--border);
-  flex-shrink: 0;
-}
-
-.top-bar-left {
-  display: flex;
-  align-items: center;
-  gap: 24px;
-}
-
-.eval-title {
-  font-size: 1.2rem;
-  font-weight: 700;
-  margin: 0;
-}
-
-.tab-switcher {
-  display: flex;
-  gap: 0;
-  background: var(--surface-raised);
-  border-radius: 6px;
-  overflow: hidden;
-}
-
-.tab-btn {
-  padding: 6px 16px;
-  background: none;
-  border: none;
-  color: var(--text-secondary);
-  cursor: pointer;
-  font-size: 13px;
-  font-family: inherit;
-  transition: all 0.15s;
-}
-
-.tab-btn.active {
-  background: var(--accent);
-  color: var(--accent-text, #fff);
-}
-
-.tab-btn:hover:not(.active) {
-  color: var(--text-primary);
-  background: var(--border);
-}
-
-.spacer {
-  flex: 1;
-}
-
-.header-btn {
-  display: flex;
-  align-items: center;
-  background: none;
-  border: none;
-  padding: 4px;
-  cursor: pointer;
-  color: var(--text-primary);
-  border-radius: 4px;
-}
-
-.header-btn:hover {
-  background: var(--border);
-}
-
-.hamburger-wrap {
-  position: relative;
-}
-
-.dropdown {
-  position: absolute;
-  top: 100%;
-  right: 0;
-  margin-top: 4px;
-  min-width: 160px;
-  background: var(--surface-bg);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
-  z-index: 201;
-  overflow: hidden;
-}
-
-.dropdown-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  width: 100%;
-  padding: 10px 14px;
-  background: none;
-  border: none;
-  color: var(--text-primary);
-  font-size: 13px;
-  cursor: pointer;
-  text-align: left;
-  font-family: inherit;
-}
-
-.dropdown-item:hover {
-  background: var(--surface-raised);
-}
-
-.dropdown-item.active {
-  color: var(--accent);
-}
-
-.dropdown-item .check {
-  margin-left: auto;
-  color: var(--accent);
-}
-
-.dropdown-label {
-  padding: 6px 14px 2px;
-  font-size: 11px;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.dropdown-divider {
-  height: 1px;
-  background: var(--border);
-  margin: 4px 0;
-}
-
-.dropdown-user {
-  padding: 8px 14px;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.dropdown-user .user-name {
-  font-size: 13px;
-  color: var(--text-primary);
-  font-weight: 500;
-}
-
-.dropdown-user .user-role {
-  font-size: 11px;
-  color: var(--text-secondary);
-  text-transform: capitalize;
-}
-
-.menu-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 150;
-}
-
 .eval-content {
-  flex: 1;
-  overflow-y: auto;
-  padding: 24px;
-  max-width: 960px;
-  width: 100%;
-  margin: 0 auto;
+  max-width: 1160px;
 }
 
 .tab-panel {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 18px;
 }
 
 .form-card {
-  background: var(--surface-bg);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 16px;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+  padding: 20px;
 }
 
 .form-section-title {
-  font-size: 14px;
-  font-weight: 600;
-  margin: 0 0 12px;
+  font-size: 15px;
+  font-weight: 700;
+  margin: 0 0 14px;
   color: var(--text-primary);
 }
 
 .form-select {
   width: 100%;
-  padding: 8px 12px;
-  background: var(--surface-raised);
-  border: 1px solid var(--border);
-  border-radius: 6px;
+  padding: 9px 12px;
+  background: var(--glass-highlight);
+  border: 1px solid var(--glass-border);
+  border-radius: 8px;
   color: var(--text-primary);
   font-size: 13px;
   font-family: inherit;
   cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s;
 }
 
 .form-select:focus {
   outline: none;
   border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-dim);
+}
+
+.form-select option {
+  background: var(--glass-bg);
+  color: var(--text-primary);
 }
 
 .input-row {
@@ -712,8 +478,8 @@ onUnmounted(() => {
 .form-textarea {
   flex: 1;
   padding: 8px 10px;
-  background: var(--surface-raised);
-  border: 1px solid var(--border);
+  background: var(--glass-highlight);
+  border: 1px solid var(--glass-border);
   border-radius: 6px;
   color: var(--text-primary);
   font-size: 13px;
@@ -782,8 +548,8 @@ onUnmounted(() => {
 .form-input-num {
   width: 70px;
   padding: 6px 8px;
-  background: var(--surface-raised);
-  border: 1px solid var(--border);
+  background: var(--glass-highlight);
+  border: 1px solid var(--glass-border);
   border-radius: 6px;
   color: var(--text-primary);
   font-size: 13px;
@@ -828,77 +594,80 @@ onUnmounted(() => {
 
 .polling-hint {
   text-align: center;
-  padding: 8px;
+  padding: 10px;
   color: var(--accent);
   font-size: 12px;
+  font-weight: 500;
   background: var(--accent-dim);
-  border-radius: 6px;
-  margin-bottom: 12px;
+  border-radius: 8px;
+  margin-bottom: 14px;
 }
 
-.error-toast {
-  position: fixed;
-  top: 52px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: var(--danger);
-  color: var(--danger-text);
-  padding: 8px 12px;
-  border-radius: 8px;
+.eval-error {
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+  padding: 10px 16px;
+  border-radius: 10px;
   font-size: 13px;
-  z-index: 9999;
-  border: 1px solid var(--danger-hover);
+  border: 1px solid rgba(239, 68, 68, 0.2);
   display: flex;
   align-items: center;
   gap: 12px;
   cursor: pointer;
-  max-width: 80vw;
+  margin-bottom: 16px;
+  transition: background 0.15s;
+}
+.eval-error:hover {
+  background: rgba(239, 68, 68, 0.15);
 }
 
-.error-toast-text {
+.eval-error-text {
   flex: 1;
   word-break: break-word;
 }
 
-.error-toast-close {
+.eval-error-close {
   flex-shrink: 0;
   background: none;
   border: none;
-  color: var(--danger-text);
-  font-size: 18px;
+  color: #ef4444;
+  font-size: 20px;
   line-height: 1;
   cursor: pointer;
   opacity: 0.7;
-  padding: 0;
+  padding: 0 2px;
+  border-radius: 4px;
+  transition: opacity 0.15s;
 }
-
-.error-toast-close:hover {
-  opacity: 1;
-}
+.eval-error-close:hover { opacity: 1; }
 
 .job-item {
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  margin-bottom: 8px;
+  border: 1px solid var(--glass-border);
+  border-radius: 10px;
+  margin-bottom: 10px;
   overflow: hidden;
-  background: var(--surface-bg);
+  background: var(--glass-bg);
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.job-item:hover {
+  border-color: var(--border-hover);
 }
 
 .job-header {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 12px 16px;
+  gap: 14px;
+  padding: 14px 18px;
   cursor: pointer;
   transition: background 0.15s;
 }
 
 .job-header:hover {
-  background: var(--surface-raised);
+  background: var(--glass-highlight);
 }
 
 .job-id {
-  font-family: monospace;
+  font-family: var(--font-mono);
   font-size: 12px;
   color: var(--text-secondary);
   min-width: 70px;
@@ -919,7 +688,7 @@ onUnmounted(() => {
 }
 
 .status-pending {
-  background: var(--surface-raised);
+  background: var(--glass-highlight);
   color: var(--text-muted);
 }
 
@@ -955,33 +724,38 @@ onUnmounted(() => {
 }
 
 .job-detail {
-  padding: 16px;
-  border-top: 1px solid var(--border);
-  background: var(--surface-raised);
+  padding: 20px;
+  border-top: 1px solid var(--glass-border);
+  background: var(--glass-highlight);
 }
 
 .error-block {
-  background: #7f1d1d;
+  background: rgba(239, 68, 68, 0.1);
   color: #fca5a5;
-  padding: 8px 12px;
-  border-radius: 6px;
+  padding: 10px 14px;
+  border-radius: 8px;
   font-size: 12px;
-  margin-bottom: 12px;
+  margin-bottom: 14px;
+  border: 1px solid rgba(239, 68, 68, 0.15);
 }
 
 .summary-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-  gap: 8px;
-  margin-bottom: 16px;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 10px;
+  margin-bottom: 18px;
 }
 
 .summary-card {
-  background: var(--surface-bg);
-  border-radius: 8px;
-  padding: 12px;
+  background: var(--glass-bg);
+  border-radius: 10px;
+  padding: 14px;
   text-align: center;
-  border: 1px solid var(--border);
+  border: 1px solid var(--glass-border);
+  transition: border-color 0.15s;
+}
+.summary-card:hover {
+  border-color: var(--border-hover);
 }
 
 .summary-value {
@@ -1016,7 +790,7 @@ onUnmounted(() => {
 .runs-table th {
   text-align: left;
   padding: 8px 6px;
-  border-bottom: 2px solid var(--border);
+  border-bottom: 2px solid var(--glass-border);
   color: var(--text-muted);
   font-weight: 600;
   white-space: nowrap;
@@ -1024,11 +798,11 @@ onUnmounted(() => {
 
 .runs-table td {
   padding: 8px 6px;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--glass-border);
 }
 
 .cell-mono {
-  font-family: monospace;
+  font-family: var(--font-mono);
   font-size: 11px;
 }
 
@@ -1071,7 +845,7 @@ onUnmounted(() => {
 
 .batch-import {
   margin-top: 16px;
-  border-top: 1px solid var(--border);
+  border-top: 1px solid var(--glass-border);
   padding-top: 12px;
 }
 
