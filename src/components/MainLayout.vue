@@ -130,21 +130,15 @@ onMounted(async () => {
       await selectScenario(sceneId)
       validScene = true
     } else {
-      error.value = t("scene_not_found")
-      console.error(`Invalid scene parameter in URL: "${sceneId}"`)
+      console.warn(`Unknown scene in URL: "${sceneId}"`)
     }
-  } else {
-    error.value = t("scene_missing")
-    console.error("Missing scene parameter in URL")
   }
 
   if (validScene && sessionId) {
     await selectSession(sessionId)
     showAgentSelector.value = false
-  } else if (validScene) {
-    showAgentSelector.value = true
   } else {
-    showAgentSelector.value = false
+    showAgentSelector.value = true
   }
 
   await router.replace({
@@ -162,18 +156,18 @@ onMounted(async () => {
 watch(() => [route.query.scene as string | undefined, route.query.session as string | undefined], async ([newScene, newSession], [oldScene, oldSession]) => {
   if (skipUrlWatch.value) return
   if (newScene && newScene !== oldScene && newScene !== currentScenario.value?.id) {
+    if (availableScenarios.value.length === 0) return
     const found = availableScenarios.value.find((s) => s.id === newScene)
     if (found) {
       await selectScenario(newScene)
       showAgentSelector.value = !currentSessionId.value
     } else {
-      error.value = t("scene_not_found")
-      console.error(`Invalid scene parameter in URL: "${newScene}"`)
+      console.warn(`Unknown scene in URL: "${newScene}"`)
       currentScenario.value = null
       availableAgents.value = []
       currentSessionId.value = null
       messages.value = []
-      showAgentSelector.value = false
+      showAgentSelector.value = true
       await router.replace({ query: { ...route.query, scene: undefined, session: undefined } })
     }
   }

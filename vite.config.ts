@@ -4,6 +4,7 @@ import vue from "@vitejs/plugin-vue"
 export default defineConfig(({ mode }) => {
   const isProd = mode === "production"
   return {
+    base: "./",
     plugins: [vue()],
     define: {
       __APP_CONFIG__: JSON.stringify({

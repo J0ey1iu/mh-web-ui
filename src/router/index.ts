@@ -1,4 +1,4 @@
-import { createRouter, createWebHistory, type RouteRecordRaw } from "vue-router"
+import { createRouter, createWebHashHistory, type RouteRecordRaw } from "vue-router"
 import MainLayout from "../components/MainLayout.vue"
 import ComponentsDemoPage from "../pages/ComponentsDemoPage.vue"
 import { appConfig } from "../config"
@@ -40,7 +40,7 @@ if (appConfig.enableEval) {
 }
 
 const router = createRouter({
-  history: createWebHistory(),
+  history: createWebHashHistory(),
   routes,
 })
 
