@@ -1,19 +1,26 @@
 const { zip } = require("bestzip")
-const { existsSync, unlinkSync, readdirSync, rmSync } = require("fs")
-const { join } = require("path")
+const { existsSync, unlinkSync, renameSync, readdirSync, rmSync } = require("fs")
+const { dirname, join } = require("path")
 
 const distDir = "dist"
-const zipPath = join(distDir, "dist.zip")
+const zipName = "dist.zip"
+const zipPath = join(distDir, zipName)
+const zipDest = join("..", zipName)
+const tmpZipPath = join(dirname(distDir), zipName)
 
 if (existsSync(zipPath)) {
   unlinkSync(zipPath)
 }
+if (existsSync(tmpZipPath)) {
+  unlinkSync(tmpZipPath)
+}
 
-zip({ source: ".", destination: "dist.zip", cwd: distDir })
+zip({ source: ".", destination: zipDest, cwd: distDir })
   .then(() => {
+    renameSync(tmpZipPath, zipPath)
     try {
       for (const entry of readdirSync(distDir)) {
-        if (entry !== "dist.zip") {
+        if (entry !== zipName) {
           rmSync(join(distDir, entry), { recursive: true, force: true })
         }
       }
@@ -23,6 +30,9 @@ zip({ source: ".", destination: "dist.zip", cwd: distDir })
     }
   })
   .catch((err) => {
+    if (existsSync(tmpZipPath)) {
+      unlinkSync(tmpZipPath)
+    }
     console.error("Failed to create dist/dist.zip:", err.message)
     process.exit(1)
   })
