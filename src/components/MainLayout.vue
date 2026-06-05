@@ -11,6 +11,7 @@ import { ensureComponentsLoaded } from "../toolComponentLoader"
 import ChatView from "./ChatView.vue"
 import AgentSelector from "./AgentSelector.vue"
 import SkeletonBlock from "./SkeletonBlock.vue"
+import BrandingHeader from "./BrandingHeader.vue"
 
 const route = useRoute()
 const router = useRouter()
@@ -214,12 +215,7 @@ function handleLogout() {
 <template>
   <div class="layout">
     <header class="top-bar">
-      <div class="scene-label">
-        <template v-if="currentScenario">
-          <span class="scene-icon-small">{{ currentScenario.icon }}</span>
-          <span class="scene-name">{{ currentScenario.name }}</span>
-        </template>
-      </div>
+      <BrandingHeader :active="streaming.isStreaming" />
 
       <div class="spacer"></div>
       <button class="header-btn" @click="drawerOpen = true" aria-label="Sessions">
@@ -472,13 +468,7 @@ function handleLogout() {
 .hamburger-wrap {
   position: relative;
 }
-.scene-icon-small {
-  font-size: 16px;
-}
-.scene-name {
-  color: var(--text-primary);
-  font-weight: 500;
-}
+
 .dropdown {
   position: absolute;
   top: calc(100% + 6px);
