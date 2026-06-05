@@ -250,7 +250,7 @@ export const useChatStore = defineStore("chat", () => {
       const session = await createSession(agentName, currentScenario.value?.id)
       currentSessionId.value = session.memory_id
       messages.value = []
-      await router.replace({ query: { ...router.currentRoute.value.query, session: session.memory_id } })
+      await router.replace({ query: { ...router.currentRoute.value.query, session: session.memory_id, agent: undefined } })
     } catch (e) {
       error.value = String(e)
     }
@@ -285,7 +285,7 @@ export const useChatStore = defineStore("chat", () => {
     } finally {
       messagesLoading.value = false
     }
-    await router.replace({ query: { ...router.currentRoute.value.query, session: memoryId } })
+    await router.replace({ query: { ...router.currentRoute.value.query, session: memoryId, agent: undefined } })
   }
 
   async function sendMessage(text: string) {
@@ -299,9 +299,10 @@ export const useChatStore = defineStore("chat", () => {
         const session = await createSession(agentName, currentScenario.value?.id)
         currentSessionId.value = session.memory_id
         messages.value = []
-        await router.replace({ query: { ...router.currentRoute.value.query, session: session.memory_id } })
+        await router.replace({ query: { ...router.currentRoute.value.query, session: session.memory_id, agent: undefined } })
       } catch (e) {
         error.value = String(e)
+        await router.replace({ query: { ...router.currentRoute.value.query, agent: undefined } })
         return
       } finally {
         creatingSession.value = false
@@ -325,6 +326,7 @@ export const useChatStore = defineStore("chat", () => {
 
   async function createSessionWithAgent(agentName: string) {
     pendingAgent.value = agentName
+    await router.replace({ query: { ...router.currentRoute.value.query, agent: agentName } })
   }
 
   async function loadScenarios() {
@@ -350,7 +352,7 @@ export const useChatStore = defineStore("chat", () => {
     pendingAgent.value = null
     messages.value = []
     await loadSessions(scenarioId)
-    await router.replace({ query: { ...router.currentRoute.value.query, scene: scenarioId, session: undefined } })
+    await router.replace({ query: { ...router.currentRoute.value.query, scene: scenarioId, session: undefined, agent: undefined } })
   }
 
   function cancelStream() {

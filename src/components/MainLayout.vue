@@ -106,7 +106,7 @@ function handleNewChat() {
   currentSessionId.value = null
   messages.value = []
   showAgentSelector.value = true
-  router.replace({ query: { ...route.query, session: undefined } })
+  router.replace({ query: { ...route.query, session: undefined, agent: undefined } })
 }
 
 function handleAgentSelect(agentName: string) {
@@ -123,6 +123,7 @@ onMounted(async () => {
 
   const sceneId = typeof route.query.scene === "string" ? route.query.scene : undefined
   const sessionId = typeof route.query.session === "string" ? route.query.session : undefined
+  const agentName = typeof route.query.agent === "string" ? route.query.agent : undefined
 
   let validScene = false
   if (sceneId) {
@@ -132,11 +133,15 @@ onMounted(async () => {
     } else {
       console.warn(`Unknown scene in URL: "${sceneId}"`)
     }
+  } else if (agentName) {
+    console.warn(`Agent in URL requires a scene parameter: "${agentName}"`)
   }
 
   if (validScene && sessionId) {
     await selectSession(sessionId)
     showAgentSelector.value = false
+  } else if (validScene && agentName && availableAgents.value.some((a) => a.name === agentName)) {
+    handleAgentSelect(agentName)
   } else {
     showAgentSelector.value = true
   }
@@ -146,6 +151,7 @@ onMounted(async () => {
       lang: locale.value,
       ...(currentScenario.value ? { scene: currentScenario.value.id } : {}),
       ...(currentSessionId.value ? { session: currentSessionId.value } : {}),
+      ...(chatStore.pendingAgent ? { agent: chatStore.pendingAgent } : {}),
     },
   })
 
@@ -153,7 +159,7 @@ onMounted(async () => {
   pageLoading.value = false
 })
 
-watch(() => [route.query.scene as string | undefined, route.query.session as string | undefined], async ([newScene, newSession], [oldScene, oldSession]) => {
+watch(() => [route.query.scene as string | undefined, route.query.session as string | undefined, route.query.agent as string | undefined], async ([newScene, newSession, newAgent], [oldScene, oldSession, oldAgent]) => {
   if (skipUrlWatch.value) return
   if (newScene && newScene !== oldScene && newScene !== currentScenario.value?.id) {
     if (availableScenarios.value.length === 0) return
@@ -179,6 +185,17 @@ watch(() => [route.query.scene as string | undefined, route.query.session as str
     } else {
       currentSessionId.value = null
       messages.value = []
+      showAgentSelector.value = true
+    }
+  }
+  if (newAgent !== oldAgent && !currentSessionId.value) {
+    if (newAgent && currentScenario.value) {
+      const found = availableAgents.value.find((a) => a.name === newAgent)
+      if (found) {
+        handleAgentSelect(newAgent)
+      }
+    } else if (!newAgent && chatStore.pendingAgent) {
+      chatStore.pendingAgent = null
       showAgentSelector.value = true
     }
   }

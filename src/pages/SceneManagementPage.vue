@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue"
+import { useRouter } from "vue-router"
 import {
   fetchManageScenarios,
   fetchManageScenario,
@@ -21,6 +22,12 @@ import SearchSelect from "../components/SearchSelect.vue"
 
 const { t, localeVal } = useI18nStore()
 const alertStore = useAlertStore()
+const router = useRouter()
+
+function goToChat(sceneId: string) {
+  const url = router.resolve({ path: "/", query: { scene: sceneId } }).href
+  window.open(url, "_blank")
+}
 const scenarios = ref<ManageScenario[]>([])
 const allAgents = ref<ManageAgent[]>([])
 const allTools = ref<ManageTool[]>([])
@@ -369,6 +376,7 @@ onMounted(load)
           <td class="cell-audit" :title="fmtAudit(s.created_at, s.created_by)">{{ fmtAudit(s.created_at, s.created_by) }}</td>
           <td class="cell-audit" :title="fmtAudit(s.updated_at, s.updated_by)">{{ fmtAudit(s.updated_at, s.updated_by) }}</td>
             <td class="cell-actions" @click.stop>
+              <button class="btn-action btn-chat" @click="goToChat(s.id)">{{ t("mgmt_chat") }}</button>
               <button class="btn-action" @click="openEdit(s)">{{ t("mgmt_edit") }}</button>
               <button class="btn-action btn-danger" @click="remove(s.id)">{{ t("mgmt_delete") }}</button>
             </td>
@@ -441,7 +449,10 @@ onMounted(load)
           <div class="detail-header">
             <span class="detail-icon">{{ detailScenario.icon }}</span>
             <h2>{{ localeVal(detailScenario.name_locale, detailScenario.name) }}</h2>
-            <button class="btn-close" @click="showDetail = false">&times;</button>
+            <div class="detail-header-actions">
+              <button class="btn-action btn-chat" @click="goToChat(detailScenario.id)">{{ t("mgmt_chat") }}</button>
+              <button class="btn-close" @click="showDetail = false">&times;</button>
+            </div>
           </div>
           <div class="detail-meta">
             <div class="detail-meta-row">
@@ -516,6 +527,20 @@ onMounted(load)
 </template>
 
 <style scoped>
+.detail-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.btn-chat {
+  background: var(--accent-dim);
+  color: var(--accent);
+  border-color: var(--accent);
+}
+.btn-chat:hover {
+  background: var(--accent);
+  color: #fff;
+}
 .detail-icon {
   font-size: 28px;
   line-height: 1;
