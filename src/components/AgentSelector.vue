@@ -108,16 +108,12 @@ const { t } = useI18nStore()
   border-radius: 14px;
   padding: 18px;
   cursor: pointer;
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
-  transition: border-color var(--transition-duration), box-shadow var(--transition-duration), transform var(--transition-duration), backdrop-filter var(--transition-duration), -webkit-backdrop-filter var(--transition-duration);
+  transition: border-color var(--transition-duration), box-shadow var(--transition-duration), transform var(--transition-duration);
 }
 .agent-card:hover {
   border-color: var(--accent);
   transform: translateY(-1px);
   box-shadow: var(--glass-shadow);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
 }
 .agent-card:active {
   transform: translateY(0);

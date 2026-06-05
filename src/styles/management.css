@@ -825,17 +825,13 @@
   padding: 14px;
   margin-bottom: 10px;
   background: var(--glass-highlight);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
-  transition: border-color 0.2s, box-shadow 0.2s, transform 0.2s, backdrop-filter 0.2s, -webkit-backdrop-filter 0.2s;
+  transition: border-color 0.2s, box-shadow 0.2s, transform 0.2s;
 }
 
 .agent-card:hover {
   border-color: var(--accent);
   box-shadow: var(--glass-shadow);
   transform: translateY(-1px);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
 }
 
 .agent-card-header {
@@ -949,8 +945,6 @@
   font-size: 13px;
   font-weight: 500;
   box-shadow: var(--glass-shadow);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
   animation: toastSlideIn 0.35s cubic-bezier(0.16, 1, 0.3, 1);
   display: flex;
   align-items: center;

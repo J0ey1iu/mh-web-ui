@@ -442,8 +442,6 @@ function handleLogout() {
   gap: 12px;
   padding: 10px 16px;
   background: var(--glass-bg);
-  backdrop-filter: blur(var(--glass-blur));
-  -webkit-backdrop-filter: blur(var(--glass-blur));
   border-bottom: 1px solid var(--glass-border);
   flex-shrink: 0;
   z-index: 200;
@@ -559,8 +557,6 @@ function handleLogout() {
   bottom: 0;
   width: 280px;
   background: var(--glass-bg);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
   z-index: 220;
   display: flex;
   flex-direction: column;
@@ -692,8 +688,6 @@ function handleLogout() {
   align-items: center;
   gap: 12px;
   justify-content: center;
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
 }
 .btn-retry {
   background: var(--danger-hover);
@@ -714,8 +708,6 @@ function handleLogout() {
   left: 50%;
   transform: translateX(-50%);
   background: var(--glass-bg);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
   color: var(--danger-text);
   padding: 10px 16px;
   border-radius: 10px;

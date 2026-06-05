@@ -4,6 +4,7 @@ import { useRoute, useRouter } from "vue-router"
 import { useAuthStore } from "../stores/auth"
 import { useI18nStore } from "../stores/i18n"
 import SearchSelect from "./SearchSelect.vue"
+import BrandingHeader from "./BrandingHeader.vue"
 import { storeToRefs } from "pinia"
 
 const route = useRoute()
@@ -39,7 +40,6 @@ const themeOptions = computed(() =>
 )
 
 const currentTheme = ref(localStorage.getItem("theme") || "light")
-const scrolled = ref(false)
 
 function setTheme(v: string) {
   currentTheme.value = v
@@ -51,12 +51,7 @@ watch(currentTheme, setTheme)
 onMounted(async () => {
   await authStore.checkAuth()
   setTheme(currentTheme.value)
-  window.addEventListener("scroll", onScroll, { passive: true })
 })
-
-function onScroll() {
-  scrolled.value = window.scrollY > 4
-}
 
 function isActive(path: string) {
   return route.path.startsWith(path)
@@ -68,8 +63,9 @@ function toggleLang() {
 </script>
 
 <template>
-  <nav class="mgmt-nav" :class="{ scrolled }">
+  <nav class="mgmt-nav">
     <div class="mgmt-nav-inner">
+      <BrandingHeader />
       <button class="nav-back" @click="router.back()" :title="t('mgmt_back')">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M19 12H5M12 19l-7-7 7-7"/>
@@ -115,16 +111,10 @@ function toggleLang() {
 .mgmt-nav {
   position: sticky;
   top: 0;
-  z-index: 100;
+  z-index: 200;
   background: var(--glass-bg);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border-bottom: 1px solid transparent;
-  transition: border-color 0.3s, box-shadow 0.3s;
-}
-.mgmt-nav.scrolled {
-  border-bottom-color: var(--glass-border);
-  box-shadow: var(--glass-shadow);
+  border-bottom: 1px solid var(--glass-border);
+  flex-shrink: 0;
 }
 
 .mgmt-nav-inner {
@@ -132,8 +122,8 @@ function toggleLang() {
   margin: 0 auto;
   display: flex;
   align-items: center;
-  gap: 16px;
-  padding: 0 28px;
+  gap: 14px;
+  padding: 10px 16px;
   height: 56px;
 }
 
@@ -190,8 +180,6 @@ function toggleLang() {
   background: var(--accent);
   color: #fff;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
 }
 .nav-tab svg {
   flex-shrink: 0;

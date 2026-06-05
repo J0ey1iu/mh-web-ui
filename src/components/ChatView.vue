@@ -194,8 +194,6 @@ function onKeydown(e: KeyboardEvent) {
   gap: 8px;
   padding: 10px 12px;
   background: var(--glass-bg);
-  backdrop-filter: blur(var(--glass-blur));
-  -webkit-backdrop-filter: blur(var(--glass-blur));
   border-top: 1px solid var(--glass-border);
 }
 .input-bar textarea {
@@ -233,19 +231,13 @@ function onKeydown(e: KeyboardEvent) {
   font-size: 14px;
   white-space: nowrap;
   font-weight: 500;
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
-  transition: border-color var(--transition-duration), box-shadow var(--transition-duration), backdrop-filter var(--transition-duration), -webkit-backdrop-filter var(--transition-duration);
+  transition: border-color var(--transition-duration), box-shadow var(--transition-duration);
 }
 .input-bar button:hover:not(:disabled) {
   border-color: var(--accent);
   box-shadow: 0 2px 16px var(--accent-dim);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
 }
 .input-bar button:active:not(:disabled) {
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
 }
 .input-bar button:disabled {
   opacity: 0.4;
@@ -287,8 +279,6 @@ function onKeydown(e: KeyboardEvent) {
   border: 1px solid var(--glass-border);
   border-radius: 20px;
   background: var(--glass-bg);
-  backdrop-filter: blur(var(--glass-blur));
-  -webkit-backdrop-filter: blur(var(--glass-blur));
   color: var(--text-secondary);
   font-size: 13px;
   cursor: pointer;
