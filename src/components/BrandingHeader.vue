@@ -7,6 +7,7 @@ defineProps<{
 <template>
   <div class="branding-header">
     <div class="orb-wrap" :class="{ active }" aria-hidden="true">
+      <div class="orb-glow"></div>
       <div class="orb-blob blob-1"></div>
       <div class="orb-blob blob-2"></div>
       <div class="orb-blob blob-3"></div>
@@ -30,15 +31,39 @@ defineProps<{
   height: 28px;
   flex-shrink: 0;
   transform: scale(1);
+  margin-right: 0;
   filter: saturate(0.7) brightness(0.95);
   transition:
     transform 0.8s cubic-bezier(0.34, 1.56, 0.64, 1),
-    filter 0.8s ease;
+    filter 0.8s ease,
+    margin-right 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .orb-wrap.active {
   transform: scale(2);
+  margin-right: 18px;
   filter: saturate(1.4) brightness(1.15);
+}
+
+/* ---------- 柔光底座 ---------- */
+.orb-glow {
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  background: var(--accent);
+  filter: blur(10px);
+  opacity: 0.12;
+  animation: glowBreathe 17s ease-in-out infinite;
+  transition: opacity 0.8s ease;
+}
+
+.active .orb-glow {
+  opacity: 0.25;
+}
+
+@keyframes glowBreathe {
+  0%, 100% { opacity: 0.12; transform: scale(0.9); }
+  50% { opacity: 0.25; transform: scale(1.15); }
 }
 
 /* ---------- 通用 blob ---------- */
