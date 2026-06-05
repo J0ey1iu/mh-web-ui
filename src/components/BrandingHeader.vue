@@ -12,7 +12,7 @@ defineProps<{
       <div class="orb-blob blob-2"></div>
       <div class="orb-blob blob-3"></div>
     </div>
-    <span class="branding-title" :class="{ active }">Manimal Harness</span>
+    <span class="branding-title" :class="{ active }">Minimal Harness</span>
   </div>
 </template>
 
@@ -38,7 +38,7 @@ defineProps<{
 }
 
 .orb-wrap.active {
-  transform: scale(1.25);
+  transform: scale(2);
   filter: saturate(1.4) brightness(1.15);
 }
 
