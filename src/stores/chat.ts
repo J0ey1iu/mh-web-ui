@@ -1,5 +1,5 @@
 import { defineStore } from "pinia"
-import { ref, computed } from "vue"
+import { ref, computed, watch } from "vue"
 import router from "../router"
 import type { MessageItem, SessionInfo, Message, ToolCallDisplay, ResponseItem, ScenarioInfo, AgentInfo, StreamingState } from "../types"
 import { SSE_EVENTS } from "../types"
@@ -39,6 +39,7 @@ export const useChatStore = defineStore("chat", () => {
 
   let abortController: AbortController | null = null
   let flushTimer: ReturnType<typeof setTimeout> | null = null
+  let errorTimer: ReturnType<typeof setTimeout> | null = null
 
   function flush() {
     streaming.value = {
@@ -115,7 +116,7 @@ export const useChatStore = defineStore("chat", () => {
 
       case SSE_EVENTS.LLM_END:
         if (data.error) {
-          console.warn("LLM ended with error:", data.error)
+          error.value = data.error
         }
         if (data.reasoning_content && !pending.reasoning) {
           pending.reasoning = data.reasoning_content
@@ -191,14 +192,18 @@ export const useChatStore = defineStore("chat", () => {
 
       case SSE_EVENTS.ERROR:
         flushImmediately()
+        if (pending.content || pending.reasoning || pending.toolCalls.length > 0) {
+          finalizeStream()
+        } else {
+          pending.isStreaming = false
+          streaming.value.isStreaming = false
+        }
         error.value = data.message || "An unknown error occurred"
-        pending.isStreaming = false
-        streaming.value.isStreaming = false
         break
 
       case SSE_EVENTS.AGENT_END:
         if (data.error) {
-          console.error("Agent ended with error:", data.error)
+          error.value = data.error
         }
         for (let i = 0; i < pending.toolCalls.length; i++) {
           if (pending.toolCalls[i].status === "running") {
@@ -222,9 +227,13 @@ export const useChatStore = defineStore("chat", () => {
 
   function handleSSEError(err: Error) {
     flushImmediately()
+    if (pending.content || pending.reasoning || pending.toolCalls.length > 0) {
+      finalizeStream()
+    } else {
+      pending.isStreaming = false
+      streaming.value.isStreaming = false
+    }
     error.value = err.message
-    pending.isStreaming = false
-    streaming.value.isStreaming = false
   }
 
   async function loadSessions(scenarioId?: string) {
@@ -359,8 +368,13 @@ export const useChatStore = defineStore("chat", () => {
     cancelFlush()
     abortController?.abort()
     abortController = null
-    pending.isStreaming = false
-    streaming.value.isStreaming = false
+    if (pending.content || pending.reasoning || pending.toolCalls.length > 0) {
+      flushImmediately()
+      finalizeStream()
+    } else {
+      pending.isStreaming = false
+      streaming.value.isStreaming = false
+    }
   }
 
   async function refreshLocaleData() {
@@ -449,8 +463,25 @@ export const useChatStore = defineStore("chat", () => {
   }
 
   function clearError() {
+    if (errorTimer) {
+      clearTimeout(errorTimer)
+      errorTimer = null
+    }
     error.value = null
   }
+
+  watch(error, (val) => {
+    if (errorTimer) {
+      clearTimeout(errorTimer)
+      errorTimer = null
+    }
+    if (val) {
+      errorTimer = setTimeout(() => {
+        error.value = null
+        errorTimer = null
+      }, 5000)
+    }
+  })
 
   return {
     sessions, currentSessionId, currentSession, pendingAgent, messages, streaming, error,
