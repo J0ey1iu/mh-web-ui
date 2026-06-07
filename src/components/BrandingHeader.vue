@@ -31,6 +31,7 @@ defineProps<{
   height: 28px;
   flex-shrink: 0;
   transform: scale(1);
+  transform-origin: top left;
   margin-right: 0;
   filter: saturate(0.7) brightness(0.95);
   transition:
@@ -40,8 +41,8 @@ defineProps<{
 }
 
 .orb-wrap.active {
-  transform: scale(2);
-  margin-right: 18px;
+  transform: scale(3);
+  margin-right: 60px;
   filter: saturate(1.4) brightness(1.15);
 }
 
@@ -59,9 +60,15 @@ defineProps<{
 
 .active .orb-glow {
   opacity: 0.25;
+  animation-name: glowBreatheActive;
 }
 
 @keyframes glowBreathe {
+  0%, 100% { opacity: 0.08; transform: scale(0.95); }
+  50% { opacity: 0.14; transform: scale(1.06); }
+}
+
+@keyframes glowBreatheActive {
   0%, 100% { opacity: 0.12; transform: scale(0.9); }
   50% { opacity: 0.25; transform: scale(1.15); }
 }
@@ -109,8 +116,43 @@ defineProps<{
   opacity: 0.5;
 }
 
-/* ---------- 三组独立的变形动画（极端形变 + 游走） ---------- */
+.active .blob-1 {
+  animation-name: morph1-active, bgShift1;
+}
+
+.active .blob-2 {
+  animation-name: morph2-active;
+}
+
+.active .blob-3 {
+  animation-name: morph3-active, bgShift3;
+}
+
+/* ---------- 非激活态：极轻微蠕动 ---------- */
 @keyframes morph1 {
+  0%   { border-radius: 40% 60% 55% 45% / 65% 35% 65% 35%; transform: translate(0, 0) rotate(0deg); }
+  25%  { border-radius: 60% 40% 35% 65% / 45% 55% 45% 55%; transform: rotate(1.5deg); }
+  50%  { border-radius: 35% 65% 65% 35% / 55% 45% 55% 45%; transform: rotate(-1deg); }
+  75%  { border-radius: 62% 38% 45% 55% / 42% 58% 42% 58%; transform: rotate(2deg); }
+  100% { border-radius: 40% 60% 55% 45% / 65% 35% 65% 35%; transform: translate(0, 0) rotate(0deg); }
+}
+
+@keyframes morph2 {
+  0%   { border-radius: 55% 45% 45% 55% / 35% 65% 35% 65%; transform: translate(0, 0) rotate(0deg); }
+  30%  { border-radius: 35% 65% 65% 35% / 62% 38% 62% 38%; transform: rotate(-2deg); }
+  60%  { border-radius: 65% 35% 38% 62% / 40% 60% 40% 60%; transform: rotate(1.5deg); }
+  100% { border-radius: 55% 45% 45% 55% / 35% 65% 35% 65%; transform: translate(0, 0) rotate(0deg); }
+}
+
+@keyframes morph3 {
+  0%   { border-radius: 50% 50% 40% 60% / 58% 42% 58% 42%; transform: translate(0, 0) rotate(0deg); }
+  35%  { border-radius: 38% 62% 58% 42% / 45% 55% 45% 55%; transform: rotate(1deg); }
+  70%  { border-radius: 60% 40% 48% 52% / 52% 48% 52% 48%; transform: rotate(-1.5deg); }
+  100% { border-radius: 50% 50% 40% 60% / 58% 42% 58% 42%; transform: translate(0, 0) rotate(0deg); }
+}
+
+/* ---------- 激活态：极端形变 + 游走 ---------- */
+@keyframes morph1-active {
   0%   { border-radius: 20% 80% 65% 35% / 75% 25% 75% 25%; transform: translate(0, 0) rotate(0deg); }
   12%  { border-radius: 70% 30% 20% 80% / 35% 80% 20% 65%; transform: translate(5%, -3%) rotate(8deg); }
   31%  { border-radius: 25% 75% 85% 15% / 60% 15% 85% 40%; transform: translate(-3%, 4%) rotate(-5deg); }
@@ -121,7 +163,7 @@ defineProps<{
   100% { border-radius: 20% 80% 65% 35% / 75% 25% 75% 25%; transform: translate(0, 0) rotate(0deg); }
 }
 
-@keyframes morph2 {
+@keyframes morph2-active {
   0%   { border-radius: 70% 30% 30% 70% / 20% 80% 20% 80%; transform: translate(0, 0) rotate(0deg); }
   18%  { border-radius: 20% 80% 80% 20% / 70% 20% 80% 30%; transform: translate(-4%, 3%) rotate(-12deg); }
   29%  { border-radius: 80% 20% 25% 75% / 30% 65% 35% 70%; transform: translate(6%, -2%) rotate(10deg); }
@@ -131,7 +173,7 @@ defineProps<{
   100% { border-radius: 70% 30% 30% 70% / 20% 80% 20% 80%; transform: translate(0, 0) rotate(0deg); }
 }
 
-@keyframes morph3 {
+@keyframes morph3-active {
   0%   { border-radius: 60% 40% 25% 75% / 70% 30% 70% 30%; transform: translate(0, 0) rotate(0deg); }
   15%  { border-radius: 15% 85% 70% 30% / 25% 75% 25% 75%; transform: translate(5%, 3%) rotate(10deg); }
   38%  { border-radius: 85% 15% 30% 70% / 60% 25% 75% 40%; transform: translate(-4%, -4%) rotate(-14deg); }
@@ -158,28 +200,10 @@ defineProps<{
   letter-spacing: 0.4px;
   white-space: nowrap;
   color: var(--text-primary);
-  animation: titleShimmer 3s ease-in-out infinite;
-  animation-play-state: paused;
+  transition: opacity 0.6s ease;
 }
 
 .branding-title.active {
-  background: linear-gradient(
-    90deg,
-    var(--text-secondary) 0%,
-    var(--text-primary) 28%,
-    var(--text-strong) 50%,
-    var(--text-primary) 72%,
-    var(--text-secondary) 100%
-  );
-  background-size: 200% 100%;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  animation-play-state: running;
-}
-
-@keyframes titleShimmer {
-  0% { background-position: 200% 0; }
-  100% { background-position: -200% 0; }
+  opacity: 0;
 }
 </style>
