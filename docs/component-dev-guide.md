@@ -1,44 +1,56 @@
 # Tool UI Component Developer Guide
 
-This guide explains how to create custom UI components for tool call results in the MH Agent frontend.
+This guide explains how to create custom UI components for tool call results in the web-frontend.
 
 ## Decoupling Design
 
 The frontend is split into **two independent packages** that communicate at runtime via a global registry:
 
 ```
-mh-application/frontend/          ← The "portal" (host app)
+web-frontend/                        ← The "portal" (host app)
 ├── src/
-│   ├── toolCallRegistry.ts       ← Global registry exposed on window.__MH_TOOL_REGISTRY__ (Map<string, Component>)
-│   ├── toolComponentLoader.ts    ← Dynamically loads remote UMD bundles via <script> injection
-│   ├── toolComponents.config.ts  ← Multi-source bundle URLs (dev vs production)
-│   └── components/               ← Built-in rendering (ToolCallRenderer, BaseToolCard, ToolCallCard, etc.)
+│   ├── toolCallRegistry.ts          ← Global registry exposed on window.__MH_TOOL_REGISTRY__ (Map<string, RegistryEntry>)
+│   ├── toolComponentLoader.ts       ← Dynamically loads remote UMD bundles via <script> injection
+│   ├── toolComponents.config.ts     ← Multi-source bundle URLs (dev vs production)
+│   ├── toolContext.ts               ← Context keys for tool rendering (provide/inject)
+│   └── components/                  ← Built-in rendering (ToolCallRenderer, BaseToolCard, ToolCallCard, etc.)
 
-mh-application/frontend/component/  ← The "plugin" (standalone component library)
+web-frontend/component/              ← The "plugin" (standalone component library — built-in source)
 ├── src/
-│   ├── index.ts                  ← Entry point: imports components and registers them via window.__MH_TOOL_REGISTRY__
+│   ├── index.ts                     ← Entry point: imports components and registers them via window.__MH_TOOL_REGISTRY__
 │   ├── discover_agents/index.vue
 │   ├── handoff/index.vue
-│   └── types.ts                  ← Duplicated ToolCallDisplay type (no dependency on portal)
-└── vite.config.ts                ← Builds as UMD library with Vue externalized
+│   ├── composables/useToolI18n.ts   ← i18n utility for tool components
+│   └── types.ts                     ← Duplicated ToolCallDisplay type (no dependency on portal)
+└── vite.config.ts                   ← Builds as UMD library with Vue externalized
+
+web-frontend/extra/                  ← Extra component library (standalone, same architecture)
+├── src/
+│   ├── index.ts
+│   ├── calculate/index.vue
+│   ├── general_viz/index.vue
+│   ├── get_current_time/index.vue
+│   ├── show_ui_meta/index.vue
+│   └── types.ts
+└── vite.config.ts
 ```
 
 ### Key Decoupling Principles
 
 1. **Runtime plugin loading** — Tool components are loaded at runtime via `<script>` injection (`toolComponentLoader.ts`), not imported at build time. The portal never needs rebuild when adding new tool components.
 
-2. **Global registry contract** — The only coupling point is `window.__MH_TOOL_REGISTRY__`, which exposes `register(name, component, options?)` and `get(name)`. The portal initializes it; the plugin calls it. The optional `options` parameter can include `{ autoCollapsible: boolean }` (see [Auto-Collapse Opt-Out](#auto-collapse-opt-out)).
+2. **Global registry contract** — The only coupling point is `window.__MH_TOOL_REGISTRY__`, which exposes `register(name, component, options?)`, `get(name)`, and `registerMock(name, mock)`. The portal initializes it in `toolCallRegistry.ts`; the plugin calls it. The optional `options` parameter can include `{ autoCollapsible?: boolean }` (see [Auto-Collapse Opt-Out](#auto-collapse-opt-out)).
 
 3. **Externalized Vue** — The UMD bundle declares `vue` as external. At runtime it expects Vue's API surface on `window.Vue`, which the portal exposes in `main.ts`. This keeps the bundle tiny and avoids duplicate Vue instances.
 
 4. **Multi-source support** — The portal can load component bundles from multiple sources. Each source is a named entry in `toolComponents.config.ts` with its own URL and can register one or more components. All sources are loaded in parallel.
 
-5. **No source-level dependency** — `component/` is a completely standalone Vite project with its own `package.json`, `vite.config.ts`, and `node_modules`. It does not import from the portal. Shared types (`ToolCallDisplay`) are duplicated.
+5. **No source-level dependency** — `component/` and `extra/` are completely standalone Vite projects with their own `package.json`, `vite.config.ts`, and `node_modules`. They do not import from the portal. Shared types (`ToolCallDisplay`) are duplicated.
 
 ### Why This Approach?
 
-- **Independent deployability** — Tool component authors can work in `component/` without touching the portal, using `npm run build && npm run preview` for local testing.
-- **Zero-config registration** — No import chains, no manual wiring. Write a component, import it in `component/src/index.ts`, and it's automatically available.
+- **Independent deployability** — Tool component authors can work in `component/` or `extra/` without touching the portal, using `npm run build && npm run preview` for local testing.
+- **Zero-config registration** — No import chains, no manual wiring. Write a component, import it in `<lib>/src/index.ts`, and it's automatically available.
 - **Error isolation** — If a custom component crashes (`onErrorCaptured` in `ToolCallRenderer`), it falls back to the generic `ToolCallCard` without affecting other messages.
 - **Team autonomy** — Different teams can own and deploy their own component bundles independently.
 
@@ -60,7 +72,7 @@ MessageBubble
 - **Fallback chain**: Custom component → `ToolCallCard` → error boundary fallback
 - **Shared base**: `BaseToolCard` provides consistent styling (card frame, header, spinner, status colors)
 - **Built-in folding**: `BaseToolCard` wraps content in `FoldableWrapper` — expand/collapse with chevron, no extra work needed
-- **Context injection**: Tool components can access streaming state and session info via `useToolContext()`
+- **Context injection**: Tool components can access i18n locale via `inject(Symbol.for("mh:i18n"))` (see [Rendering Context](#rendering-context))
 
 ---
 
@@ -72,57 +84,57 @@ The portal supports loading component bundles from **multiple independent source
 
 ```ts
 export interface ComponentSource {
-  id: string            // unique identifier, e.g. "builtin", "team-alpha"
+  id: string            // unique identifier, e.g. "builtin", "extra"
   label: string         // human-readable name for UI display
   url: string           // production URL for the UMD bundle
   devUrl?: string       // optional dev URL (used when host is localhost)
 }
 
-export const COMPONENT_SOURCES: ComponentSource[] = [
-  {
-    id: "builtin",
-    label: "Built-in Components",
-    url: "/component/mh-tool-components.umd.js",
-  },
-  {
-    id: "team-alpha",
-    label: "Team Alpha Components",
-    url: "https://cdn.example.com/team-alpha-components.umd.js",
-    devUrl: "http://localhost:4174/mh-tool-components.umd.js",
-  },
+// Default sources:
+const sources = [
+  { id: "builtin", label: "Built-in Components", url: "/component/mh-tool-components.umd.js" },
+  { id: "extra",   label: "Extra Components",   url: "/component/mh-extra-components.umd.js" },
 ]
 ```
 
+Additional sources can be added at runtime via `addComponentSource()` in `toolComponents.config.ts`.
+
+### How the Registry Handles Multi-Source
+
+When a bundle script is injected, `toolComponentLoader.ts` sets a `pendingSourceId` so that any `register()` calls inside the bundle are automatically tagged with the correct source. Each component tracks its origin source ID, enabling per-source reload and removal.
+
 ### Adding a New Source
 
-1. **Add a config entry** in `web-frontend/src/toolComponents.config.ts` with a unique `id`, a `label`, a production `url`, and optionally a `devUrl` for local development.
-
-2. **Create the component project** as a standalone Vite project (see [Quick Start](#quick-start) below). The project must:
+1. **Create the component project** as a standalone Vite project (see [Quick Start](#quick-start) below). The project must:
    - Build as a UMD library with `name: "MHToolComponents"` and `vue` externalized
    - Call `window.__MH_TOOL_REGISTRY__.register(name, component)` for each component
 
-3. **For local development**, run `npm run dev` (or `npx vite build --watch`) in the component project and set `devUrl` to the local preview URL (e.g. `http://localhost:4174/mh-tool-components.umd.js`).
+2. **Add a config entry** at runtime via `addComponentSource()` in `toolComponents.config.ts` with a unique `id`, a `label`, a production `url`, and optionally a `devUrl` for local development.
 
-4. **For production**, deploy the UMD bundle to a CDN and set `url` to the CDN URL.
+3. **For local development**, run `npm run build --watch` (or `vite build --watch`) in the component project and set `devUrl` to the local preview URL.
+
+4. **For production**, deploy the UMD bundle next to the portal's static assets or to a CDN, and set `url` accordingly.
 
 ### Dev Script Integration
 
-The `scripts/dev.sh` script can build multiple component directories. Set the `COMPONENT_DIRS` environment variable:
+The `scripts/dev-frontend.sh` script builds both `component/` and `extra/` directories:
 
 ```sh
-COMPONENT_DIRS="team-alpha:web-frontend/team-alpha team-beta:web-frontend/team-beta" bash scripts/dev.sh
+bash scripts/dev-frontend.sh           # one-shot build, then dev server
+bash scripts/dev-frontend.sh --watch   # auto-rebuild on component changes
 ```
 
-Each entry is `output-filename:relative-source-directory`. Bundles are copied to `web-frontend/public/component/`.
+This copies bundles to `web-frontend/public/component/`.
 
 ### Bundle Contract
 
 Each UMD bundle must:
 
 1. **Register components** via `window.__MH_TOOL_REGISTRY__.register(toolName, component, options?)`. The optional `options` parameter accepts `{ autoCollapsible?: boolean }` — set to `false` to prevent auto-collapse when the response finishes.
-2. **Externalize `vue`** — the portal exposes `Vue` on `window.Vue`; the bundle should use `rollupOptions.external: ["vue"]` with `output.globals: { vue: "Vue" }`.
-3. **Be a UMD module** — use `formats: ["umd"]` in Vite's `build.lib` config.
-4. **Not include `BaseToolCard`** — the portal's `ToolCallRenderer` wraps your component automatically.
+2. **Register demo mocks** via `window.__MH_TOOL_REGISTRY__.registerMock?.(toolName, mock)` for the components demo page.
+3. **Externalize `vue`** — the portal exposes `Vue` on `window.Vue`; the bundle should use `rollupOptions.external: ["vue"]` with `output.globals: { vue: "Vue" }`.
+4. **Be a UMD module** — use `formats: ["umd"]` in Vite's `build.lib` config.
+5. **Not include `BaseToolCard`** — the portal's `ToolCallRenderer` wraps your component automatically.
 
 ---
 
@@ -138,33 +150,19 @@ The portal provides a **Components Demo** page at `/components-demo` for develop
   - Status selector (running / success / error)
   - Progress text input
   - Result text input
+  - Meta text input
 - **Live rendering** — Components render inside `BaseToolCard` just as they would in chat, with real-time updates.
 - **Per-source reload** — Reload individual sources without refreshing the page.
 
 ### How to Use
 
-1. Start the dev server (`bash scripts/dev.sh` or `cd web-frontend && npm run dev`)
+1. Start the dev server (`bash scripts/dev-frontend.sh` or `cd web-frontend && npm run dev`)
 2. Navigate to `http://localhost:5173/components-demo`
-3. Verify your configured sources appear with ✅ status
+3. Verify your configured sources appear with status indicators
 4. Find your component in the list
 5. Switch between status states and enter mock JSON to verify rendering
 
 The demo page does **not** require authentication, so it works immediately after starting the dev server.
-
-### Frontend-Only Dev Script
-
-For pure component development without backend services, use the dedicated script:
-
-```sh
-bash scripts/dev-frontend.sh           # one-shot build, then dev server
-bash scripts/dev-frontend.sh --watch   # auto-rebuild on component changes
-```
-
-This starts only:
-1. The portal Vite dev server on port `5173`
-2. Optionally watching the `component/` directory for changes
-
-Navigate to `http://localhost:5173/components-demo` to test components. No backend services (auth, orchestration, etc.) are needed.
 
 ---
 
@@ -172,10 +170,10 @@ Navigate to `http://localhost:5173/components-demo` to test components. No backe
 
 ### 1. Create a component file
 
-In `component/src/`, create a directory and a Vue component:
+In `<library>/src/`, create a directory and a Vue component:
 
 ```
-component/src/<tool_name>/
+<library>/src/<tool_name>/
 └── index.vue
 ```
 
@@ -198,26 +196,9 @@ defineProps<{ tool: ToolCallDisplay }>()
 
 > The component does NOT include `BaseToolCard` — the portal's `ToolCallRenderer` wraps it automatically.
 
-### 2. Register in the bundle entry
+### 2. Provide demo mock data (required)
 
-Edit `component/src/index.ts`:
-
-```ts
-import YourTool from "./<tool_name>/index.vue"
-
-// ...
-registry.register("<tool_name>", YourTool as ToolComponent)
-```
-
-If your component should **not** auto-collapse when the response finishes, pass `{ autoCollapsible: false }` as the third argument:
-
-```ts
-registry.register("<tool_name>", YourTool as ToolComponent, { autoCollapsible: false })
-```
-
-### 3. Provide demo mock data (required)
-
-Each component **must** export a `demoMock` named export containing sample data for the three states (running, success, error). This data is used by the `/components-demo` page to pre-populate mock controls so developers can preview the rendering effect immediately.
+Each component **must** export a `demoMock` named export containing sample data for the three states (running, success, error). This data is used by the `/components-demo` page to pre-populate mock controls.
 
 Add a `<script>` block (before `<script setup>`) in your `.vue` file:
 
@@ -227,6 +208,7 @@ export const demoMock = {
   status: "success",
   progress: "",
   result: JSON.stringify({ status: "ok", result: "sample output" }),
+  meta: "",
 }
 </script>
 
@@ -242,6 +224,7 @@ interface ComponentDemoMock {
   status?: "running" | "success" | "error"
   progress?: string
   result?: string
+  meta?: string
 }
 ```
 
@@ -249,24 +232,33 @@ You may also export `demoMockRunning` and `demoMockError` for additional state p
 
 The demo page reads this data via `window.__MH_TOOL_REGISTRY__.registerMock(name, mock)` and uses it to initialize the mock controls when the page loads.
 
-### 4. Register in the bundle entry
+### 3. Register in the bundle entry
 
-Edit `component/src/index.ts`:
+Edit `<library>/src/index.ts`:
 
 ```ts
 import YourTool, { demoMock } from "./<tool_name>/index.vue"
 
-// ...
-registry.register("<tool_name>", YourTool as ToolComponent)
-registry.registerMock?.("<tool_name>", demoMock)
+const registry = (window as any).__MH_TOOL_REGISTRY__
+
+if (registry) {
+  registry.register("<tool_name>", YourTool)
+  registry.registerMock?.("<tool_name>", demoMock)
+}
 ```
 
-### 5. Build and test
+If your component should **not** auto-collapse when the response finishes, pass `{ autoCollapsible: false }` as the third argument:
+
+```ts
+registry.register("<tool_name>", YourTool, { autoCollapsible: false })
+```
+
+### 4. Build and test
 
 ```sh
-cd component
+cd <library>
 npm run build     # produces dist/mh-tool-components.umd.js
-npm run preview   # serves on localhost:4173
+npm run preview   # preview server (Vite default port)
 ```
 
 Then open the portal's `/components-demo` page to test your component with the pre-populated demo data.
@@ -279,9 +271,11 @@ Every tool component receives a single prop typed as (duplicated in `component/s
 interface ToolCallDisplay {
   id: string                        // unique tool call ID
   name: string                      // tool name (matches registration key)
+  displayName?: string              // optional display name
   status: "running" | "success" | "error"
   progress?: string                 // accumulated progress text (streaming)
   result?: string                   // final result (often JSON)
+  meta?: string                     // optional metadata
 }
 ```
 
@@ -302,6 +296,20 @@ interface ToolCallDisplay {
 - **Foldable body** via `FoldableWrapper` (see below)
 
 Your component only renders the **body content** inside the card. Do not include `BaseToolCard` yourself.
+
+### i18n Support
+
+Tool components can access the portal's i18n locale via dependency injection:
+
+```ts
+import { inject, computed } from "vue"
+
+const I18N_KEY = Symbol.for("mh:i18n")
+const ctx = inject<{ locale: { value: string } } | null>(I18N_KEY, null)
+const locale = computed(() => ctx?.locale?.value ?? "zh")
+```
+
+See `component/src/composables/useToolI18n.ts` for a reusable composable that wraps this pattern.
 
 ### Built-in Foldable Behavior
 
@@ -344,25 +352,19 @@ These classes are globally available (defined in `BaseToolCard` — its `<style>
 
 Any custom styles must be defined in your own component's `<style scoped>`.
 
-## Accessing Tool Context
-
-Tool components can access wider application state:
-
-```ts
-import { useToolContext } from "../toolContext"
-
-const { streaming, currentSessionId } = useToolContext()
-```
-
-- `streaming` — `Ref<StreamingState>` with `.isStreaming` to know if the current assistant response is still streaming
-- `currentSessionId` — `Ref<string | null>` for the active session
-
-This is useful for interactive tools that need to know their rendering phase or make API calls.
-
 ## Full Example
 
 ```vue
 <!-- component/src/bash/index.vue -->
+<script>
+export const demoMock = {
+  status: "success",
+  progress: "",
+  result: "[Exit 0]\nhello world\n",
+  meta: "",
+}
+</script>
+
 <script setup lang="ts">
 import { computed } from "vue"
 import type { ToolCallDisplay } from "../types"
@@ -473,9 +475,10 @@ If your component throws during render, the error boundary in `ToolCallRenderer`
 3. **Always render `tool.progress` during `running`** — progress text carries the streaming execution updates; always show it when present: `<div v-if="tool.progress" class="tool-progress">{{ tool.progress }}</div>`. If the tool doesn't send progress, provide a generic fallback (e.g. `"Running..."`).
 4. **Parse JSON safely** — wrap `JSON.parse` in try/catch
 5. **Use scoped styles** — your custom CSS should use `<style scoped>`
-6. **Use CSS variables for colors** — the app supports multiple themes (Dark, Light, Forest, Sepia). Reference theme variables like `var(--text-primary)`, `var(--text-secondary)`, `var(--surface-raised)`, `var(--border)`, `var(--accent)`, `var(--success)`, `var(--error)` instead of hardcoded hex values. See `docs/theme-dev-guide.md` for the full variable reference.
+6. **Use CSS variables for colors** — the app supports multiple themes (dark, light, dusk, sepia, eclipse, lemonade). Reference theme variables like `var(--text-primary)`, `var(--text-secondary)`, `var(--surface-raised)`, `var(--border)`, `var(--accent)`, `var(--success)`, `var(--error)` instead of hardcoded hex values. See `docs/theme-dev-guide.md` for the full variable reference.
 7. **Keep it focused** — each component handles one tool, one visual
 8. **Name directory exactly** — the directory name becomes the tool name (e.g., `discover_agents/` → `"discover_agents"`)
+9. **Export demoMock** — every component must export a `demoMock` object for the components demo page
 10. **Opt out of auto-collapse when needed** — Components that display persistent content (e.g., a rendered HTML viewer) should pass `{ autoCollapsible: false }` during registration to prevent the 1-second auto-collapse. The default (`true` or omitted) collapses automatically. The user can always manually toggle via the header chevron.
 
 ## Fallback Behavior
