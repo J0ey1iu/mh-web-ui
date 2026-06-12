@@ -203,9 +203,13 @@ function handleSendMessage(text: string) {
   sendMessage(text)
 }
 
-function handleLogout() {
-  const redirect = encodeURIComponent(window.location.origin)
-  window.location.replace(`${appConfig.logoutUrl}?redirect=${redirect}`)
+async function handleLogout() {
+  try {
+    await fetch(appConfig.apiAuthLogout, { method: "POST", credentials: "include" })
+  } finally {
+    const redirect = encodeURIComponent(window.location.origin)
+    window.location.replace(`${appConfig.loginUrl}?redirect=${redirect}`)
+  }
 }
 </script>
 

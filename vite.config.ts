@@ -18,7 +18,7 @@ export default defineConfig(({ mode }) => {
         apiChat: isProd ? "{wcm_api_chat}" : "//localhost:8005/api/v1/chat/{id}",
         apiComponentSources: isProd ? "{wcm_api_component_sources}" : "//localhost:8005/api/v1/component-sources",
         loginUrl: isProd ? "{wcm_login_url}" : "//localhost:8005/api/v1/dev/login",
-        logoutUrl: isProd ? "{wcm_logout_url}" : "//localhost:8005/api/v1/dev/logout",
+        apiAuthLogout: isProd ? "{wcm_api_auth_logout}" : "//localhost:8005/api/v1/auth/logout",
         apiToolGeneratorGenerate: isProd ? "{wcm_api_tool_generator_generate}" : "//localhost:8005/api/v1/tool-generator/generate",
         apiToolGeneratorTools: isProd ? "{wcm_api_tool_generator_tools}" : "//localhost:8005/api/v1/tool-generator/tools",
         apiGeneratedToolTrial: isProd ? "{wcm_api_generated_tool_trial}" : "//localhost:8005/api/v1/tool-generator/tools/{name}/trial",

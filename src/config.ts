@@ -9,7 +9,7 @@ export interface AppConfig {
   apiChat: string
   apiComponentSources: string
   loginUrl: string
-  logoutUrl: string
+  apiAuthLogout: string
   apiToolGeneratorGenerate: string
   apiToolGeneratorTools: string
   apiGeneratedToolTrial: string
