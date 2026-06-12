@@ -56,7 +56,10 @@ export const useChatStore = defineStore("chat", () => {
   function saveCurrentSession() {
     const sid = currentSessionId.value
     if (!sid) return
-    sessionMessagesMap[sid] = [...messages.value]
+    sessionMessagesMap[sid] = [...messages.value].map(m => {
+      const { freshlyStreamed, ...rest } = m
+      return rest
+    })
     if (sessionStreamingMap.value[sid]) {
       sessionStreamingMap.value[sid] = { ...streaming.value }
     }
