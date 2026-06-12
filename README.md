@@ -12,7 +12,7 @@ web-frontend/
 ├── src/
 │   ├── components/        # 通用组件 (ChatView, MainLayout, MessageBubble, etc.)
 │   ├── pages/             # 页面级组件 (SceneManagementPage, AgentManagementPage, etc.)
-│   ├── stores/            # Pinia: auth, chat, alert, eval, i18n
+│   ├── stores/            # Pinia: auth, chat, alert, i18n
 │   ├── router/            # Vue Router（hash 模式，含权限守卫）
 │   ├── api/               # HTTP + SSE 客户端
 │   ├── toolCallRegistry.ts # Tool 组件全局注册表 (window.__MH_TOOL_REGISTRY__)
@@ -35,7 +35,6 @@ web-frontend/
 | `/manage/scenes` | scenes | 场景管理 |
 | `/manage/agents` | agents | Agent 管理 |
 | `/manage/tools` | tools | Tool 管理 |
-| `/manage/eval` | eval | 评测管理（需 appConfig.enableEval=true） |
 
 ## 启动
 

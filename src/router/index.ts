@@ -1,7 +1,6 @@
 import { createRouter, createWebHashHistory, type RouteRecordRaw } from "vue-router"
 import MainLayout from "../components/MainLayout.vue"
 import ComponentsDemoPage from "../pages/ComponentsDemoPage.vue"
-import { appConfig } from "../config"
 
 const routes: RouteRecordRaw[] = [
   {
@@ -30,14 +29,6 @@ const routes: RouteRecordRaw[] = [
     component: MainLayout,
   },
 ]
-
-if (appConfig.enableEval) {
-  routes.push({
-    path: "/manage/eval",
-    name: "eval",
-    component: () => import("../pages/EvalPage.vue"),
-  })
-}
 
 const router = createRouter({
   history: createWebHashHistory(),

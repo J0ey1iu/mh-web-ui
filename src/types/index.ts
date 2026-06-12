@@ -124,69 +124,6 @@ export interface AgentInfo {
   model?: string
 }
 
-export interface EvalInput {
-  input_text: string
-  agent_name: string
-}
-
-export interface EvalJobConfig {
-  scenario_id: string
-  description?: string
-  inputs: EvalInput[]
-  max_concurrency: number
-  cost_per_million_input_tokens?: number | null
-  cost_per_million_output_tokens?: number | null
-}
-
-export interface EvalTokenUsage {
-  input_tokens: number
-  output_tokens: number
-  total_tokens: number
-  input_cost: number | null
-  output_cost: number | null
-  total_cost: number | null
-}
-
-export interface EvalRunRecord {
-  run_id: string
-  agent_metadata_id: string
-  input_text: string
-  status: "completed" | "failed" | "interrupted"
-  time_taken: number | null
-  error: string | null
-  response: string | null
-  token_usage: EvalTokenUsage | null
-  llm_call_count: number
-  tool_call_count: number
-  exceeded: boolean
-}
-
-export interface EvalSummary {
-  task_name: string
-  description: string
-  agent_metadata_id: string
-  total_runs: number
-  completed: number
-  failed: number
-  interrupted: number
-  total_time: number
-  avg_time: number
-  total_tokens: number
-  total_cost: number | null
-  runs: EvalRunRecord[]
-}
-
-export interface EvalJob {
-  job_id: string
-  scenario_id: string
-  status: "pending" | "running" | "completed" | "failed"
-  created_at: number | null
-  finished_at: number | null
-  error: string | null
-  report_url?: string
-  summary?: EvalSummary
-}
-
 export interface GeneratedAgent {
   name: string
   display_name: string

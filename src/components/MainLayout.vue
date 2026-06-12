@@ -52,11 +52,6 @@ function hasAnyPermission(prefix: string): boolean {
   return perms.some(p => p === "*" || p.startsWith(prefix))
 }
 
-const hasEvalPermission = computed(() => {
-  if (!appConfig.enableEval) return false
-  return hasAnyPermission("use:eval:")
-})
-
 const hasScenePermission = computed(() => hasAnyPermission("manage:scene:"))
 const hasAgentPermission = computed(() => hasAnyPermission("manage:agent:"))
 const hasToolPermission = computed(() => hasAnyPermission("manage:tool:"))
@@ -304,13 +299,6 @@ function handleLogout() {
             Tools
           </button>
           <div class="dropdown-divider"></div>
-          <button
-            v-if="authUser && hasEvalPermission"
-            class="dropdown-item"
-            @click="router.push('/manage/eval'); menuOpen = false"
-          >
-            {{ t("evaluation") }}
-          </button>
           <button
             v-if="authUser"
             class="dropdown-item dropdown-logout"
