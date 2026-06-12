@@ -8,6 +8,15 @@ import { fetchMessages, fetchSessions, createSession, deleteSession, fetchScenar
 
 const FLUSH_INTERVAL = 100
 
+function pad(n: number): string {
+  return String(n).padStart(2, "0")
+}
+
+function formatTime(): string {
+  const d = new Date()
+  return `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`
+}
+
 function freshState(): StreamingState {
   return {
     content: "",
@@ -35,45 +44,75 @@ export const useChatStore = defineStore("chat", () => {
   const toolDisplayNames = ref<Record<string, string>>({})
 
   const streaming = ref<StreamingState>(freshState())
-  const pending: StreamingState = freshState()
 
-  let abortController: AbortController | null = null
-  let flushTimer: ReturnType<typeof setTimeout> | null = null
   let errorTimer: ReturnType<typeof setTimeout> | null = null
 
-  function flush() {
-    streaming.value = {
-      content: pending.content,
-      reasoning: pending.reasoning,
-      toolCalls: pending.toolCalls.map(tc => ({ ...tc })),
-      orderedItems: [...pending.orderedItems],
-      isStreaming: pending.isStreaming,
+  const sessionPendingMap: Record<string, StreamingState> = {}
+  const sessionStreamingMap = ref<Record<string, StreamingState>>({})
+  const sessionMessagesMap: Record<string, Message[]> = {}
+  const sessionAbortMap: Record<string, AbortController> = {}
+  const sessionFlushTimers: Record<string, ReturnType<typeof setTimeout> | null> = {}
+
+  function saveCurrentSession() {
+    const sid = currentSessionId.value
+    if (!sid) return
+    sessionMessagesMap[sid] = [...messages.value]
+    if (sessionStreamingMap.value[sid]) {
+      sessionStreamingMap.value[sid] = { ...streaming.value }
     }
   }
 
-  function scheduleFlush() {
-    if (flushTimer !== null) return
-    flushTimer = setTimeout(() => {
-      flushTimer = null
-      flush()
-      if (pending.isStreaming) scheduleFlush()
+  function restoreStreamState(sid: string) {
+    if (sessionStreamingMap.value[sid]) {
+      streaming.value = { ...sessionStreamingMap.value[sid] }
+    } else {
+      streaming.value = freshState()
+    }
+    const p = sessionPendingMap[sid]
+    if (p?.isStreaming) scheduleFlush(sid)
+  }
+
+  function flush(sid: string) {
+    const p = sessionPendingMap[sid]
+    if (!p) return
+    sessionStreamingMap.value[sid] = {
+      content: p.content,
+      reasoning: p.reasoning,
+      toolCalls: p.toolCalls.map(tc => ({ ...tc })),
+      orderedItems: [...p.orderedItems],
+      isStreaming: p.isStreaming,
+    }
+    if (sid === currentSessionId.value) {
+      streaming.value = sessionStreamingMap.value[sid]!
+    }
+  }
+
+  function scheduleFlush(sid: string) {
+    if (sessionFlushTimers[sid] !== null && sessionFlushTimers[sid] !== undefined) return
+    sessionFlushTimers[sid] = setTimeout(() => {
+      sessionFlushTimers[sid] = null
+      flush(sid)
+      const p = sessionPendingMap[sid]
+      if (p?.isStreaming && sid === currentSessionId.value) scheduleFlush(sid)
     }, FLUSH_INTERVAL)
   }
 
-  function cancelFlush() {
-    if (flushTimer !== null) {
-      clearTimeout(flushTimer)
-      flushTimer = null
+  function cancelFlush(sid: string) {
+    if (sessionFlushTimers[sid] !== null && sessionFlushTimers[sid] !== undefined) {
+      clearTimeout(sessionFlushTimers[sid]!)
+      sessionFlushTimers[sid] = null
     }
   }
 
-  function flushImmediately() {
-    cancelFlush()
-    flush()
+  function flushImmediately(sid: string) {
+    cancelFlush(sid)
+    flush(sid)
   }
 
-  function appendOrUpdateItem(type: ResponseItem["type"], text: string) {
-    const items = pending.orderedItems
+  function appendOrUpdateItem(sid: string, type: ResponseItem["type"], text: string) {
+    const p = sessionPendingMap[sid]
+    if (!p) return
+    const items = p.orderedItems
     const last = items[items.length - 1]
     if (last?.type === type) {
       last.text = (last.text || "") + text
@@ -82,35 +121,46 @@ export const useChatStore = defineStore("chat", () => {
     }
   }
 
-  function buildMessage(): Message {
+  function buildMessage(sid: string): Message | null {
+    const p = sessionPendingMap[sid]
+    if (!p) return null
     return {
       id: `msg-${Date.now()}`,
       role: "assistant",
-      content: pending.content,
-      orderedItems: pending.orderedItems,
+      content: p.content,
+      orderedItems: p.orderedItems,
       tool_calls:
-        pending.toolCalls.length > 0 ? pending.toolCalls : undefined,
+        p.toolCalls.length > 0 ? p.toolCalls : undefined,
       freshlyStreamed: true,
     }
   }
 
-  function finalizeStream() {
-    const msg = buildMessage()
-    Object.assign(pending, freshState())
-    streaming.value = freshState()
-    messages.value.push(msg)
+  function finalizeStream(sid: string) {
+    if (!sessionPendingMap[sid]) return
+    const msg = buildMessage(sid)
+    if (!msg) return
+    Object.assign(sessionPendingMap[sid], freshState())
+    sessionStreamingMap.value[sid] = freshState()
+    if (!sessionMessagesMap[sid]) sessionMessagesMap[sid] = []
+    sessionMessagesMap[sid].push(msg)
+    if (sid === currentSessionId.value) {
+      messages.value = [...sessionMessagesMap[sid]]
+      streaming.value = freshState()
+    }
   }
 
-  function handleSSEEvent(event: string, data: any) {
+  function handleSSEEvent(sid: string, event: string, data: any) {
+    const p = sessionPendingMap[sid]
+    if (!p) return
     switch (event) {
       case SSE_EVENTS.LLM_CHUNK:
         if (data.reasoning) {
-          pending.reasoning += data.reasoning
-          appendOrUpdateItem("reasoning", data.reasoning)
+          p.reasoning += data.reasoning
+          appendOrUpdateItem(sid, "reasoning", data.reasoning)
         }
         if (data.content) {
-          pending.content += data.content
-          appendOrUpdateItem("content", data.content)
+          p.content += data.content
+          appendOrUpdateItem(sid, "content", data.content)
         }
         break
 
@@ -118,9 +168,9 @@ export const useChatStore = defineStore("chat", () => {
         if (data.error) {
           error.value = data.error
         }
-        if (data.reasoning_content && !pending.reasoning) {
-          pending.reasoning = data.reasoning_content
-          appendOrUpdateItem("reasoning", data.reasoning_content)
+        if (data.reasoning_content && !p.reasoning) {
+          p.reasoning = data.reasoning_content
+          appendOrUpdateItem(sid, "reasoning", data.reasoning_content)
         }
         break
 
@@ -131,16 +181,16 @@ export const useChatStore = defineStore("chat", () => {
           displayName: data.display_name ?? data.tool_call?.function?.name ?? "unknown",
           status: "running",
         }
-        pending.toolCalls.push(tc)
-        pending.orderedItems.push({
+        p.toolCalls.push(tc)
+        p.orderedItems.push({
           type: "tool_call",
-          toolCallIndex: pending.toolCalls.length - 1,
+          toolCallIndex: p.toolCalls.length - 1,
         })
         break
       }
 
       case SSE_EVENTS.TOOL_PROGRESS: {
-        const idx = pending.toolCalls.findIndex(
+        const idx = p.toolCalls.findIndex(
           (t) => t.id === data.tool_call?.id,
         )
         if (idx >= 0 && data.chunk) {
@@ -148,13 +198,13 @@ export const useChatStore = defineStore("chat", () => {
             typeof data.chunk === "string"
               ? data.chunk
               : JSON.stringify(data.chunk)
-          pending.toolCalls[idx].progress = (pending.toolCalls[idx].progress || "") + chunk
+          p.toolCalls[idx].progress = (p.toolCalls[idx].progress || "") + chunk
         }
         break
       }
 
       case SSE_EVENTS.TOOL_END: {
-        const idx = pending.toolCalls.findIndex(
+        const idx = p.toolCalls.findIndex(
           (t) => t.id === data.tool_call?.id,
         )
         if (idx >= 0) {
@@ -162,28 +212,28 @@ export const useChatStore = defineStore("chat", () => {
             typeof data.result === "string"
               ? data.result
               : JSON.stringify(data.result)
-          pending.toolCalls[idx].status =
+          p.toolCalls[idx].status =
             typeof resultStr === "string" && resultStr.startsWith("[Error]")
               ? "error"
               : "success"
-          pending.toolCalls[idx].result = resultStr
+          p.toolCalls[idx].result = resultStr
           if (data.meta) {
-            pending.toolCalls[idx].meta =
+            p.toolCalls[idx].meta =
               typeof data.meta === "string"
                 ? data.meta
                 : JSON.stringify(data.meta)
           }
-          flush()
-          if (pending.isStreaming) scheduleFlush()
+          flush(sid)
+          if (p.isStreaming) scheduleFlush(sid)
         } else {
           console.warn(
             `ToolEnd with no matching ToolStart: id=${data.tool_call?.id}, ` +
-            `available IDs: [${pending.toolCalls.map((t) => t.id).join(", ")}]`,
+            `available IDs: [${p.toolCalls.map((t) => t.id).join(", ")}]`,
           )
-          for (let i = 0; i < pending.toolCalls.length; i++) {
-            if (pending.toolCalls[i].status === "running") {
-              pending.toolCalls[i].status = "error"
-              pending.toolCalls[i].result = "Tool ended without a matching start event"
+          for (let i = 0; i < p.toolCalls.length; i++) {
+            if (p.toolCalls[i].status === "running") {
+              p.toolCalls[i].status = "error"
+              p.toolCalls[i].result = "Tool ended without a matching start event"
             }
           }
         }
@@ -191,12 +241,14 @@ export const useChatStore = defineStore("chat", () => {
       }
 
       case SSE_EVENTS.ERROR:
-        flushImmediately()
-        if (pending.content || pending.reasoning || pending.toolCalls.length > 0) {
-          finalizeStream()
+        flushImmediately(sid)
+        if (p.content || p.reasoning || p.toolCalls.length > 0) {
+          finalizeStream(sid)
         } else {
-          pending.isStreaming = false
-          streaming.value.isStreaming = false
+          p.isStreaming = false
+          if (sid === currentSessionId.value) {
+            streaming.value.isStreaming = false
+          }
         }
         error.value = data.message || "An unknown error occurred"
         break
@@ -205,33 +257,38 @@ export const useChatStore = defineStore("chat", () => {
         if (data.error) {
           error.value = data.error
         }
-        for (let i = 0; i < pending.toolCalls.length; i++) {
-          if (pending.toolCalls[i].status === "running") {
-            pending.toolCalls[i].status = "error"
-            pending.toolCalls[i].result = pending.toolCalls[i].result || "Agent completed before tool finished"
+        for (let i = 0; i < p.toolCalls.length; i++) {
+          if (p.toolCalls[i].status === "running") {
+            p.toolCalls[i].status = "error"
+            p.toolCalls[i].result = p.toolCalls[i].result || "Agent completed before tool finished"
           }
         }
-        flushImmediately()
-        finalizeStream()
+        flushImmediately(sid)
+        finalizeStream(sid)
         break
     }
   }
 
-  function handleSSEDone() {
-    if (pending.isStreaming) {
-      flushImmediately()
-      finalizeStream()
+  function handleSSEDone(sid: string) {
+    const p = sessionPendingMap[sid]
+    if (p?.isStreaming) {
+      flushImmediately(sid)
+      finalizeStream(sid)
     }
     loadSessions(currentScenario.value?.id)
   }
 
-  function handleSSEError(err: Error) {
-    flushImmediately()
-    if (pending.content || pending.reasoning || pending.toolCalls.length > 0) {
-      finalizeStream()
+  function handleSSEError(sid: string, err: Error) {
+    const p = sessionPendingMap[sid]
+    if (!p) return
+    flushImmediately(sid)
+    if (p.content || p.reasoning || p.toolCalls.length > 0) {
+      finalizeStream(sid)
     } else {
-      pending.isStreaming = false
-      streaming.value.isStreaming = false
+      p.isStreaming = false
+      if (sid === currentSessionId.value) {
+        streaming.value.isStreaming = false
+      }
     }
     error.value = err.message
   }
@@ -255,10 +312,13 @@ export const useChatStore = defineStore("chat", () => {
   }
 
   async function newSession(agentName: string = "triage") {
+    saveCurrentSession()
     try {
       const session = await createSession(agentName, currentScenario.value?.id)
       currentSessionId.value = session.memory_id
       messages.value = []
+      const i18n = useI18nStore()
+      sessions.value = [{ ...session, title: i18n.t("new_chat_title", { time: formatTime() }), message_count: 1 }, ...sessions.value.filter((s) => s.memory_id !== session.memory_id)]
       await router.replace({ query: { ...router.currentRoute.value.query, session: session.memory_id, agent: undefined } })
     } catch (e) {
       error.value = String(e)
@@ -266,12 +326,19 @@ export const useChatStore = defineStore("chat", () => {
   }
 
   async function removeSession(memoryId: string) {
+    cancelFlush(memoryId)
+    sessionAbortMap[memoryId]?.abort()
+    delete sessionAbortMap[memoryId]
+    delete sessionPendingMap[memoryId]
+    delete sessionStreamingMap.value[memoryId]
+    delete sessionMessagesMap[memoryId]
     try {
       await deleteSession(memoryId)
       sessions.value = sessions.value.filter((s) => s.memory_id !== memoryId)
       if (currentSessionId.value === memoryId) {
         currentSessionId.value = null
         messages.value = []
+        streaming.value = freshState()
         const query = { ...router.currentRoute.value.query }
         delete query.session
         await router.replace({ query })
@@ -282,17 +349,27 @@ export const useChatStore = defineStore("chat", () => {
   }
 
   async function selectSession(memoryId: string) {
+    if (memoryId === currentSessionId.value) return
+    saveCurrentSession()
     currentSessionId.value = memoryId
     pendingAgent.value = null
-    messages.value = []
-    messagesLoading.value = true
-    try {
-      const apiMessages = await fetchMessages(memoryId)
-      messages.value = transformMessages(apiMessages)
-    } catch (e) {
-      error.value = String(e)
-    } finally {
-      messagesLoading.value = false
+
+    if (sessionMessagesMap[memoryId]) {
+      messages.value = [...sessionMessagesMap[memoryId]]
+      restoreStreamState(memoryId)
+    } else {
+      messages.value = []
+      messagesLoading.value = true
+      try {
+        const apiMessages = await fetchMessages(memoryId)
+        const transformed = transformMessages(apiMessages)
+        sessionMessagesMap[memoryId] = transformed
+        messages.value = [...transformed]
+      } catch (e) {
+        error.value = String(e)
+      } finally {
+        messagesLoading.value = false
+      }
     }
     await router.replace({ query: { ...router.currentRoute.value.query, session: memoryId, agent: undefined } })
   }
@@ -308,6 +385,8 @@ export const useChatStore = defineStore("chat", () => {
         const session = await createSession(agentName, currentScenario.value?.id)
         currentSessionId.value = session.memory_id
         messages.value = []
+        const i18n = useI18nStore()
+        sessions.value = [{ ...session, title: i18n.t("new_chat_title", { time: formatTime() }), message_count: 1 }, ...sessions.value.filter((s) => s.memory_id !== session.memory_id)]
         await router.replace({ query: { ...router.currentRoute.value.query, session: session.memory_id, agent: undefined } })
       } catch (e) {
         error.value = String(e)
@@ -318,18 +397,26 @@ export const useChatStore = defineStore("chat", () => {
       }
     }
     if (!currentSessionId.value) return
+    const sid = currentSessionId.value
     const userMsg: Message = { id: `msg-${Date.now()}`, role: "user", content: text }
     messages.value.push(userMsg)
-    Object.assign(pending, freshState(), { isStreaming: true })
-    flush()
-    scheduleFlush()
+    if (!sessionMessagesMap[sid]) sessionMessagesMap[sid] = []
+    sessionMessagesMap[sid].push(userMsg)
 
-    abortController = streamChat(
-      currentSessionId.value,
+    const pending = freshState()
+    pending.isStreaming = true
+    sessionPendingMap[sid] = pending
+    sessionStreamingMap.value[sid] = { content: "", reasoning: "", toolCalls: [], orderedItems: [], isStreaming: true }
+    streaming.value = sessionStreamingMap.value[sid]!
+
+    scheduleFlush(sid)
+
+    sessionAbortMap[sid] = streamChat(
+      sid,
       text,
-      handleSSEEvent,
-      handleSSEDone,
-      handleSSEError,
+      (event, data) => handleSSEEvent(sid, event, data),
+      () => handleSSEDone(sid),
+      (err) => handleSSEError(sid, err),
     )
   }
 
@@ -345,6 +432,7 @@ export const useChatStore = defineStore("chat", () => {
   }
 
   async function selectScenario(scenarioId: string) {
+    saveCurrentSession()
     const found = availableScenarios.value.find((s) => s.id === scenarioId)
     if (!found) return
     currentScenario.value = found
@@ -365,16 +453,28 @@ export const useChatStore = defineStore("chat", () => {
   }
 
   function cancelStream() {
-    cancelFlush()
-    abortController?.abort()
-    abortController = null
-    if (pending.content || pending.reasoning || pending.toolCalls.length > 0) {
-      flushImmediately()
-      finalizeStream()
+    const sid = currentSessionId.value
+    if (!sid) return
+    cancelFlush(sid)
+    sessionAbortMap[sid]?.abort()
+    delete sessionAbortMap[sid]
+    const p = sessionPendingMap[sid]
+    if (!p) return
+    if (p.content || p.reasoning || p.toolCalls.length > 0) {
+      flushImmediately(sid)
+      const msg = buildMessage(sid)
+      if (msg) {
+        if (!sessionMessagesMap[sid]) sessionMessagesMap[sid] = []
+        sessionMessagesMap[sid].push(msg)
+        messages.value = [...sessionMessagesMap[sid]]
+      }
+      streaming.value = freshState()
     } else {
-      pending.isStreaming = false
+      p.isStreaming = false
       streaming.value.isStreaming = false
     }
+    Object.assign(p, freshState())
+    sessionStreamingMap.value[sid] = freshState()
   }
 
   async function refreshLocaleData() {
@@ -470,6 +570,12 @@ export const useChatStore = defineStore("chat", () => {
     error.value = null
   }
 
+  watch(currentSessionId, (newVal) => {
+    if (!newVal) {
+      streaming.value = freshState()
+    }
+  })
+
   watch(error, (val) => {
     if (errorTimer) {
       clearTimeout(errorTimer)
@@ -487,6 +593,7 @@ export const useChatStore = defineStore("chat", () => {
     sessions, currentSessionId, currentSession, pendingAgent, messages, streaming, error,
     backendOnline, availableScenarios, currentScenario, availableAgents, toolDisplayNames,
     sessionsLoading, messagesLoading,
+    saveCurrentSession,
     loadSessions, newSession, removeSession, selectSession, sendMessage, cancelStream,
     loadScenarios, selectScenario, createSessionWithAgent, refreshLocaleData, clearError,
   }

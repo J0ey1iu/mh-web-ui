@@ -39,6 +39,7 @@ const {
   selectScenario,
   createSessionWithAgent,
   refreshLocaleData,
+  saveCurrentSession,
 } = chatStore
 
 const authStore = useAuthStore()
@@ -103,6 +104,7 @@ function removeSessionHandler(id: string) {
 }
 
 function handleNewChat() {
+  saveCurrentSession()
   chatStore.pendingAgent = null
   currentSessionId.value = null
   messages.value = []
