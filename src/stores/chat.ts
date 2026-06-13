@@ -58,16 +58,29 @@ export const useChatStore = defineStore("chat", () => {
     if (!sid) return
     sessionMessagesMap[sid] = [...messages.value].map(m => {
       const { freshlyStreamed, ...rest } = m
-      return rest
+      return {
+        ...rest,
+        orderedItems: rest.orderedItems ? rest.orderedItems.map(item => ({ ...item })) : undefined,
+        tool_calls: rest.tool_calls ? rest.tool_calls.map(tc => ({ ...tc })) : undefined,
+      }
     })
     if (sessionStreamingMap.value[sid]) {
-      sessionStreamingMap.value[sid] = { ...streaming.value }
+      sessionStreamingMap.value[sid] = {
+        ...streaming.value,
+        toolCalls: streaming.value.toolCalls.map(tc => ({ ...tc })),
+        orderedItems: [...streaming.value.orderedItems],
+      }
     }
   }
 
   function restoreStreamState(sid: string) {
     if (sessionStreamingMap.value[sid]) {
-      streaming.value = { ...sessionStreamingMap.value[sid] }
+      const s = sessionStreamingMap.value[sid]
+      streaming.value = {
+        ...s,
+        toolCalls: s.toolCalls.map(tc => ({ ...tc })),
+        orderedItems: [...s.orderedItems],
+      }
     } else {
       streaming.value = freshState()
     }
