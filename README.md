@@ -70,8 +70,8 @@ bash scripts/dev-frontend.sh --watch   # 监听组件变更自动重构建
 
 ## 后端依赖
 
-通过 HTTP/SSE 与以下服务通信：
+通过 HTTP/SSE 与 [orchestration-service](../packages/orchestration-service/) 通信（端口 `8005`）。
 
-- [auth-service](../packages/auth-service/) — 登录/权限
-- [registry-service](../packages/registry-service/) — 场景/Agent/Tool 管理
-- [orchestration-service](../packages/orchestration-service/) — 聊天/会话
+`orchestration-service` 在 `dev_mode` 下内置了 SSO 登录、场景/Agent/Tool 注册与发现、聊天 SSE 流、会话管理、M2M 鉴权等能力；企业部署时通过其 `UserAuthProvider` / `MetadataManager` / `ConfigProvider` / `M2MAuthProvider` 等适配器对接自有系统。
+
+所有 API 端点由 `orchestration-service` 的 OpenAPI 文档（`http://localhost:8005/docs`）定义，前端的端点路径通过 [`src/config.ts`](src/config.ts) 中的 `appConfig` 注入（构建期由 Vite 替换）。
