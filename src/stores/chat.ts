@@ -164,12 +164,17 @@ export const useChatStore = defineStore("chat", () => {
       streaming.value = freshState()
     }
   }
-
   function handleSSEEvent(sid: string, event: string, data: any) {
     const p = sessionPendingMap[sid]
     if (!p) return
-    switch (event) {
-      case SSE_EVENTS.LLM_CHUNK:
+    // Normalise the event name.  Several backend endpoints emit "Error"
+    // (capital E — chat.py) and "error" (lowercase — runtime_tools.py
+    // / tool_generator.py / agent_generator.py).  The reducer is
+    // case-insensitive on the event label so neither spelling falls
+    // into the void.  H15 in the 2026-07-14 audit.
+    const ev = event.toLowerCase()
+    switch (ev) {
+      case "llmchunk":
         if (data.reasoning) {
           p.reasoning += data.reasoning
           appendOrUpdateItem(sid, "reasoning", data.reasoning)
@@ -180,7 +185,7 @@ export const useChatStore = defineStore("chat", () => {
         }
         break
 
-      case SSE_EVENTS.LLM_END:
+      case "llmend":
         if (data.error) {
           error.value = data.error
         }
@@ -190,7 +195,7 @@ export const useChatStore = defineStore("chat", () => {
         }
         break
 
-      case SSE_EVENTS.TOOL_START: {
+      case "toolstart": {
         const tc: ToolCallDisplay = {
           id: data.tool_call?.id ?? `tool-${Date.now()}`,
           name: data.tool_call?.function?.name ?? "unknown",
@@ -205,7 +210,7 @@ export const useChatStore = defineStore("chat", () => {
         break
       }
 
-      case SSE_EVENTS.TOOL_PROGRESS: {
+      case "toolprogress": {
         const idx = p.toolCalls.findIndex(
           (t) => t.id === data.tool_call?.id,
         )
@@ -219,7 +224,7 @@ export const useChatStore = defineStore("chat", () => {
         break
       }
 
-      case SSE_EVENTS.TOOL_END: {
+      case "toolend": {
         const idx = p.toolCalls.findIndex(
           (t) => t.id === data.tool_call?.id,
         )
@@ -244,7 +249,7 @@ export const useChatStore = defineStore("chat", () => {
         } else {
           console.warn(
             `ToolEnd with no matching ToolStart: id=${data.tool_call?.id}, ` +
-            `available IDs: [${p.toolCalls.map((t) => t.id).join(", ")}]`,
+              `available IDs: [${p.toolCalls.map((t) => t.id).join(", ")}]`,
           )
           for (let i = 0; i < p.toolCalls.length; i++) {
             if (p.toolCalls[i].status === "running") {
@@ -256,7 +261,7 @@ export const useChatStore = defineStore("chat", () => {
         break
       }
 
-      case SSE_EVENTS.ERROR:
+      case "error":
         flushImmediately(sid)
         if (p.content || p.reasoning || p.toolCalls.length > 0) {
           finalizeStream(sid)
@@ -269,14 +274,15 @@ export const useChatStore = defineStore("chat", () => {
         error.value = data.message || "An unknown error occurred"
         break
 
-      case SSE_EVENTS.AGENT_END:
+      case "agentend":
         if (data.error) {
           error.value = data.error
         }
         for (let i = 0; i < p.toolCalls.length; i++) {
           if (p.toolCalls[i].status === "running") {
             p.toolCalls[i].status = "error"
-            p.toolCalls[i].result = p.toolCalls[i].result || "Agent completed before tool finished"
+            p.toolCalls[i].result =
+              p.toolCalls[i].result || "Agent completed before tool finished"
           }
         }
         flushImmediately(sid)

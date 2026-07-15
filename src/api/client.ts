@@ -88,7 +88,10 @@ async function consumeSSE(response: Response, onLine: (line: string) => void): P
     const { done, value } = await reader.read()
     if (done) break
     buffer += decoder.decode(value, { stream: true })
-    const lines = buffer.split("\n")
+    // Split on \r\n (Starlette emits CRLF) and bare \n; trim trailing
+    // \r so callers don't see a stray \r in the data payload.  H12 in
+    // the 2026-07-14 audit.
+    const lines = buffer.split(/\r?\n/)
     buffer = lines.pop() ?? ""
     for (const line of lines) {
       onLine(line)
@@ -101,7 +104,6 @@ export type SSEEventCallback = (event: SSEEventName, data: any) => void
 export function streamChat(memoryId: string, message: string, onEvent: SSEEventCallback, onDone: () => void, onError: (err: Error) => void): AbortController {
   const controller = new AbortController()
   const headers: Record<string, string> = { "Content-Type": "application/json", "Accept-Language": getLocale() }
-  let eventName = ""
 
   fetch(fillUrl(appConfig.apiChat, { id: memoryId }), {
     method: "POST",
@@ -111,11 +113,18 @@ export function streamChat(memoryId: string, message: string, onEvent: SSEEventC
     signal: controller.signal,
   })
     .then(async (res) => {
+      // The orchestrator now emits the canonical {"type","data"} SSE
+      // envelope on every endpoint (P10, 2026-07-15).  The previous
+      // `event: X\ndata: Y\n\n` style used to be the chat outlier; the
+      // parser below matches the same shape as generateToolMetadata /
+      // executeGeneratedTool / generateAgentMetadata / executeGeneratedAgent.
       await consumeSSE(res, (line) => {
-        if (line.startsWith("event: ")) eventName = line.slice(7).trim()
-        else if (line.startsWith("data: ")) {
+        if (line.startsWith("data: ")) {
           const dataStr = line.slice(6).trim()
-          try { const data = JSON.parse(dataStr); onEvent(eventName as SSEEventName, data) } catch {}
+          try {
+            const payload = JSON.parse(dataStr)
+            onEvent(payload.type as SSEEventName, payload.data)
+          } catch { /* skip */ }
         }
       })
       onDone()
