@@ -170,7 +170,6 @@ export interface ManageAgent {
   description_locale?: string
   system_prompt: string
   system_prompt_locale?: string
-  endpoint_url?: string
   provider?: string
   model?: string
   llm_config?: Record<string, any>
