@@ -40,7 +40,6 @@ const form = ref<Partial<ManageAgent>>({
   description_locale: "",
   system_prompt: "",
   system_prompt_locale: "",
-  endpoint_url: "",
   provider: "openai",
   model: "",
   llm_config: {},
@@ -171,7 +170,7 @@ function onPageSizeChange() {
 
 function openCreate() {
   editing.value = false
-  form.value = { name: "", display_name: "", display_name_locale: "", description: "", description_locale: "", system_prompt: "", system_prompt_locale: "", endpoint_url: "", provider: "openai", model: "", llm_config: {} }
+  form.value = { name: "", display_name: "", display_name_locale: "", description: "", description_locale: "", system_prompt: "", system_prompt_locale: "", provider: "openai", model: "", llm_config: {} }
   localeForm.value = { display_zh: "", display_en: "", desc_zh: "", desc_en: "", prompt_zh: "", prompt_en: "" }
   llmConfigStr.value = ""
   showDialog.value = true
@@ -456,7 +455,6 @@ onMounted(() => {
                 <th>{{ t("mgmt_name") }}</th>
                 <th>{{ t("mgmt_display_name") }}</th>
                 <th>{{ t("mgmt_description") }}</th>
-                <th>{{ t("mgmt_endpoint") }}</th>
                 <th>{{ t("mgmt_created_at") }}</th>
                 <th>{{ t("mgmt_updated_at") }}</th>
                 <th>{{ t("mgmt_actions") }}</th>
@@ -484,7 +482,6 @@ onMounted(() => {
                   <th>{{ t("mgmt_name") }}</th>
                   <th>{{ t("mgmt_display_name") }}</th>
                   <th>{{ t("mgmt_description") }}</th>
-                  <th>{{ t("mgmt_endpoint") }}</th>
                   <th>{{ t("mgmt_created_at") }}</th>
                   <th>{{ t("mgmt_updated_at") }}</th>
                   <th>{{ t("mgmt_actions") }}</th>
@@ -495,7 +492,6 @@ onMounted(() => {
               <td :title="a.name"><code>{{ a.name }}</code></td>
               <td :title="localeVal(a.display_name_locale, a.display_name)">{{ localeVal(a.display_name_locale, a.display_name) }}</td>
               <td class="cell-desc" :title="localeVal(a.description_locale, a.description)">{{ localeVal(a.description_locale, a.description) }}</td>
-              <td><code class="cell-url" :title="a.endpoint_url || t('mgmt_local')">{{ a.endpoint_url || t("mgmt_local") }}</code></td>
               <td class="cell-audit" :title="fmtAudit(a.created_at, a.created_by)">{{ fmtAudit(a.created_at, a.created_by) }}</td>
               <td class="cell-audit" :title="fmtAudit(a.updated_at, a.updated_by)">{{ fmtAudit(a.updated_at, a.updated_by) }}</td>
               <td class="cell-actions">
@@ -539,10 +535,6 @@ onMounted(() => {
                   <button class="tc-fullscreen-btn" @click="openFs(t('mgmt_system_prompt'), form.system_prompt ?? '', 'system_prompt')" :title="t('mgmt_tc_source_code')">&#x26F6;</button>
                 </div>
                 <textarea v-model="form.system_prompt" rows="6" class="mono"></textarea>
-              </div>
-              <div class="form-group">
-                <label>{{ t("mgmt_endpoint") }}</label>
-                <input v-model="form.endpoint_url" :placeholder="t('mgmt_placeholder_endpoint')" />
               </div>
               <div class="form-group">
                 <label>{{ t("mgmt_provider") }}</label>
