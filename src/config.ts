@@ -20,6 +20,8 @@ export interface AppConfig {
   apiManagementTools: string
   apiManagementTool: string
   apiManagementProviders: string
+  apiManagementProviderConfigs: string
+  apiManagementProviderConfig: string
   apiAgentGeneratorGenerate: string
   apiAgentGeneratorAgents: string
   apiAgentGeneratorTrial: string

@@ -5,13 +5,13 @@ import {
   createManageAgent,
   updateManageAgent,
   deleteManageAgent,
-  fetchProviders,
+  fetchManageProviderConfigs,
   generateAgentMetadata,
   saveGeneratedAgent,
   updateGeneratedAgent,
   executeAgentTrial,
 } from "../api/client"
-import type { GeneratedAgent, ManageAgent } from "../types"
+import type { GeneratedAgent, ManageAgent, ManageProvider } from "../types"
 import ManagementNav from "../components/ManagementNav.vue"
 import { useI18nStore } from "../stores/i18n"
 import { useAlertStore } from "../stores/alert"
@@ -22,10 +22,10 @@ const alertStore = useAlertStore()
 
 const activeTab = ref<"manage" | "create">("manage")
 
-const providers = ref<string[]>([])
+const providers = ref<ManageProvider[]>([])
 
 const providerOptions = computed(() =>
-  providers.value.map(p => ({ value: p, label: p }))
+  providers.value.map(p => ({ value: p.name, label: p.name }))
 )
 
 const agents = ref<ManageAgent[]>([])
@@ -134,9 +134,10 @@ function closeFs() {
 
 async function loadProviders() {
   try {
-    providers.value = await fetchProviders()
+    const res = await fetchManageProviderConfigs({ page_size: 100 })
+    providers.value = res.items
   } catch {
-    providers.value = ["openai", "anthropic"]
+    providers.value = [{ name: "openai", provider_type: "openai" }, { name: "anthropic", provider_type: "anthropic" }] as ManageProvider[]
   }
 }
 

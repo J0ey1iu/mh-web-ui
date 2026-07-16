@@ -162,6 +162,19 @@ export interface ManageScenario {
   updated_by?: string
 }
 
+export interface ManageProvider {
+  name: string
+  provider_type: string
+  api_key?: string
+  base_url?: string
+  default_model?: string
+  description?: string
+  created_at?: string
+  updated_at?: string
+  created_by?: string
+  updated_by?: string
+}
+
 export interface ManageAgent {
   name: string
   display_name: string
@@ -171,6 +184,7 @@ export interface ManageAgent {
   system_prompt: string
   system_prompt_locale?: string
   provider?: string
+  provider_name?: string
   model?: string
   llm_config?: Record<string, any>
   created_at?: string

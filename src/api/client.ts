@@ -1,4 +1,4 @@
-import type { AgentInfo, FetchListParams, GeneratedAgent, GeneratedTool, ManageAgent, ManageScenario, ManageTool, MessageItem, PaginatedResponse, ScenarioDetail, ScenarioInfo, SessionInfo, UserInfo, SSEEventName } from "../types"
+import type { AgentInfo, FetchListParams, GeneratedAgent, GeneratedTool, ManageAgent, ManageProvider, ManageScenario, ManageTool, MessageItem, PaginatedResponse, ScenarioDetail, ScenarioInfo, SessionInfo, UserInfo, SSEEventName } from "../types"
 import { appConfig } from "../config"
 
 function fillUrl(template: string, params?: Record<string, string>): string {
@@ -448,6 +448,34 @@ export async function updateManageTool(name: string, tool: Partial<ManageTool>):
 
 export async function deleteManageTool(name: string): Promise<void> {
   await request(fillUrl(appConfig.apiManagementTool, { name }), { method: "DELETE" })
+}
+
+// ── Provider Configs ──
+
+export async function fetchManageProviderConfigs(params?: FetchListParams): Promise<PaginatedResponse<ManageProvider>> {
+  return fetchManageOrEmpty<ManageProvider>(appConfig.apiManagementProviderConfigs, params)
+}
+
+export async function fetchManageProviderConfig(name: string): Promise<ManageProvider> {
+  return request<ManageProvider>(fillUrl(appConfig.apiManagementProviderConfig, { name }))
+}
+
+export async function createManageProviderConfig(provider: Partial<ManageProvider>): Promise<ManageProvider> {
+  return request<ManageProvider>(appConfig.apiManagementProviderConfigs, {
+    method: "POST",
+    body: JSON.stringify(provider),
+  })
+}
+
+export async function updateManageProviderConfig(name: string, provider: Partial<ManageProvider>): Promise<ManageProvider> {
+  return request<ManageProvider>(fillUrl(appConfig.apiManagementProviderConfig, { name }), {
+    method: "PUT",
+    body: JSON.stringify(provider),
+  })
+}
+
+export async function deleteManageProviderConfig(name: string): Promise<void> {
+  await request(fillUrl(appConfig.apiManagementProviderConfig, { name }), { method: "DELETE" })
 }
 
 // ── Relationship management ──

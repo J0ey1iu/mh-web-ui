@@ -24,6 +24,11 @@ const routes: RouteRecordRaw[] = [
     component: () => import("../pages/ToolManagementPage.vue"),
   },
   {
+    path: "/manage/providers",
+    name: "providers",
+    component: () => import("../pages/ProviderManagementPage.vue"),
+  },
+  {
     path: "/",
     name: "chat",
     component: MainLayout,
