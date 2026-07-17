@@ -6,12 +6,8 @@ import {
   updateManageAgent,
   deleteManageAgent,
   fetchManageProviderConfigs,
-  generateAgentMetadata,
-  saveGeneratedAgent,
-  updateGeneratedAgent,
-  executeAgentTrial,
 } from "../api/client"
-import type { GeneratedAgent, ManageAgent, ManageProvider } from "../types"
+import type { ManageAgent, ManageProvider } from "../types"
 import ManagementNav from "../components/ManagementNav.vue"
 import { useI18nStore } from "../stores/i18n"
 import { useAlertStore } from "../stores/alert"
@@ -19,8 +15,6 @@ import SearchSelect from "../components/SearchSelect.vue"
 
 const { t, localeVal } = useI18nStore()
 const alertStore = useAlertStore()
-
-const activeTab = ref<"manage" | "create">("manage")
 
 const providers = ref<ManageProvider[]>([])
 
@@ -229,200 +223,6 @@ async function remove(name: string) {
   }
 }
 
-// ===== Agent Creator =====
-const naturalDescription = ref("")
-const generating = ref(false)
-const savingCreator = ref(false)
-
-const generated = ref<GeneratedAgent>({
-  name: "",
-  display_name: "",
-  description: "",
-  system_prompt: "",
-  provider: "openai",
-  model: "",
-  llm_config: {},
-  user_id: "",
-  created_at: "",
-  updated_at: "",
-})
-const creatorLlmConfigStr = ref("")
-
-const genAbortController = ref<AbortController | null>(null)
-
-const showNL = ref(false)
-const editingName = ref<string | null>(null)
-
-// ===== Trial chat =====
-const trialMessages = ref<{ role: "user" | "assistant"; content: string }[]>([])
-const trialInput = ref("")
-const executing = ref(false)
-let trialAbort: AbortController | null = null
-
-const creatorFsVisible = ref(false)
-const creatorFsTitle = ref("")
-const creatorFsContent = ref("")
-let creatorFsTarget: "description" | "system_prompt" | "llm_config" | "natural_desc" | null = null
-
-function openCreatorFs(title: string, content: string, target: "description" | "system_prompt" | "llm_config" | "natural_desc") {
-  creatorFsTitle.value = title
-  creatorFsContent.value = content
-  creatorFsTarget = target
-  creatorFsVisible.value = true
-}
-
-function closeCreatorFs() {
-  if (creatorFsTarget === "description" && generated.value) {
-    generated.value.description = creatorFsContent.value
-  } else if (creatorFsTarget === "system_prompt" && generated.value) {
-    generated.value.system_prompt = creatorFsContent.value
-  } else if (creatorFsTarget === "llm_config") {
-    creatorLlmConfigStr.value = creatorFsContent.value
-  } else if (creatorFsTarget === "natural_desc") {
-    naturalDescription.value = creatorFsContent.value
-  }
-  creatorFsVisible.value = false
-  creatorFsTarget = null
-}
-
-function formatLlmConfigJson() {
-  try {
-    const parsed = JSON.parse(creatorFsContent.value)
-    creatorFsContent.value = JSON.stringify(parsed, null, 2)
-  } catch {
-    alertStore.show(t("mgmt_tc_invalid_json"))
-  }
-}
-
-function handleGenerate() {
-  if (!naturalDescription.value.trim()) return
-  generating.value = true
-  genAbortController.value = generateAgentMetadata(
-    naturalDescription.value.trim(),
-    (type, data) => {
-      if (type === "generated") {
-        generated.value = data as unknown as GeneratedAgent
-        creatorLlmConfigStr.value = generated.value.llm_config
-          ? JSON.stringify(generated.value.llm_config, null, 2)
-          : ""
-        editingName.value = null
-      } else if (type === "error") {
-        alertStore.show(t("mgmt_tc_generation_error") + ": " + data.message)
-      }
-    },
-    () => {
-      generating.value = false
-      genAbortController.value = null
-    },
-    (err) => {
-      generating.value = false
-      genAbortController.value = null
-      alertStore.show(t("mgmt_tc_generation_failed") + ": " + err.message)
-    },
-  )
-}
-
-function handleStopGenerate() {
-  genAbortController.value?.abort()
-  generating.value = false
-  genAbortController.value = null
-}
-
-async function handleSave() {
-  if (!generated.value) return
-  savingCreator.value = true
-  try {
-    let parsedLlmConfig: Record<string, any> = {}
-    if (creatorLlmConfigStr.value.trim()) {
-      try {
-        parsedLlmConfig = JSON.parse(creatorLlmConfigStr.value)
-      } catch {
-        alertStore.show(t("mgmt_tc_invalid_json"))
-        savingCreator.value = false
-        return
-      }
-    }
-    if (editingName.value) {
-      await updateGeneratedAgent(editingName.value, {
-        display_name: generated.value.display_name,
-        description: generated.value.description,
-        system_prompt: generated.value.system_prompt,
-        provider: generated.value.provider,
-        model: generated.value.model,
-        llm_config: parsedLlmConfig,
-      })
-      alertStore.show(t("mgmt_tc_agent_updated"))
-    } else {
-      await saveGeneratedAgent({
-        name: generated.value.name,
-        display_name: generated.value.display_name,
-        description: generated.value.description,
-        system_prompt: generated.value.system_prompt,
-        provider: generated.value.provider,
-        model: generated.value.model,
-        llm_config: parsedLlmConfig,
-      })
-      editingName.value = generated.value.name
-      alertStore.show(t("mgmt_tc_agent_saved"))
-    }
-  } catch (e: any) {
-    alertStore.show(t("mgmt_tc_save_failed") + ": " + e.message)
-  } finally {
-    savingCreator.value = false
-  }
-}
-
-function handleTrialSend() {
-  if (!trialInput.value.trim() || !generated.value) return
-  const msg = trialInput.value.trim()
-  trialInput.value = ""
-  trialMessages.value.push({ role: "user", content: msg })
-
-  executing.value = true
-  let parsedLlmConfig: Record<string, any> = {}
-  if (creatorLlmConfigStr.value.trim()) {
-    try {
-      parsedLlmConfig = JSON.parse(creatorLlmConfigStr.value)
-    } catch { /* ignore */ }
-  }
-
-  trialAbort = executeAgentTrial(
-    generated.value.name,
-    msg,
-    generated.value.system_prompt,
-    generated.value.provider,
-    generated.value.model,
-    parsedLlmConfig,
-    (type, data) => {
-      if (type === "chunk") {
-        const last = trialMessages.value[trialMessages.value.length - 1]
-        if (last && last.role === "assistant") {
-          last.content += data.content
-        } else {
-          trialMessages.value.push({ role: "assistant", content: data.content })
-        }
-      } else if (type === "error") {
-        trialMessages.value.push({ role: "assistant", content: "Error: " + data.message })
-      }
-    },
-    () => {
-      executing.value = false
-      trialAbort = null
-    },
-    (err) => {
-      executing.value = false
-      trialAbort = null
-      trialMessages.value.push({ role: "assistant", content: "Error: " + err.message })
-    },
-  )
-}
-
-function handleTrialStop() {
-  trialAbort?.abort()
-  executing.value = false
-  trialAbort = null
-}
-
 onMounted(() => {
   loadProviders()
   load()
@@ -435,15 +235,11 @@ onMounted(() => {
     <div class="mgmt-page-content">
       <header class="mgmt-header">
         <h1>{{ t("mgmt_agents") }}</h1>
-        <div class="mgmt-tabs">
-          <button :class="['tab-btn', { active: activeTab === 'manage' }]" @click="activeTab = 'manage'">{{ t("mgmt_tab_manage") }}</button>
-          <button :class="['tab-btn', { active: activeTab === 'create' }]" @click="activeTab = 'create'">{{ t("mgmt_tab_create") }}</button>
-        </div>
-        <button v-if="activeTab === 'manage'" class="btn-primary" @click="openCreate">{{ t("mgmt_new_agent") }}</button>
+        <button class="btn-primary" @click="openCreate">{{ t("mgmt_new_agent") }}</button>
       </header>
 
-      <!-- ===== Manage Agents Tab ===== -->
-      <div v-if="activeTab === 'manage'">
+      <!-- ===== Manage Agents ===== -->
+      <div>
         <div class="mgmt-toolbar">
           <input v-model="searchQuery" class="mgmt-search" :placeholder="t('mgmt_search_placeholder')" @keyup.enter="onSearch" />
           <button class="btn-search" @click="onSearch">{{ t("mgmt_search") }}</button>
@@ -610,135 +406,6 @@ onMounted(() => {
         </Teleport>
       </div>
 
-      <!-- ===== Agent Creator Tab ===== -->
-      <div v-else class="tc-content">
-        <div class="tc-panels">
-          <div class="tc-panel tc-left">
-            <div class="tc-nl-section">
-              <button class="tc-nl-toggle" @click="showNL = !showNL">
-                <span class="tc-nl-toggle-text">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="tc-nl-icon">
-                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-                  </svg>
-                  {{ t("mgmt_ac_describe_nl") }}
-                </span>
-                <span class="tc-nl-arrow">{{ showNL ? '▲' : '▼' }}</span>
-              </button>
-              <div v-if="showNL" class="tc-nl-body">
-                <div class="tc-label-row">
-                  <span></span>
-                  <button class="tc-fullscreen-btn" @click="openCreatorFs(t('mgmt_ac_describe_nl'), naturalDescription, 'natural_desc')" :title="t('mgmt_tc_source_code')">&#x26F6;</button>
-                </div>
-                <textarea
-                  v-model="naturalDescription"
-                  class="tc-textarea"
-                  :placeholder="t('mgmt_ac_describe_placeholder')"
-                  rows="3"
-                  :disabled="generating"
-                />
-                <template v-if="!generating">
-                  <button class="btn-generate" :disabled="!naturalDescription.trim()" @click="handleGenerate">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px">
-                      <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
-                    </svg>
-                    {{ t("mgmt_ac_generate_metadata") }}
-                  </button>
-                </template>
-                <template v-else>
-                  <button class="btn-stop" @click="handleStopGenerate">{{ t("mgmt_tc_stop_generation") }}</button>
-                  <div class="tc-gen-hint">{{ t("mgmt_tc_generating_hint") }}</div>
-                </template>
-              </div>
-            </div>
-
-            <h2 class="tc-panel-title">{{ t("mgmt_ac_agent_metadata") }}</h2>
-            <div class="tc-field">
-              <label class="tc-label">{{ t("mgmt_name") }}</label>
-              <input v-model="generated.name" type="text" class="tc-input" :disabled="generating" :placeholder="generating ? t('mgmt_tc_generating') : ''" />
-            </div>
-            <div class="tc-field">
-              <label class="tc-label">{{ t("mgmt_display_name") }}</label>
-              <input v-model="generated.display_name" type="text" class="tc-input" :disabled="generating" :placeholder="generating ? t('mgmt_tc_generating') : ''" />
-            </div>
-            <div class="tc-field">
-              <div class="tc-label-row">
-                <label class="tc-label">{{ t("mgmt_description") }}</label>
-                <button class="tc-fullscreen-btn" @click="openCreatorFs(t('mgmt_description'), generated.description, 'description')" :title="t('mgmt_tc_source_code')">&#x26F6;</button>
-              </div>
-              <textarea v-model="generated.description" class="tc-input tc-textarea-sm" rows="3" :disabled="generating" :placeholder="generating ? t('mgmt_tc_generating') : ''" />
-            </div>
-            <div class="tc-field">
-              <div class="tc-label-row">
-                <label class="tc-label">{{ t("mgmt_system_prompt") }}</label>
-                <button class="tc-fullscreen-btn" @click="openCreatorFs(t('mgmt_system_prompt'), generated.system_prompt, 'system_prompt')" :title="t('mgmt_tc_source_code')">&#x26F6;</button>
-              </div>
-              <textarea v-model="generated.system_prompt" class="tc-input tc-textarea-code" rows="8" :disabled="generating" :placeholder="generating ? t('mgmt_tc_generating') : ''" />
-            </div>
-            <div class="tc-field">
-              <label class="tc-label">{{ t("mgmt_provider") }}</label>
-              <input v-model="generated.provider" type="text" class="tc-input" :disabled="generating" :placeholder="generating ? t('mgmt_tc_generating') : ''" />
-            </div>
-            <div class="tc-field">
-              <label class="tc-label">{{ t("mgmt_model") }}</label>
-              <input v-model="generated.model" type="text" class="tc-input" :disabled="generating" :placeholder="generating ? t('mgmt_tc_generating') : t('mgmt_model_placeholder')" />
-            </div>
-            <div class="tc-field">
-              <div class="tc-label-row">
-                <label class="tc-label">{{ t("mgmt_llm_config") }}</label>
-                <button class="tc-fullscreen-btn" @click="openCreatorFs(t('mgmt_llm_config'), creatorLlmConfigStr, 'llm_config')" :title="t('mgmt_tc_source_code')">&#x26F6;</button>
-              </div>
-              <textarea v-model="creatorLlmConfigStr" class="tc-input tc-textarea-code" rows="4" :disabled="generating" :placeholder="generating ? t('mgmt_tc_generating') : t('mgmt_llm_config_placeholder')" />
-            </div>
-            <div class="tc-actions">
-              <button class="btn-save" :disabled="savingCreator || !generated.name || generating" @click="handleSave">
-                {{ savingCreator ? (editingName ? t("mgmt_tc_updating") : t("mgmt_saving")) : (editingName ? t("mgmt_ac_update_agent") : t("mgmt_ac_save_agent")) }}
-              </button>
-            </div>
-          </div>
-
-          <div class="tc-panel tc-right">
-            <h2 class="tc-panel-title">{{ t("mgmt_tc_trial_area") }}</h2>
-            <div class="ta-messages">
-              <div v-if="trialMessages.length === 0" class="ta-empty">{{ t("mgmt_ac_trial_empty") }}</div>
-              <div v-for="(m, i) in trialMessages" :key="i" :class="['ta-msg', `ta-msg-${m.role}`]">
-                <div class="ta-msg-label">{{ m.role === 'user' ? t('mgmt_ac_trial_you') : t('mgmt_ac_trial_agent') }}</div>
-                <div class="ta-msg-content">{{ m.content }}</div>
-              </div>
-              <div v-if="executing && trialMessages[trialMessages.length - 1]?.role === 'user'" class="ta-msg ta-msg-assistant">
-                <div class="ta-msg-label">{{ t("mgmt_ac_trial_agent") }}</div>
-                <div class="ta-msg-content ta-msg-thinking">{{ t("mgmt_tc_waiting_output") }}</div>
-              </div>
-            </div>
-            <div class="ta-input-row">
-              <input v-model="trialInput" class="ta-input" :placeholder="t('mgmt_ac_trial_placeholder')" :disabled="executing" @keyup.enter="handleTrialSend" />
-              <button v-if="!executing" class="btn-send" :disabled="!trialInput.trim() || !generated.name" @click="handleTrialSend">{{ t("send") }}</button>
-              <button v-else class="btn-stop" @click="handleTrialStop">{{ t("stop") }}</button>
-            </div>
-          </div>
-        </div>
-
-        <!-- Creator Fullscreen Overlays -->
-        <Teleport to="body">
-          <div v-if="creatorFsVisible" class="tc-overlay" @click.self="closeCreatorFs()">
-            <div class="tc-overlay-content">
-              <div class="tc-overlay-header">
-                <span class="tc-overlay-title">{{ creatorFsTitle }}</span>
-                <div class="tc-overlay-header-actions">
-                  <button v-if="creatorFsTarget === 'llm_config'" class="tc-format-btn" @click="formatLlmConfigJson">{{ t("mgmt_tc_format_json") }}</button>
-                  <button class="tc-fullscreen-close" @click="closeCreatorFs()">&#x2715;</button>
-                </div>
-              </div>
-              <div class="tc-overlay-body">
-                <textarea
-                  v-model="creatorFsContent"
-                  :class="creatorFsTarget === 'system_prompt' || creatorFsTarget === 'llm_config' ? 'tc-overlay-textarea' : 'tc-overlay-textarea tc-overlay-textarea-text'"
-                  spellcheck="false"
-                />
-              </div>
-            </div>
-          </div>
-        </Teleport>
-      </div>
     </div>
   </div>
 </template>

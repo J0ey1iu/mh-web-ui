@@ -10,9 +10,6 @@ export interface AppConfig {
   apiComponentSources: string
   loginUrl: string
   apiAuthLogout: string
-  apiToolGeneratorGenerate: string
-  apiToolGeneratorTools: string
-  apiGeneratedToolTrial: string
   apiManagementScenarios: string
   apiManagementScenario: string
   apiManagementAgents: string
@@ -22,9 +19,6 @@ export interface AppConfig {
   apiManagementProviders: string
   apiManagementProviderConfigs: string
   apiManagementProviderConfig: string
-  apiAgentGeneratorGenerate: string
-  apiAgentGeneratorAgents: string
-  apiAgentGeneratorTrial: string
 }
 
 declare const __APP_CONFIG__: AppConfig

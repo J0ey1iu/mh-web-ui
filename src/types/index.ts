@@ -124,30 +124,6 @@ export interface AgentInfo {
   model?: string
 }
 
-export interface GeneratedAgent {
-  name: string
-  display_name: string
-  description: string
-  system_prompt: string
-  provider: string
-  model: string
-  llm_config: Record<string, any>
-  user_id?: string
-  created_at?: string
-  updated_at?: string
-}
-
-export interface GeneratedTool {
-  name: string
-  display_name: string
-  description: string
-  parameters: Record<string, any>
-  source_code: string
-  user_id?: string
-  created_at?: string
-  updated_at?: string
-}
-
 export interface ManageScenario {
   id: string
   name: string
