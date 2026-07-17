@@ -25,7 +25,7 @@ import { appConfig } from "../config"
 import BaseToolCard from "../components/BaseToolCard.vue"
 import ToolCallCard from "../components/ToolCallCard.vue"
 
-const THEMES = ["dark", "light", "dusk", "sepia", "eclipse", "lemonade"] as const
+const THEMES = ["dark", "light"] as const
 
 interface MockToolState {
   status: "running" | "success" | "error"

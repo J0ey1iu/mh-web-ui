@@ -14,10 +14,6 @@ All component styles reference these variables — no hardcoded colors anywhere.
 |---|---|---|---|
 | Dark | `"dark"` | `theme_dark` | True dark (default fallback when no theme set), blue accent |
 | Light | `"light"` | `theme_light` | Clean off-white (default in localStorage) |
-| Dusk | `"dusk"` | `theme_dusk` | Cool gray dark, purple accent |
-| Sepia | `"sepia"` | `theme_sepia` | Warm paper-like light |
-| Eclipse | `"eclipse"` | `theme_eclipse` | Warm dark, peach accent |
-| Lemonade | `"lemonade"` | `theme_lemonade` | Crisp light, lemon-yellow accent |
 
 The `:root` / `[data-theme="dark"]` block serves as the default when no theme is stored.
 
@@ -127,9 +123,9 @@ A single `:root` variable controls all transition durations, making theme-switch
 </button>
 ```
 
-5. Open `src/stores/i18n.ts` and add zh/en translations under keys `theme_your-theme`.
+5. Open `src/components/ManagementNav.vue` and add an entry in the `themes` array.
 
-6. (Optional) If you want the theme selector to appear on management pages too, add an entry in `src/components/ManagementNav.vue`'s `themeOptions` array.
+6. Open `src/stores/i18n.ts` and add zh/en translations under keys `theme_your-theme`.
 
 That's it. The `data-theme` attribute is synced automatically to `<html>` and persisted to `localStorage`.
 

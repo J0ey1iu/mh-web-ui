@@ -242,22 +242,7 @@ async function handleLogout() {
             {{ t("theme_light") }}
             <span v-if="theme === 'light'" class="check">✓</span>
           </button>
-          <button class="dropdown-item" :class="{ active: theme === 'dusk' }" @click="setTheme('dusk')">
-            {{ t("theme_dusk") }}
-            <span v-if="theme === 'dusk'" class="check">✓</span>
-          </button>
-          <button class="dropdown-item" :class="{ active: theme === 'sepia' }" @click="setTheme('sepia')">
-            {{ t("theme_sepia") }}
-            <span v-if="theme === 'sepia'" class="check">✓</span>
-          </button>
-          <button class="dropdown-item" :class="{ active: theme === 'lemonade' }" @click="setTheme('lemonade')">
-            {{ t("theme_lemonade") }}
-            <span v-if="theme === 'lemonade'" class="check">✓</span>
-          </button>
-          <button class="dropdown-item" :class="{ active: theme === 'eclipse' }" @click="setTheme('eclipse')">
-            {{ t("theme_eclipse") }}
-            <span v-if="theme === 'eclipse'" class="check">✓</span>
-          </button>
+
           <div class="dropdown-divider"></div>
           <div class="dropdown-label">{{ t("language") }}</div>
           <button class="dropdown-item" :class="{ active: locale === 'zh' }" @click="setLocaleHandler('zh')">

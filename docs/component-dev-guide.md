@@ -475,7 +475,7 @@ If your component throws during render, the error boundary in `ToolCallRenderer`
 3. **Always render `tool.progress` during `running`** — progress text carries the streaming execution updates; always show it when present: `<div v-if="tool.progress" class="tool-progress">{{ tool.progress }}</div>`. If the tool doesn't send progress, provide a generic fallback (e.g. `"Running..."`).
 4. **Parse JSON safely** — wrap `JSON.parse` in try/catch
 5. **Use scoped styles** — your custom CSS should use `<style scoped>`
-6. **Use CSS variables for colors** — the app supports multiple themes (dark, light, dusk, sepia, eclipse, lemonade). Reference theme variables like `var(--text-primary)`, `var(--text-secondary)`, `var(--surface-raised)`, `var(--border)`, `var(--accent)`, `var(--success)`, `var(--error)` instead of hardcoded hex values. See `docs/theme-dev-guide.md` for the full variable reference.
+6. **Use CSS variables for colors** — the app supports light and dark themes. Reference theme variables like `var(--text-primary)`, `var(--text-secondary)`, `var(--surface-raised)`, `var(--border)`, `var(--accent)`, `var(--success)`, `var(--error)` instead of hardcoded hex values. See `docs/theme-dev-guide.md` for the full variable reference.
 7. **Keep it focused** — each component handles one tool, one visual
 8. **Name directory exactly** — the directory name becomes the tool name (e.g., `discover_agents/` → `"discover_agents"`)
 9. **Export demoMock** — every component must export a `demoMock` object for the components demo page

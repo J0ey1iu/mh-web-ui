@@ -11,10 +11,7 @@ const messages: Record<Locale, Record<string, string>> = {
     sign_out: "退出登录",
     theme_dark: "午夜",
     theme_light: "浅色",
-    theme_dusk: "暮色",
-    theme_sepia: "怀旧",
-    theme_eclipse: "暗红",
-    theme_lemonade: "柠檬",
+
     theme: "主题",
     language: "语言",
     account: "账户",
@@ -200,10 +197,7 @@ const messages: Record<Locale, Record<string, string>> = {
     sign_out: "Sign out",
     theme_dark: "Midnight",
     theme_light: "Light",
-    theme_dusk: "Dusk",
-    theme_sepia: "Sepia",
-    theme_eclipse: "Eclipse",
-    theme_lemonade: "Lemonade",
+
     theme: "Theme",
     language: "Language",
     account: "Account",

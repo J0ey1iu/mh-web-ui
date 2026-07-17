@@ -28,10 +28,6 @@ const hasToolPermission = computed(() => hasAnyPermission("manage:tool:"))
 const themes = [
   { value: "light", labelKey: "theme_light" },
   { value: "dark", labelKey: "theme_dark" },
-  { value: "dusk", labelKey: "theme_dusk" },
-  { value: "sepia", labelKey: "theme_sepia" },
-  { value: "lemonade", labelKey: "theme_lemonade" },
-  { value: "eclipse", labelKey: "theme_eclipse" },
 ]
 
 const themeOptions = computed(() =>
