@@ -700,54 +700,6 @@
 
 .sel {
   padding: 7px 10px;
-  border: 1px solid var(--glass-border);
-  border-radius: 6px;
-  background: var(--glass-highlight);
-  color: var(--text-primary);
-  font-size: 12px;
-  min-width: 200px;
-  cursor: pointer;
-  font-family: inherit;
-  transition: border-color 0.2s, box-shadow 0.2s;
-}
-.sel:focus {
-  outline: none;
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px var(--accent-dim);
-}
-
-.locale-lang input:focus,
-.locale-lang textarea:focus {
-  outline: none;
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px var(--accent-dim);
-}
-
-.locale-lang textarea {
-  resize: vertical;
-}
-
-.locale-lang input::placeholder,
-.locale-lang textarea::placeholder {
-  color: var(--text-muted);
-}
-
-/* ── Inline form / selects in dialogs ── */
-.inline-form {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  margin-bottom: 14px;
-  flex-wrap: wrap;
-}
-
-.inline-form.compact {
-  margin-top: 6px;
-  margin-bottom: 6px;
-}
-
-.sel {
-  padding: 7px 10px;
   border: 1px solid var(--border);
   border-radius: 6px;
   background: var(--surface-raised);
