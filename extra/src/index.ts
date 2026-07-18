@@ -4,6 +4,8 @@ import Calculate, { demoMock as calculateMock } from "./calculate/index.vue"
 import GetCurrentTime, { demoMock as getCurrentTimeMock } from "./get_current_time/index.vue"
 import ShowUiMeta, { demoMock as showUiMetaMock } from "./show_ui_meta/index.vue"
 import GeneralViz, { demoMock as generalVizMock } from "./general_viz/index.vue"
+import Bash, { demoMock as bashMock, demoMockRunning as bashMockRunning, demoMockStreaming as bashMockStreaming, demoMockError as bashMockError } from "./bash/index.vue"
+import LocalFileOperator, { demoMock as lfoMock, demoMockRunning as lfoMockRunning, demoMockError as lfoMockError, demoMockListDir as lfoMockListDir, demoMockExists as lfoMockExists } from "./local_file_operator/index.vue"
 
 type ToolComponent = Component<{ tool: ToolCallDisplay }>
 
@@ -26,6 +28,19 @@ if (registry) {
 
   registry.register("general_visualization", GeneralViz as ToolComponent, { autoCollapsible: false })
   registry.registerMock?.("general_visualization", generalVizMock)
+
+  registry.register("bash", Bash as ToolComponent)
+  registry.registerMock?.("bash", bashMock)
+  import.meta.env.DEV && registry.registerMock?.("bash", bashMockRunning)
+  import.meta.env.DEV && registry.registerMock?.("bash", bashMockStreaming)
+  import.meta.env.DEV && registry.registerMock?.("bash", bashMockError)
+
+  registry.register("local_file_operator", LocalFileOperator as ToolComponent)
+  registry.registerMock?.("local_file_operator", lfoMock)
+  import.meta.env.DEV && registry.registerMock?.("local_file_operator", lfoMockRunning)
+  import.meta.env.DEV && registry.registerMock?.("local_file_operator", lfoMockError)
+  import.meta.env.DEV && registry.registerMock?.("local_file_operator", lfoMockListDir)
+  import.meta.env.DEV && registry.registerMock?.("local_file_operator", lfoMockExists)
 } else {
   console.error(
     "[MH Extra Tool Components] __MH_TOOL_REGISTRY__ not found on window. " +

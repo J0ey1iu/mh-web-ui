@@ -1,0 +1,26 @@
+export default {
+  en: {
+    executing: "Executing...",
+    completed: "Completed",
+    exit_code: "Exit code",
+    stdout: "stdout",
+    stderr: "stderr",
+    lines: "lines",
+    timed_out: "Command timed out. Try increasing timeout_ms or simplifying the command.",
+    shell_not_found: "Shell not found. Is it installed?",
+    no_output: "(no output)",
+    suggestion: "Suggestion",
+  },
+  zh: {
+    executing: "正在执行...",
+    completed: "执行完成",
+    exit_code: "退出码",
+    stdout: "标准输出",
+    stderr: "错误输出",
+    lines: "行",
+    timed_out: "命令执行超时。请增加 timeout_ms 或简化命令。",
+    shell_not_found: "未找到 Shell，请确认已安装。",
+    no_output: "（无输出）",
+    suggestion: "建议",
+  },
+} as const
