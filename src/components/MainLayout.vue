@@ -535,7 +535,8 @@ async function handleLogout() {
   right: 0;
   bottom: 0;
   width: 280px;
-  background: var(--glass-bg);
+  background: var(--surface-bg);
+  border-left: 1px solid var(--border);
   z-index: 220;
   display: flex;
   flex-direction: column;
