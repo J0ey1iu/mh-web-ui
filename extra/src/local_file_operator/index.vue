@@ -27,6 +27,26 @@ export const demoMockError = {
   }),
 }
 
+const _sampleDiff = [
+  "--- a/home/user/example.py",
+  "+++ b/home/user/example.py",
+  "@@ -1,9 +1,10 @@",
+  " def greet(name):",
+  '-    print("Hello, " + name)',
+  '+    print(f"Hello, {name}")',
+  " ",
+  " def add(a, b):",
+  "     return a + b",
+  " ",
+  "+def multiply(a, b):",
+  "+    return a * b",
+  "+",
+  " if __name__ == '__main__':",
+  '-    greet("World")',
+  '+    user = input("Enter your name: ")',
+  '+    greet(user)',
+]
+
 const _sampleEntries = [
   { name: "src", type: "directory", size: 0 },
   { name: "docs", type: "directory", size: 0 },
@@ -58,6 +78,18 @@ export const demoMockExists = {
     exists: true,
     is_file: false,
     is_dir: true,
+  }),
+}
+
+export const demoMockEdit = {
+  status: "success" as const,
+  progress: "",
+  result: JSON.stringify({
+    status: "ok",
+    message: "Replaced 2 occurrence(s) in /home/user/example.py",
+    path: "/home/user/example.py",
+    replacement_count: 2,
+    diff: _sampleDiff,
   }),
 }
 </script>
@@ -95,6 +127,7 @@ interface FileOpResult {
   replacement_count?: number
   file_content_preview?: string
   suggestion?: string
+  diff?: string[]
 }
 
 const parsedResult = computed<FileOpResult | null>(() => {
@@ -150,6 +183,18 @@ const showMoveCopy = computed(() => {
   const r = parsedResult.value
   return r && r.source && r.destination
 })
+
+const showDiff = computed(() => {
+  const r = parsedResult.value
+  return r && r.diff && r.diff.length > 0
+})
+
+const diffLineClass = (line: string): string => {
+  if (line.startsWith("+++") || line.startsWith("---") || line.startsWith("@@")) return "lfo-diff-meta"
+  if (line.startsWith("+")) return "lfo-diff-add"
+  if (line.startsWith("-")) return "lfo-diff-del"
+  return "lfo-diff-ctx"
+}
 
 const formatSize = (bytes: number): string => {
   if (bytes < 1024) return `${bytes} B`
@@ -221,6 +266,19 @@ const opIcon = computed(() => {
         <div v-if="parsedResult.replacement_count !== undefined" class="lfo-info-row">
           <span class="lfo-info-label">{{ t("replacements") }}</span>
           <span class="lfo-info-value">{{ parsedResult.replacement_count }}</span>
+        </div>
+
+        <!-- diff display (for edit) -->
+        <div v-if="showDiff" class="lfo-section">
+          <div class="lfo-section-label">diff</div>
+          <div class="lfo-diff">
+            <div
+              v-for="(line, idx) in parsedResult.diff"
+              :key="idx"
+              class="lfo-diff-line"
+              :class="diffLineClass(line)"
+            ><span class="lfo-diff-code">{{ line }}</span></div>
+          </div>
         </div>
 
         <!-- directory listing -->
@@ -324,6 +382,15 @@ const opIcon = computed(() => {
 .lfo-move-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.3px; color: var(--text-muted); display: block; margin-bottom: 2px; }
 .lfo-move-path { font-family: "SF Mono", "Fira Code", monospace; font-size: 11px; color: var(--text-primary); word-break: break-all; }
 .lfo-move-arrow { font-size: 16px; color: var(--text-muted); flex-shrink: 0; }
+.lfo-diff { border: 1px solid var(--border); border-radius: 8px; overflow: hidden; font-family: "SF Mono", "Fira Code", "Cascadia Code", "Consolas", monospace; font-size: 12px; line-height: 1.5; background: color-mix(in srgb, #000 4%, var(--surface-bg) 96%); }
+.lfo-diff-line { padding: 0 10px; white-space: pre-wrap; word-break: break-all; min-height: 1.5em; display: flex; align-items: center; }
+.lfo-diff-code { white-space: pre-wrap; word-break: break-all; width: 100%; }
+.lfo-diff-meta { background: color-mix(in srgb, var(--accent) 8%, transparent); color: var(--accent); font-weight: 500; letter-spacing: -0.2px; }
+.lfo-diff-add { background: color-mix(in srgb, #22c55e 8%, transparent); border-left: 3px solid #22c55e; padding-left: 7px; }
+.lfo-diff-add .lfo-diff-code { color: #22c55e; }
+.lfo-diff-del { background: color-mix(in srgb, #ef4444 8%, transparent); border-left: 3px solid #ef4444; padding-left: 7px; }
+.lfo-diff-del .lfo-diff-code { color: #ef4444; }
+.lfo-diff-ctx { color: var(--text-secondary); padding-left: 10px; }
 .lfo-suggestion { display: flex; align-items: flex-start; gap: 6px; margin-top: 8px; padding: 6px 8px; background: color-mix(in srgb, var(--accent) 6%, transparent); border-radius: 6px; font-size: 12px; color: var(--text-secondary); line-height: 1.4; }
 .lfo-suggestion-icon { display: inline-flex; align-items: center; justify-content: center; width: 16px; height: 16px; border-radius: 50%; background: color-mix(in srgb, var(--accent) 15%, transparent); color: var(--accent); font-size: 10px; font-weight: 700; flex-shrink: 0; margin-top: 1px; }
 .lfo-error-msg { font-size: 13px; color: var(--error); padding: 4px 0; }

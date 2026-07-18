@@ -5,7 +5,7 @@ import GetCurrentTime, { demoMock as getCurrentTimeMock } from "./get_current_ti
 import ShowUiMeta, { demoMock as showUiMetaMock } from "./show_ui_meta/index.vue"
 import GeneralViz, { demoMock as generalVizMock } from "./general_viz/index.vue"
 import Bash, { demoMock as bashMock, demoMockRunning as bashMockRunning, demoMockStreaming as bashMockStreaming, demoMockError as bashMockError } from "./bash/index.vue"
-import LocalFileOperator, { demoMock as lfoMock, demoMockRunning as lfoMockRunning, demoMockError as lfoMockError, demoMockListDir as lfoMockListDir, demoMockExists as lfoMockExists } from "./local_file_operator/index.vue"
+import LocalFileOperator, { demoMock as lfoMock, demoMockRunning as lfoMockRunning, demoMockError as lfoMockError, demoMockListDir as lfoMockListDir, demoMockExists as lfoMockExists, demoMockEdit as lfoMockEdit } from "./local_file_operator/index.vue"
 
 type ToolComponent = Component<{ tool: ToolCallDisplay }>
 
@@ -41,6 +41,7 @@ if (registry) {
   import.meta.env.DEV && registry.registerMock?.("local_file_operator", lfoMockError)
   import.meta.env.DEV && registry.registerMock?.("local_file_operator", lfoMockListDir)
   import.meta.env.DEV && registry.registerMock?.("local_file_operator", lfoMockExists)
+  import.meta.env.DEV && registry.registerMock?.("local_file_operator", lfoMockEdit)
 } else {
   console.error(
     "[MH Extra Tool Components] __MH_TOOL_REGISTRY__ not found on window. " +
