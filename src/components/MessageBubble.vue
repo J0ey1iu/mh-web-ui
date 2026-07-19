@@ -55,6 +55,15 @@ onUnmounted(() => {
 
 provide(FOLDABLE_COLLAPSED_KEY, collapsed)
 
+function toggleCompactCollapse() {
+  if (!props.message.compactBoundary) return
+  collapsed.value = !collapsed.value
+  if (collapseTimer) {
+    clearTimeout(collapseTimer)
+    collapseTimer = null
+  }
+}
+
 async function copy(text: string) {
   if (!text) return
   try {
@@ -72,32 +81,203 @@ async function copy(text: string) {
 
 <template>
   <div v-if="!hasNoContent || isStreaming" :class="['message', message.role, { 'compact-boundary': message.compactBoundary }]">
-    <div v-if="message.compactBoundary" class="compact-divider">
-      <span class="compact-divider-label">{{ t("compact_divider") }}</span>
-    </div>
-    <div class="avatar">
-      {{ message.role === "user" ? "U" : message.compactBoundary ? "S" : "A" }}
-    </div>
-    <div class="bubble">
-      <div v-if="message.compactBoundary" class="compact-summary-badge">{{ t("compact_title") }}</div>
-      <template v-if="message.orderedItems">
-        <template v-for="(item, i) in message.orderedItems" :key="i">
-          <ReasoningBlock
-            v-if="item.type === 'reasoning'"
-            :text="item.text ?? ''"
-          />
+    <template v-if="message.compactBoundary">
+      <span class="compact-rule" aria-hidden="true"></span>
+      <div class="compact-stack" :class="{ 'compact-enter': message.freshlyStreamed }">
+        <div class="compact-panel" :class="{ 'is-collapsed': collapsed }">
+          <div class="compact-header" @click="toggleCompactCollapse">
+            <div class="compact-header-left">
+              <span class="compact-icon-badge">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polygon points="12 2 2 7 12 12 22 7 12 2" />
+                  <polyline points="2 17 12 22 22 17" />
+                  <polyline points="2 12 12 17 22 12" />
+                </svg>
+              </span>
+              <span class="compact-header-title">{{ t("compact_title") }}</span>
+            </div>
+            <div class="compact-header-right">
+              <div v-if="message.compactStats" class="compact-chips">
+                <span class="compact-chip">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+                  </svg>
+                  {{ message.compactStats.duration }}ms
+                </span>
+                <span class="compact-chip">{{ message.compactStats.droppedMessageCount }} {{ t("compact_messages") }}</span>
+              </div>
+              <svg :class="['compact-chevron', { 'is-open': !collapsed }]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="6 9 12 15 18 9" />
+              </svg>
+            </div>
+          </div>
+          <div class="compact-body" :class="{ collapsed: collapsed }">
+            <div class="compact-content">
+              <div class="compact-content-inner">
+              <template v-if="message.orderedItems">
+                <template v-for="(item, i) in message.orderedItems" :key="i">
+                  <ReasoningBlock
+                    v-if="item.type === 'reasoning'"
+                    :text="item.text ?? ''"
+                  />
+                  <div
+                    v-else-if="item.type === 'content'"
+                    class="content-segment copyable"
+                    @mouseenter="hoveredIndex = i"
+                    @mouseleave="hoveredIndex = null"
+                  >
+                    <AgentAnswer :content="item.text ?? ''" />
+                    <button
+                      v-show="hoveredIndex === i"
+                      class="copy-btn"
+                      :title="t('copy')"
+                      @click="copy(item.text ?? '')"
+                    >
+                      <svg
+                        width="14"
+                        height="14"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      >
+                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                      </svg>
+                    </button>
+                  </div>
+                  <ToolCallRenderer
+                    v-else-if="
+                      item.type === 'tool_call' &&
+                      message.tool_calls?.[item.toolCallIndex ?? -1]
+                    "
+                    :tool="message.tool_calls[item.toolCallIndex!]"
+                  />
+                </template>
+              </template>
+
+              <template v-else>
+                <div v-if="message.tool_calls?.length" class="tool-calls">
+                  <ToolCallRenderer
+                    v-for="tc in message.tool_calls"
+                    :key="tc.id"
+                    :tool="tc"
+                  />
+                </div>
+                <div
+                  v-if="message.content"
+                  class="copyable"
+                  @mouseenter="hovered = true"
+                  @mouseleave="hovered = false"
+                >
+                  <AgentAnswer :content="message.content" />
+                  <button
+                    v-show="hovered"
+                    class="copy-btn"
+                    :title="t('copy')"
+                    @click="copy(message.content)"
+                  >
+                    <svg
+                      width="14"
+                      height="14"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    >
+                      <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                    </svg>
+                  </button>
+                </div>
+              </template>
+
+              <div
+                v-if="isStreaming && !message.orderedItems?.length"
+                class="thinking"
+              >
+                <span class="dot-pulse"></span>
+              </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <span class="compact-rule" aria-hidden="true"></span>
+    </template>
+    <template v-else>
+      <div class="avatar">
+        {{ message.role === "user" ? "U" : "A" }}
+      </div>
+      <div class="bubble">
+        <template v-if="message.orderedItems">
+          <template v-for="(item, i) in message.orderedItems" :key="i">
+            <ReasoningBlock
+              v-if="item.type === 'reasoning'"
+              :text="item.text ?? ''"
+            />
+            <div
+              v-else-if="item.type === 'content'"
+              class="content-segment copyable"
+              @mouseenter="hoveredIndex = i"
+              @mouseleave="hoveredIndex = null"
+            >
+              <AgentAnswer :content="item.text ?? ''" />
+              <button
+                v-show="hoveredIndex === i"
+                class="copy-btn"
+                :title="t('copy')"
+                @click="copy(item.text ?? '')"
+              >
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                </svg>
+              </button>
+            </div>
+            <ToolCallRenderer
+              v-else-if="
+                item.type === 'tool_call' &&
+                message.tool_calls?.[item.toolCallIndex ?? -1]
+              "
+              :tool="message.tool_calls[item.toolCallIndex!]"
+            />
+          </template>
+        </template>
+
+        <template v-else>
+          <div v-if="message.tool_calls?.length" class="tool-calls">
+            <ToolCallRenderer
+              v-for="tc in message.tool_calls"
+              :key="tc.id"
+              :tool="tc"
+            />
+          </div>
           <div
-            v-else-if="item.type === 'content'"
-            class="content-segment copyable"
-            @mouseenter="hoveredIndex = i"
-            @mouseleave="hoveredIndex = null"
+            v-if="message.content"
+            class="copyable"
+            @mouseenter="hovered = true"
+            @mouseleave="hovered = false"
           >
-            <AgentAnswer :content="item.text ?? ''" />
+            <AgentAnswer :content="message.content" />
             <button
-              v-show="hoveredIndex === i"
+              v-show="hovered"
               class="copy-btn"
               :title="t('copy')"
-              @click="copy(item.text ?? '')"
+              @click="copy(message.content)"
             >
               <svg
                 width="14"
@@ -114,61 +294,16 @@ async function copy(text: string) {
               </svg>
             </button>
           </div>
-          <ToolCallRenderer
-            v-else-if="
-              item.type === 'tool_call' &&
-              message.tool_calls?.[item.toolCallIndex ?? -1]
-            "
-            :tool="message.tool_calls[item.toolCallIndex!]"
-          />
         </template>
-      </template>
 
-      <template v-else>
-        <div v-if="message.tool_calls?.length" class="tool-calls">
-          <ToolCallRenderer
-            v-for="tc in message.tool_calls"
-            :key="tc.id"
-            :tool="tc"
-          />
-        </div>
         <div
-          v-if="message.content"
-          class="copyable"
-          @mouseenter="hovered = true"
-          @mouseleave="hovered = false"
+          v-if="isStreaming && !message.orderedItems?.length"
+          class="thinking"
         >
-          <AgentAnswer :content="message.content" />
-          <button
-            v-show="hovered"
-            class="copy-btn"
-            :title="t('copy')"
-            @click="copy(message.content)"
-          >
-            <svg
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            >
-              <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
-              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-            </svg>
-          </button>
+          <span class="dot-pulse"></span>
         </div>
-      </template>
-
-      <div
-        v-if="isStreaming && !message.orderedItems?.length"
-        class="thinking"
-      >
-        <span class="dot-pulse"></span>
       </div>
-    </div>
+    </template>
   </div>
 </template>
 
@@ -223,27 +358,6 @@ async function copy(text: string) {
   border-bottom-left-radius: 4px;
   border: 1px solid var(--glass-border);
 }
-.message.assistant.compact-boundary .bubble {
-  background: var(--surface-raised);
-  border-color: var(--accent-dim);
-  border-style: dashed;
-  padding-top: 6px;
-  border-left: 3px solid var(--accent-dim);
-  border-radius: 4px 14px 14px 4px;
-}
-.compact-boundary .avatar {
-  background: var(--accent-dim) !important;
-  color: var(--accent) !important;
-}
-.compact-boundary .bubble .compact-summary-badge {
-  display: inline-block;
-  font-size: 9px;
-  text-transform: uppercase;
-  letter-spacing: 0.8px;
-  color: var(--accent);
-  font-weight: 700;
-  margin-bottom: 4px;
-}
 .tool-calls {
   margin-bottom: 8px;
 }
@@ -276,33 +390,6 @@ async function copy(text: string) {
 .copy-btn:hover {
   color: var(--accent);
 }
-.compact-boundary {
-  margin-top: 40px !important;
-}
-.compact-divider {
-  position: absolute;
-  top: -20px;
-  left: 0;
-  right: 0;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-.compact-divider::before,
-.compact-divider::after {
-  content: "";
-  flex: 1;
-  height: 1px;
-  background: var(--glass-border);
-}
-.compact-divider-label {
-  font-size: 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.6px;
-  color: var(--text-muted);
-  font-weight: 600;
-  white-space: nowrap;
-}
 .thinking {
   padding: 8px 0;
 }
@@ -322,6 +409,243 @@ async function copy(text: string) {
   50% {
     opacity: 1;
     transform: scale(1.2);
+  }
+}
+
+/* ── Compaction card ── */
+.compact-boundary {
+  margin-top: 28px;
+  padding: 0 16px;
+}
+.compact-stack {
+  position: relative;
+  isolation: isolate;
+  width: 100%;
+  max-width: 780px;
+  margin: 0 auto;
+}
+.compact-stack::before,
+.compact-stack::after {
+  content: "";
+  position: absolute;
+  height: 100%;
+  border-radius: 12px;
+  background: var(--surface-raised);
+  border: 1px solid var(--glass-border);
+  z-index: 0;
+  pointer-events: none;
+  transition: transform 0.3s ease, opacity 0.3s ease;
+}
+.compact-stack::before {
+  top: -5px;
+  left: 6px;
+  right: 6px;
+  opacity: 0.55;
+}
+.compact-stack::after {
+  top: -10px;
+  left: 12px;
+  right: 12px;
+  opacity: 0.3;
+}
+.compact-stack:hover::before {
+  transform: translateY(-2px);
+  opacity: 0.7;
+}
+.compact-stack:hover::after {
+  transform: translateY(-4px);
+  opacity: 0.45;
+}
+.compact-panel {
+  position: relative;
+  z-index: 1;
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--surface-bg);
+  transition: border-color 0.25s ease, box-shadow 0.25s ease;
+}
+.compact-panel::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 20px;
+  right: 20px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+  opacity: 0.45;
+  z-index: 2;
+  pointer-events: none;
+}
+.compact-stack:hover .compact-panel {
+  border-color: color-mix(in srgb, var(--accent) 35%, var(--glass-border));
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.22), 0 0 24px color-mix(in srgb, var(--accent) 10%, transparent);
+}
+.compact-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 14px;
+  background: linear-gradient(135deg, var(--surface-alt) 0%, color-mix(in srgb, var(--accent-dim) 30%, var(--surface-alt)) 100%);
+  border-bottom: 1px solid var(--glass-border);
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.25s ease, border-color 0.3s ease;
+}
+.compact-header:hover {
+  background: linear-gradient(135deg, var(--surface-raised) 0%, color-mix(in srgb, var(--accent-dim) 45%, var(--surface-raised)) 100%);
+}
+.compact-header:hover .compact-chevron {
+  color: var(--accent);
+}
+.compact-panel.is-collapsed .compact-header {
+  border-bottom-color: transparent;
+}
+.compact-header-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.compact-icon-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  background: var(--accent-dim);
+  color: var(--accent);
+  flex-shrink: 0;
+  box-shadow: 0 0 12px color-mix(in srgb, var(--accent) 25%, transparent);
+}
+.compact-icon-badge svg {
+  width: 14px;
+  height: 14px;
+}
+.compact-header-title {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  color: var(--text-strong);
+  white-space: nowrap;
+}
+.compact-header-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.compact-chips {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.compact-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 99px;
+  background: color-mix(in srgb, var(--accent-dim) 70%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) 25%, transparent);
+  color: var(--accent);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  white-space: nowrap;
+}
+.compact-chip svg {
+  width: 10px;
+  height: 10px;
+}
+.compact-chevron {
+  width: 15px;
+  height: 15px;
+  color: var(--text-tertiary);
+  flex-shrink: 0;
+  transition: transform 0.3s ease, color 0.2s ease;
+}
+.compact-chevron.is-open {
+  transform: rotate(180deg);
+}
+.compact-body {
+  display: grid;
+  grid-template-rows: 1fr;
+  transition: grid-template-rows 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.compact-body.collapsed {
+  grid-template-rows: 0fr;
+}
+.compact-content {
+  overflow: hidden;
+  min-height: 0;
+}
+.compact-content-inner {
+  padding: 12px 14px;
+  background: var(--glass-bg);
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text-primary);
+}
+.compact-rule {
+  flex: 1;
+  height: 1px;
+  margin-top: 19px;
+  background: var(--glass-border);
+  min-width: 16px;
+  pointer-events: none;
+}
+.compact-enter {
+  animation: compact-enter 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+}
+@keyframes compact-enter {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (max-width: 600px) {
+  .compact-boundary {
+    padding: 0 8px;
+  }
+  .compact-chips {
+    display: none;
+  }
+  .compact-header {
+    padding: 9px 12px;
+  }
+  .compact-content-inner {
+    padding: 10px 12px;
+  }
+  .compact-stack::before {
+    top: -4px;
+    left: 5px;
+    right: 5px;
+  }
+  .compact-stack::after {
+    top: -8px;
+    left: 10px;
+    right: 10px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .compact-enter {
+    animation: none;
+  }
+  .compact-body,
+  .compact-stack::before,
+  .compact-stack::after,
+  .compact-panel,
+  .compact-chevron {
+    transition: none;
   }
 }
 </style>

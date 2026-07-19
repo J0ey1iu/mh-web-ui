@@ -31,6 +31,12 @@ export interface ResponseItem {
   toolCallIndex?: number
 }
 
+export interface CompactStats {
+  duration: number
+  droppedMessageCount: number
+  totalTokens?: number
+}
+
 export interface Message {
   id: string
   role: MessageRole
@@ -39,6 +45,7 @@ export interface Message {
   tool_calls?: ToolCallDisplay[]
   freshlyStreamed?: boolean
   compactBoundary?: boolean
+  compactStats?: CompactStats
 }
 
 export interface ToolCallDisplay {

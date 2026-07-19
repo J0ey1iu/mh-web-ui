@@ -1,7 +1,7 @@
 import { defineStore } from "pinia"
 import { ref, computed, watch } from "vue"
 import router from "../router"
-import type { MessageItem, SessionInfo, Message, ToolCallDisplay, ResponseItem, ScenarioInfo, AgentInfo, StreamingState } from "../types"
+import type { MessageItem, SessionInfo, Message, ToolCallDisplay, ResponseItem, ScenarioInfo, AgentInfo, StreamingState, CompactionEnd } from "../types"
 import { SSE_EVENTS } from "../types"
 import { useI18nStore } from "./i18n"
 import { fetchMessages, fetchSessions, createSession, deleteSession, fetchScenarios, fetchScenarioDetail, streamChat, compactSession } from "../api/client"
@@ -510,6 +510,7 @@ export const useChatStore = defineStore("chat", () => {
     messages.value = [...sessionMessagesMap[memoryId]]
 
     const compactPending = { content: "", reasoning: "" }
+    let compactEndData: CompactionEnd | null = null
     let compactFlushTimer: ReturnType<typeof setTimeout> | null = null
 
     function flushCompact() {
@@ -544,6 +545,10 @@ export const useChatStore = defineStore("chat", () => {
     compactSession(
       memoryId,
       (_event, _data) => {
+        if (_event === SSE_EVENTS.COMPACTION_END) {
+          compactEndData = _data as CompactionEnd
+          return
+        }
         if (_event !== SSE_EVENTS.COMPACTION_CHUNK) return
         if (_data.type === "reasoning" && _data.accumulated) {
           compactPending.reasoning = _data.accumulated
@@ -569,6 +574,10 @@ export const useChatStore = defineStore("chat", () => {
                 ? [{ type: "reasoning", text: compactPending.reasoning }, { type: "content", text: compactPending.content }]
                 : [{ type: "content", text: compactPending.content }],
               freshlyStreamed: false,
+              compactStats: compactEndData ? {
+                duration: compactEndData.duration,
+                droppedMessageCount: compactEndData.dropped_message_count,
+              } : undefined,
             }
             sessionMessagesMap[memoryId][idx] = finalMsg
             messages.value = [...sessionMessagesMap[memoryId]]
