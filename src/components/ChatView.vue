@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { ref, watch, nextTick, computed } from "vue"
-import type { Message, StreamingState } from "../types"
+import type { Message, StreamingState, SlashCommand } from "../types"
 import MessageBubble from "./MessageBubble.vue"
 import SkeletonBlock from "./SkeletonBlock.vue"
+import SlashCommandPanel from "./SlashCommandPanel.vue"
 import { useI18nStore } from "../stores/i18n"
+import { filterSlashCommands } from "../slashCommandRegistry"
 
 const props = defineProps<{
   messages: Message[]
@@ -16,12 +18,18 @@ const emit = defineEmits<{
   send: [text: string]
   cancel: []
   newChat: []
+  slashCommand: [command: SlashCommand]
 }>()
 
 const { t } = useI18nStore()
 const input = ref("")
 const listRef = ref<HTMLDivElement | null>(null)
 const isAtBottom = ref(true)
+
+const showSlashPanel = ref(false)
+const slashFilter = ref("")
+const selectedIndex = ref(0)
+const filteredCommands = computed(() => filterSlashCommands(slashFilter.value))
 
 const showScrollBtn = computed(
   () => !isAtBottom.value && props.streaming.isStreaming
@@ -69,9 +77,25 @@ watch(
   { deep: true },
 )
 
+function closeSlashPanel() {
+  showSlashPanel.value = false
+  slashFilter.value = ""
+  selectedIndex.value = 0
+}
+
+function executeSlashCommand(cmd: SlashCommand) {
+  closeSlashPanel()
+  input.value = ""
+  emit("slashCommand", cmd)
+}
+
 function onButtonClick() {
   if (props.streaming.isStreaming) {
     emit("cancel")
+    return
+  }
+  if (showSlashPanel.value && filteredCommands.value.length > 0) {
+    executeSlashCommand(filteredCommands.value[selectedIndex.value])
     return
   }
   const text = input.value.trim()
@@ -81,11 +105,42 @@ function onButtonClick() {
 }
 
 function onKeydown(e: KeyboardEvent) {
+  if (showSlashPanel.value) {
+    if (e.key === "ArrowDown") {
+      e.preventDefault()
+      selectedIndex.value = (selectedIndex.value + 1) % filteredCommands.value.length
+      return
+    }
+    if (e.key === "ArrowUp") {
+      e.preventDefault()
+      selectedIndex.value = (selectedIndex.value - 1 + filteredCommands.value.length) % filteredCommands.value.length
+      return
+    }
+    if (e.key === "Escape") {
+      e.preventDefault()
+      closeSlashPanel()
+      return
+    }
+  }
   if (e.key === "Enter" && !e.shiftKey && !e.isComposing) {
     e.preventDefault()
     onButtonClick()
   }
 }
+
+watch(input, (val) => {
+  if (val.startsWith("/") && val.length > 1) {
+    showSlashPanel.value = true
+    slashFilter.value = val.slice(1)
+    selectedIndex.value = 0
+  } else if (val === "/") {
+    showSlashPanel.value = true
+    slashFilter.value = ""
+    selectedIndex.value = 0
+  } else {
+    closeSlashPanel()
+  }
+})
 </script>
 
 <template>
@@ -137,28 +192,37 @@ function onKeydown(e: KeyboardEvent) {
       </svg>
       {{ t("scroll_to_bottom") }}
     </button>
-    <div class="input-bar">
-      <button
-        class="btn-new-chat"
-        @click="emit('newChat')"
-        :title="t('new_chat')"
-      >
-        +
-      </button>
-      <textarea
-        v-model="input"
-        :placeholder="t('type_message')"
-        :disabled="disabled"
-        rows="1"
-        @keydown="onKeydown"
-      ></textarea>
-      <button
-        :class="{ 'btn-cancel': streaming.isStreaming }"
-        :disabled="!streaming.isStreaming && (disabled || !input.trim())"
-        @click="onButtonClick"
-      >
-        {{ streaming.isStreaming ? t("stop") : t("send") }}
-      </button>
+    <div class="input-area">
+      <div class="input-bar">
+        <SlashCommandPanel
+          :visible="showSlashPanel"
+          :commands="filteredCommands"
+          :selected-index="selectedIndex"
+          @select="executeSlashCommand"
+          @close="closeSlashPanel"
+        />
+        <button
+          class="btn-new-chat"
+          @click="emit('newChat')"
+          :title="t('new_chat')"
+        >
+          +
+        </button>
+        <textarea
+          v-model="input"
+          :placeholder="t('type_message')"
+          :disabled="disabled"
+          rows="1"
+          @keydown="onKeydown"
+        ></textarea>
+        <button
+          :class="{ 'btn-cancel': streaming.isStreaming }"
+          :disabled="!streaming.isStreaming && (disabled || !input.trim())"
+          @click="onButtonClick"
+        >
+          {{ streaming.isStreaming ? t("stop") : t("send") }}
+        </button>
+      </div>
     </div>
   </div>
 </template>
@@ -189,12 +253,16 @@ function onKeydown(e: KeyboardEvent) {
   color: var(--text-muted);
   font-size: 14px;
 }
+.input-area {
+  position: relative;
+}
 .input-bar {
   display: flex;
   gap: 8px;
   padding: 10px 12px;
   background: var(--glass-bg);
   border-top: 1px solid var(--glass-border);
+  position: relative;
 }
 .input-bar textarea {
   flex: 1;

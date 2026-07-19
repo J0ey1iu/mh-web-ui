@@ -8,6 +8,7 @@ import { useI18nStore } from "../stores/i18n"
 import { appConfig } from "../config"
 import { TOOL_CONTEXT_KEY } from "../toolContext"
 import { ensureComponentsLoaded } from "../toolComponentLoader"
+import { registerSlashCommand } from "../slashCommandRegistry"
 import ChatView from "./ChatView.vue"
 import AgentSelector from "./AgentSelector.vue"
 import SkeletonBlock from "./SkeletonBlock.vue"
@@ -21,6 +22,7 @@ const {
   currentSessionId,
   messages,
   streaming,
+  compacting,
   backendOnline,
   error,
   currentScenario,
@@ -116,6 +118,15 @@ onMounted(async () => {
   skipUrlWatch.value = true
   await checkAuth()
   ensureComponentsLoaded()
+
+  registerSlashCommand({
+    name: "compact",
+    displayName: t("compact_title"),
+    description: t("compact_desc"),
+    handler: async ({ sessionId }) => {
+      if (sessionId) chatStore.triggerCompact(sessionId)
+    },
+  })
   await loadScenarios()
   // The scenario detail (loaded in selectScenario below) populates toolDisplayNames
 
@@ -203,6 +214,10 @@ function handleSendMessage(text: string) {
   sendMessage(text)
 }
 
+function handleSlashCommand(cmd: import("../types").SlashCommand) {
+  cmd.handler({ sessionId: currentSessionId.value ?? "" })
+}
+
 async function handleLogout() {
   try {
     await fetch(appConfig.apiAuthLogout, { method: "POST", credentials: "include" })
@@ -216,7 +231,7 @@ async function handleLogout() {
 <template>
   <div class="layout">
     <header class="top-bar">
-      <BrandingHeader :active="streaming.isStreaming" />
+      <BrandingHeader :active="streaming.isStreaming || compacting" />
 
       <div class="spacer"></div>
       <button class="header-btn" @click="drawerOpen = true" aria-label="Sessions">
@@ -400,6 +415,7 @@ async function handleLogout() {
           @send="handleSendMessage"
           @cancel="cancelStream"
           @new-chat="handleNewChat"
+          @slash-command="handleSlashCommand"
         />
       </template>
     </div>

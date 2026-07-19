@@ -167,6 +167,10 @@ const messages: Record<Locale, Record<string, string>> = {
     mgmt_api_key: "API Key",
     mgmt_api_key_placeholder: "输入 API Key",
     mgmt_base_url_placeholder: "可选，如 https://api.openai.com/v1",
+    slash_commands: "快捷指令",
+    compact_title: "总结对话",
+    compact_desc: "将对话历史压缩为摘要以节省上下文",
+    compact_divider: "以上内容已被总结",
   },
   en: {
     sessions: "Sessions",
@@ -328,6 +332,10 @@ const messages: Record<Locale, Record<string, string>> = {
     mgmt_api_key: "API Key",
     mgmt_api_key_placeholder: "Enter API Key",
     mgmt_base_url_placeholder: "Optional, e.g. https://api.openai.com/v1",
+    slash_commands: "Commands",
+    compact_title: "Summarize Conversation",
+    compact_desc: "Compress chat history to save context",
+    compact_divider: "Above content summarized",
   },
 }
 

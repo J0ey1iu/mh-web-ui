@@ -6,6 +6,12 @@ export interface SessionInfo {
   agent_name: string
   scenario_id?: string
   display_name?: string
+  compact_offset?: number
+}
+
+export interface MessagesResponse {
+  items: MessageItem[]
+  compact_offset: number
 }
 
 export interface ToolCall {
@@ -32,6 +38,7 @@ export interface Message {
   orderedItems?: ResponseItem[]
   tool_calls?: ToolCallDisplay[]
   freshlyStreamed?: boolean
+  compactBoundary?: boolean
 }
 
 export interface ToolCallDisplay {
@@ -61,14 +68,46 @@ export const SSE_EVENTS = {
   TOOL_END: "ToolEnd",
   AGENT_END: "AgentEnd",
   ERROR: "Error",
+  COMPACTION_START: "CompactionStart",
+  COMPACTION_CHUNK: "CompactionChunk",
+  COMPACTION_END: "CompactionEnd",
 } as const
 
 export type SSEEventName = typeof SSE_EVENTS[keyof typeof SSE_EVENTS]
+
+export interface CompactionStart {
+  dropped_message_count: number
+  existing_summary: string | null
+  keep_recent: number
+  total_tokens: number
+}
+
+export interface CompactionChunk {
+  type?: "reasoning" | "content"
+  delta: string
+  accumulated: string
+}
+
+export interface CompactionEnd {
+  summary: string
+  dropped_message_count: number
+  new_offset: number
+  duration: number
+  error: string | null
+}
+
+export interface SlashCommand {
+  name: string
+  displayName: string
+  description: string
+  handler: (ctx: { sessionId: string }) => void | Promise<void>
+}
 
 export interface MessageItem {
   id: string
   role: string
   content: string
+  reasoning?: string
   tool_calls: Array<{
     id: string
     function: { name: string; arguments: string }
@@ -76,6 +115,7 @@ export interface MessageItem {
   tool_call_id: string | null
   progress?: string[]
   meta?: string
+  compact_boundary?: boolean
 }
 
 export interface StreamingState {

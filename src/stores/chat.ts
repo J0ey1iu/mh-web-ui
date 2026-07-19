@@ -4,7 +4,7 @@ import router from "../router"
 import type { MessageItem, SessionInfo, Message, ToolCallDisplay, ResponseItem, ScenarioInfo, AgentInfo, StreamingState } from "../types"
 import { SSE_EVENTS } from "../types"
 import { useI18nStore } from "./i18n"
-import { fetchMessages, fetchSessions, createSession, deleteSession, fetchScenarios, fetchScenarioDetail, streamChat } from "../api/client"
+import { fetchMessages, fetchSessions, createSession, deleteSession, fetchScenarios, fetchScenarioDetail, streamChat, compactSession } from "../api/client"
 
 const FLUSH_INTERVAL = 100
 
@@ -44,6 +44,7 @@ export const useChatStore = defineStore("chat", () => {
   const toolDisplayNames = ref<Record<string, string>>({})
 
   const streaming = ref<StreamingState>(freshState())
+  const compacting = ref(false)
 
   let errorTimer: ReturnType<typeof setTimeout> | null = null
 
@@ -377,10 +378,10 @@ export const useChatStore = defineStore("chat", () => {
       messages.value = []
       messagesLoading.value = true
       try {
-        const apiMessages = await fetchMessages(memoryId)
-        const transformed = transformMessages(apiMessages)
-        sessionMessagesMap[memoryId] = transformed
-        messages.value = [...transformed]
+      const msgResp = await fetchMessages(memoryId)
+      const transformed = transformMessages(msgResp.items)
+      sessionMessagesMap[memoryId] = transformed
+      messages.value = [...transformed]
       } catch (e) {
         error.value = String(e)
       } finally {
@@ -493,6 +494,107 @@ export const useChatStore = defineStore("chat", () => {
     sessionStreamingMap.value[sid] = freshState()
   }
 
+  async function triggerCompact(memoryId: string) {
+    if (!memoryId || compacting.value || streaming.value.isStreaming) return
+    compacting.value = true
+
+    const compactMsg: Message = {
+      id: `compact-${Date.now()}`,
+      role: "assistant",
+      content: "",
+      compactBoundary: true,
+      freshlyStreamed: true,
+    }
+    if (!sessionMessagesMap[memoryId]) sessionMessagesMap[memoryId] = []
+    sessionMessagesMap[memoryId].push(compactMsg)
+    messages.value = [...sessionMessagesMap[memoryId]]
+
+    const compactPending = { content: "", reasoning: "" }
+    let compactFlushTimer: ReturnType<typeof setTimeout> | null = null
+
+    function flushCompact() {
+      if (!compactPending.content && !compactPending.reasoning) return
+      const items: ResponseItem[] = []
+      if (compactPending.reasoning) items.push({ type: "reasoning", text: compactPending.reasoning })
+      if (compactPending.content) items.push({ type: "content", text: compactPending.content })
+      const updatedMsg: Message = {
+        ...compactMsg,
+        content: compactPending.content,
+        orderedItems: items,
+      }
+      const idx = sessionMessagesMap[memoryId].findIndex(m => m.id === compactMsg.id)
+      if (idx >= 0) {
+        sessionMessagesMap[memoryId][idx] = updatedMsg
+        Object.assign(compactMsg, updatedMsg)
+        messages.value = [...sessionMessagesMap[memoryId]]
+      }
+    }
+
+    function scheduleCompactFlush() {
+      if (compactFlushTimer) return
+      compactFlushTimer = setTimeout(() => {
+        compactFlushTimer = null
+        flushCompact()
+        if (compacting.value) scheduleCompactFlush()
+      }, 100)
+    }
+
+    scheduleCompactFlush()
+
+    compactSession(
+      memoryId,
+      (_event, _data) => {
+        if (_event !== SSE_EVENTS.COMPACTION_CHUNK) return
+        if (_data.type === "reasoning" && _data.accumulated) {
+          compactPending.reasoning = _data.accumulated
+        } else if (_data.type === "content" && _data.accumulated) {
+          compactPending.content = _data.accumulated
+        }
+      },
+      () => {
+        if (compactFlushTimer) {
+          clearTimeout(compactFlushTimer)
+          compactFlushTimer = null
+        }
+        flushCompact()
+        if (compactPending.content) {
+          const idx = sessionMessagesMap[memoryId].findIndex(m => m.id === compactMsg.id)
+          if (idx >= 0) {
+            const finalMsg: Message = {
+              id: compactMsg.id,
+              role: "assistant",
+              content: compactPending.content,
+              compactBoundary: true,
+              orderedItems: compactPending.reasoning
+                ? [{ type: "reasoning", text: compactPending.reasoning }, { type: "content", text: compactPending.content }]
+                : [{ type: "content", text: compactPending.content }],
+              freshlyStreamed: false,
+            }
+            sessionMessagesMap[memoryId][idx] = finalMsg
+            messages.value = [...sessionMessagesMap[memoryId]]
+          }
+        } else {
+          sessionMessagesMap[memoryId] = sessionMessagesMap[memoryId].filter(
+            (m) => m.id !== compactMsg.id,
+          )
+          messages.value = [...sessionMessagesMap[memoryId]]
+        }
+        compacting.value = false
+      },
+      () => {
+        if (compactFlushTimer) {
+          clearTimeout(compactFlushTimer)
+          compactFlushTimer = null
+        }
+        sessionMessagesMap[memoryId] = sessionMessagesMap[memoryId].filter(
+          (m) => m.id !== compactMsg.id,
+        )
+        messages.value = [...sessionMessagesMap[memoryId]]
+        compacting.value = false
+      },
+    )
+  }
+
   async function refreshLocaleData() {
     await loadScenarios()
     await loadSessions(currentScenario.value?.id)
@@ -521,22 +623,28 @@ export const useChatStore = defineStore("chat", () => {
     while (i < apiMessages.length) {
       const msg = apiMessages[i]
       if (msg.role === "user") {
-        result.push({ id: msg.id, role: "user", content: msg.content })
+        result.push({ id: msg.id, role: "user", content: msg.content, compactBoundary: msg.compact_boundary })
         i++
         continue
       }
       if (msg.role === "tool") { i++; continue }
       const assistantId = msg.id
       let content = ""
+      let hasCompactBoundary = !!msg.compact_boundary
       const orderedItems: ResponseItem[] = []
       const toolCalls: ToolCallDisplay[] = []
       while (i < apiMessages.length) {
         const m = apiMessages[i]
         if (m.role === "user") break
+        if (m.compact_boundary && i > apiMessages.indexOf(msg)) break
         if (m.role === "reasoning") {
           orderedItems.push({ type: "reasoning", text: m.content })
+          if (m.compact_boundary) hasCompactBoundary = true
           i++
         } else if (m.role === "assistant") {
+          if (m.reasoning) {
+            orderedItems.push({ type: "reasoning", text: m.reasoning })
+          }
           if (m.content) {
             content += m.content
             orderedItems.push({ type: "content", text: m.content })
@@ -569,7 +677,7 @@ export const useChatStore = defineStore("chat", () => {
         } else { i++ }
       }
       if (content || orderedItems.length > 0) {
-        const assistant: Message = { id: assistantId, role: "assistant", content }
+        const assistant: Message = { id: assistantId, role: "assistant", content, compactBoundary: hasCompactBoundary }
         if (orderedItems.length > 0) assistant.orderedItems = orderedItems
         if (toolCalls.length > 0) assistant.tool_calls = toolCalls
         result.push(assistant)
@@ -606,11 +714,11 @@ export const useChatStore = defineStore("chat", () => {
   })
 
   return {
-    sessions, currentSessionId, currentSession, pendingAgent, messages, streaming, error,
+    sessions, currentSessionId, currentSession, pendingAgent, messages, streaming, compacting, error,
     backendOnline, availableScenarios, currentScenario, availableAgents, toolDisplayNames,
     sessionsLoading, messagesLoading,
     saveCurrentSession,
-    loadSessions, newSession, removeSession, selectSession, sendMessage, cancelStream,
+    loadSessions, newSession, removeSession, selectSession, sendMessage, cancelStream, triggerCompact,
     loadScenarios, selectScenario, createSessionWithAgent, refreshLocaleData, clearError,
   }
 })

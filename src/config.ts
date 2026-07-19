@@ -7,6 +7,7 @@ export interface AppConfig {
   apiScenarioDetail: string
   apiAgents: string
   apiChat: string
+  apiSessionCompact: string
   apiComponentSources: string
   loginUrl: string
   apiAuthLogout: string

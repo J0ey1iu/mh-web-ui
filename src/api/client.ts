@@ -1,4 +1,4 @@
-import type { AgentInfo, FetchListParams, ManageAgent, ManageProvider, ManageScenario, ManageTool, MessageItem, PaginatedResponse, ScenarioDetail, ScenarioInfo, SessionInfo, UserInfo, SSEEventName } from "../types"
+import type { AgentInfo, FetchListParams, ManageAgent, ManageProvider, ManageScenario, ManageTool, MessagesResponse, PaginatedResponse, ScenarioDetail, ScenarioInfo, SessionInfo, UserInfo, SSEEventName } from "../types"
 import { appConfig } from "../config"
 
 function fillUrl(template: string, params?: Record<string, string>): string {
@@ -16,6 +16,39 @@ function getLocale(): string {
 }
 
 export { getLocale }
+
+export function compactSession(
+  memoryId: string,
+  onEvent: SSEEventCallback,
+  onDone: () => void,
+  onError: (err: Error) => void,
+): AbortController {
+  const controller = new AbortController()
+  const headers: Record<string, string> = { "Content-Type": "application/json", "Accept-Language": getLocale() }
+  let eventName = ""
+
+  fetch(fillUrl(appConfig.apiSessionCompact, { id: memoryId }), {
+    method: "POST",
+    credentials: "include",
+    headers,
+    signal: controller.signal,
+  })
+    .then(async (res) => {
+      await consumeSSE(res, (line) => {
+        if (line.startsWith("event: ")) eventName = line.slice(7).trim()
+        else if (line.startsWith("data: ")) {
+          const dataStr = line.slice(6).trim()
+          try { const data = JSON.parse(dataStr); onEvent(eventName as SSEEventName, data) } catch {}
+        }
+      })
+      onDone()
+    })
+    .catch((err) => {
+      if (err.name !== "AbortError") onError(err instanceof Error ? err : new Error(String(err)))
+    })
+
+  return controller
+}
 
 async function request<T>(url: string, options?: RequestInit): Promise<T> {
   const headers: Record<string, string> = { "Content-Type": "application/json", "Accept-Language": getLocale() }
@@ -60,8 +93,8 @@ export async function deleteSession(memoryId: string): Promise<void> {
   await request<{ ok: boolean }>(fillUrl(appConfig.apiSession, { id: memoryId }), { method: "DELETE" })
 }
 
-export async function fetchMessages(memoryId: string): Promise<MessageItem[]> {
-  return request<MessageItem[]>(fillUrl(appConfig.apiSessionMessages, { id: memoryId }))
+export async function fetchMessages(memoryId: string): Promise<MessagesResponse> {
+  return request<MessagesResponse>(fillUrl(appConfig.apiSessionMessages, { id: memoryId }))
 }
 
 export async function fetchScenarios(): Promise<ScenarioInfo[]> {

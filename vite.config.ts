@@ -13,6 +13,7 @@ export default defineConfig(({ mode }) => {
         apiAuthMe: isProd ? "{wcm_api_auth_me}" : `${apiPrefix}/api/v1/auth/me`,
         apiSessions: isProd ? "{wcm_api_sessions}" : `${apiPrefix}/api/v1/sessions`,
         apiSession: isProd ? "{wcm_api_session}" : `${apiPrefix}/api/v1/sessions/{id}`,
+        apiSessionCompact: isProd ? "{wcm_api_session_compact}" : `${apiPrefix}/api/v1/sessions/{id}/compact`,
         apiSessionMessages: isProd ? "{wcm_api_session_messages}" : `${apiPrefix}/api/v1/sessions/{id}/messages`,
         apiScenarios: isProd ? "{wcm_api_scenarios}" : `${apiPrefix}/api/v1/scenarios`,
         apiScenarioDetail: isProd ? "{wcm_api_scenario_detail}" : `${apiPrefix}/api/v1/scenarios/{id}`,

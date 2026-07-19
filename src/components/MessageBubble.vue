@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { provide, ref, computed, onMounted, watch } from "vue"
+import { provide, ref, computed, onUnmounted, watch } from "vue"
 import type { Message } from "../types"
 import ReasoningBlock from "./ReasoningBlock.vue"
 import ToolCallRenderer from "./ToolCallRenderer.vue"
@@ -14,11 +14,10 @@ const props = defineProps<{
   isStreaming?: boolean
 }>()
 
-const collapsed = ref(
-  props.message.freshlyStreamed ? false : !props.isStreaming
-)
+const collapsed = ref(!props.isStreaming)
 const hovered = ref(false)
 const hoveredIndex = ref<number | null>(null)
+let collapseTimer: ReturnType<typeof setTimeout> | null = null
 
 const hasNoContent = computed(() => {
   if (props.message.orderedItems?.length) return false
@@ -27,14 +26,31 @@ const hasNoContent = computed(() => {
   return true
 })
 
-onMounted(() => {
-  if (props.message.freshlyStreamed) {
-    setTimeout(() => { collapsed.value = true }, 1000)
-  }
-})
+if (props.message.compactBoundary && props.message.freshlyStreamed) {
+  collapsed.value = false
+  watch(() => props.message.freshlyStreamed, (val) => {
+    if (!val && collapseTimer === null) {
+      collapseTimer = setTimeout(() => {
+        collapsed.value = true
+        collapseTimer = null
+      }, 1000)
+    }
+  })
+} else if (props.message.freshlyStreamed) {
+  collapsed.value = false
+  collapseTimer = setTimeout(() => {
+    collapsed.value = true
+    collapseTimer = null
+  }, 1000)
+} else {
+  collapsed.value = props.isStreaming ? false : true
+  watch(() => props.isStreaming, (val) => {
+    collapsed.value = !val
+  })
+}
 
-watch(() => props.isStreaming, (val) => {
-  collapsed.value = !val
+onUnmounted(() => {
+  if (collapseTimer) clearTimeout(collapseTimer)
 })
 
 provide(FOLDABLE_COLLAPSED_KEY, collapsed)
@@ -55,11 +71,15 @@ async function copy(text: string) {
 </script>
 
 <template>
-  <div v-if="!hasNoContent || isStreaming" :class="['message', message.role]">
+  <div v-if="!hasNoContent || isStreaming" :class="['message', message.role, { 'compact-boundary': message.compactBoundary }]">
+    <div v-if="message.compactBoundary" class="compact-divider">
+      <span class="compact-divider-label">{{ t("compact_divider") }}</span>
+    </div>
     <div class="avatar">
-      {{ message.role === "user" ? "U" : "A" }}
+      {{ message.role === "user" ? "U" : message.compactBoundary ? "S" : "A" }}
     </div>
     <div class="bubble">
+      <div v-if="message.compactBoundary" class="compact-summary-badge">{{ t("compact_title") }}</div>
       <template v-if="message.orderedItems">
         <template v-for="(item, i) in message.orderedItems" :key="i">
           <ReasoningBlock
@@ -157,6 +177,7 @@ async function copy(text: string) {
   display: flex;
   gap: 10px;
   margin-bottom: 16px;
+  position: relative;
 }
 .message.user {
   flex-direction: row-reverse;
@@ -202,6 +223,27 @@ async function copy(text: string) {
   border-bottom-left-radius: 4px;
   border: 1px solid var(--glass-border);
 }
+.message.assistant.compact-boundary .bubble {
+  background: var(--surface-raised);
+  border-color: var(--accent-dim);
+  border-style: dashed;
+  padding-top: 6px;
+  border-left: 3px solid var(--accent-dim);
+  border-radius: 4px 14px 14px 4px;
+}
+.compact-boundary .avatar {
+  background: var(--accent-dim) !important;
+  color: var(--accent) !important;
+}
+.compact-boundary .bubble .compact-summary-badge {
+  display: inline-block;
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--accent);
+  font-weight: 700;
+  margin-bottom: 4px;
+}
 .tool-calls {
   margin-bottom: 8px;
 }
@@ -233,6 +275,33 @@ async function copy(text: string) {
 }
 .copy-btn:hover {
   color: var(--accent);
+}
+.compact-boundary {
+  margin-top: 40px !important;
+}
+.compact-divider {
+  position: absolute;
+  top: -20px;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.compact-divider::before,
+.compact-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--glass-border);
+}
+.compact-divider-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--text-muted);
+  font-weight: 600;
+  white-space: nowrap;
 }
 .thinking {
   padding: 8px 0;
