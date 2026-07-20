@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from "vue"
+import { ref, computed, watch, onMounted } from "vue"
 import {
   fetchManageAgents,
   createManageAgent,
@@ -37,6 +37,7 @@ const form = ref<Partial<ManageAgent>>({
   provider: "openai",
   model: "",
   llm_config: {},
+  agent_type: "simple",
 })
 
 const localeForm = ref({
@@ -92,6 +93,88 @@ const totalPages = computed(() => Math.max(1, Math.ceil(total.value / pageSize.v
 const saving = ref(false)
 
 const llmConfigStr = ref("")
+
+/* Agent type config registry — add new types here */
+interface AgentTypeSettingField {
+  key: string
+  labelKey: string
+  type: "number" | "string"
+  placeholderKey?: string
+  min?: number
+  max?: number
+  step?: number
+}
+
+interface AgentTypeConfig {
+  value: string
+  labelKey: string
+  settingsKey?: string
+  settingsTitleKey?: string
+  settingsFields?: AgentTypeSettingField[]
+}
+
+const agentTypeConfigs: Record<string, AgentTypeConfig> = {
+  simple: { value: "simple", labelKey: "mgmt_agent_type_simple" },
+  dummy: { value: "dummy", labelKey: "mgmt_agent_type_dummy" },
+  compacting: {
+    value: "compacting",
+    labelKey: "mgmt_agent_type_compacting",
+    settingsKey: "compaction",
+    settingsTitleKey: "mgmt_compaction_settings",
+    settingsFields: [
+      { key: "prompt_token_threshold", labelKey: "mgmt_compaction_threshold", type: "number", placeholderKey: "mgmt_compaction_threshold_placeholder", min: 0 },
+      { key: "keep_recent", labelKey: "mgmt_compaction_keep_recent", type: "number", placeholderKey: "mgmt_compaction_keep_recent_placeholder", min: 0 },
+    ],
+  },
+}
+
+const agentSettings = ref<Record<string, any>>({})
+
+const currentAgentTypeConfig = computed(() => agentTypeConfigs[form.value.agent_type ?? "simple"] ?? agentTypeConfigs.simple)
+
+const agentTypeOptions = computed(() =>
+  Object.values(agentTypeConfigs).map(c => ({ value: c.value, label: t(c.labelKey) }))
+)
+
+function loadAgentSettingsFromForm() {
+  const config = currentAgentTypeConfig.value
+  if (config.settingsKey && config.settingsFields) {
+    const raw = (form.value as any)[config.settingsKey] ?? {}
+    const loaded: Record<string, any> = {}
+    for (const field of config.settingsFields) {
+      loaded[field.key] = raw[field.key] ?? undefined
+    }
+    agentSettings.value = loaded
+  } else {
+    agentSettings.value = {}
+  }
+}
+
+function applyAgentSettingsToForm() {
+  for (const c of Object.values(agentTypeConfigs)) {
+    if (c.settingsKey) {
+      delete (form.value as any)[c.settingsKey]
+    }
+  }
+  const config = currentAgentTypeConfig.value
+  if (config.settingsKey && config.settingsFields) {
+    const c: Record<string, any> = {}
+    for (const field of config.settingsFields) {
+      const val = agentSettings.value[field.key]
+      if (val !== undefined && val !== null && val !== "") {
+        c[field.key] = field.type === "number" ? Number(val) : val
+      }
+    }
+    if (Object.keys(c).length > 0) {
+      (form.value as any)[config.settingsKey] = c
+    }
+  }
+}
+
+watch(() => form.value.agent_type, () => {
+  agentSettings.value = {}
+  loadAgentSettingsFromForm()
+})
 
 // Fullscreen overlay
 const fsVisible = ref(false)
@@ -165,9 +248,10 @@ function onPageSizeChange() {
 
 function openCreate() {
   editing.value = false
-  form.value = { name: "", display_name: "", display_name_locale: "", description: "", description_locale: "", system_prompt: "", system_prompt_locale: "", provider: "openai", model: "", llm_config: {} }
+  form.value = { name: "", display_name: "", display_name_locale: "", description: "", description_locale: "", system_prompt: "", system_prompt_locale: "", provider: "openai", model: "", llm_config: {}, agent_type: "simple" }
   localeForm.value = { display_zh: "", display_en: "", desc_zh: "", desc_en: "", prompt_zh: "", prompt_en: "" }
   llmConfigStr.value = ""
+  agentSettings.value = {}
   showDialog.value = true
 }
 
@@ -176,11 +260,13 @@ function openEdit(a: ManageAgent) {
   form.value = { ...a }
   llmConfigStr.value = a.llm_config ? JSON.stringify(a.llm_config, null, 2) : ""
   loadLocaleFromForm()
+  loadAgentSettingsFromForm()
   showDialog.value = true
 }
 
 async function save() {
   applyLocaleToForm()
+  applyAgentSettingsToForm()
   if (llmConfigStr.value.trim()) {
     try {
       form.value.llm_config = JSON.parse(llmConfigStr.value)
@@ -341,6 +427,32 @@ onMounted(() => {
                 <label>{{ t("mgmt_model") }}</label>
                 <input v-model="form.model" :placeholder="t('mgmt_model_placeholder')" />
               </div>
+              <div class="form-group">
+                <label>{{ t("mgmt_agent_type") }}</label>
+                <SearchSelect v-model="form.agent_type" :options="agentTypeOptions" :searchable="false" />
+              </div>
+              <template v-if="currentAgentTypeConfig.settingsFields">
+                <details class="locale-section" open>
+                  <summary>{{ t(currentAgentTypeConfig.settingsTitleKey!) }}</summary>
+                  <div class="form-group" v-for="field in currentAgentTypeConfig.settingsFields" :key="field.key">
+                    <label>{{ t(field.labelKey) }}</label>
+                    <input
+                      v-if="field.type === 'number'"
+                      v-model.number="agentSettings[field.key]"
+                      type="number"
+                      :min="field.min"
+                      :max="field.max"
+                      :step="field.step ?? 1"
+                      :placeholder="field.placeholderKey ? t(field.placeholderKey) : ''"
+                    />
+                    <input
+                      v-else
+                      v-model="agentSettings[field.key]"
+                      :placeholder="field.placeholderKey ? t(field.placeholderKey) : ''"
+                    />
+                  </div>
+                </details>
+              </template>
               <details class="locale-section">
                 <summary>{{ t("mgmt_llm_config") }}</summary>
                 <div class="form-group">

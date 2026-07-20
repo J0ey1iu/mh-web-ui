@@ -210,6 +210,8 @@ export interface ManageAgent {
   provider_name?: string
   model?: string
   llm_config?: Record<string, any>
+  agent_type?: string
+  compaction?: Record<string, any>
   created_at?: string
   updated_at?: string
   created_by?: string
