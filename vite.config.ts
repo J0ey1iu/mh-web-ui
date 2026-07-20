@@ -3,7 +3,7 @@ import vue from "@vitejs/plugin-vue"
 
 export default defineConfig(({ mode }) => {
   const isProd = mode === "production"
-  const isMhc = mode === "mhc"
+  const isMhc = mode === "mh-local"
   const apiPrefix = isMhc ? "" : "//localhost:8005"
   return {
     base: "./",
