@@ -669,5 +669,18 @@ onMounted(() => {
   opacity: 0.5;
   cursor: not-allowed;
 }
+
+/* Boolean toggle: checkbox + label on one line */
+.checkbox-label {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  cursor: pointer !important;
+  margin-bottom: 0 !important;
+}
+.checkbox-label input[type="checkbox"] {
+  width: auto !important;
+  flex-shrink: 0 !important;
+}
 </style>
 
