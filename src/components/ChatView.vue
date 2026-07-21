@@ -12,7 +12,42 @@ const props = defineProps<{
   messagesLoading: boolean
   streaming: StreamingState
   disabled: boolean
+  contextUsage: { totalTokens: number; maxContext: number }
 }>()
+
+const circumference = 2 * Math.PI * 11
+
+const showContextRing = computed(() => props.contextUsage.maxContext > 0)
+
+const percentage = computed(() => {
+  const { totalTokens, maxContext } = props.contextUsage
+  if (maxContext <= 0) return 0
+  return Math.min(100, Math.round(totalTokens / maxContext * 100))
+})
+
+const dashOffset = computed(() => {
+  if (!showContextRing.value) return circumference
+  return circumference * (1 - percentage.value / 100)
+})
+
+const arcColor = computed(() => {
+  const pct = percentage.value
+  if (pct < 60) return "var(--accent)"
+  if (pct < 80) return "#eab308"
+  return "#ef4444"
+})
+
+const textColor = computed(() => {
+  const pct = percentage.value
+  if (pct < 60) return "var(--text-secondary)"
+  if (pct < 80) return "#eab308"
+  return "#ef4444"
+})
+
+const contextTooltip = computed(() => {
+  const { totalTokens, maxContext } = props.contextUsage
+  return `${totalTokens.toLocaleString()} / ${maxContext.toLocaleString()} (${percentage.value}%)`
+})
 
 const emit = defineEmits<{
   send: [text: string]
@@ -215,6 +250,28 @@ watch(input, (val) => {
           rows="1"
           @keydown="onKeydown"
         ></textarea>
+        <svg
+          v-if="showContextRing"
+          width="28" height="28" viewBox="0 0 28 28"
+          class="context-ring"
+          :title="contextTooltip"
+        >
+          <circle cx="14" cy="14" r="11" fill="none" stroke="var(--glass-border)" stroke-width="3" />
+          <circle
+            cx="14" cy="14" r="11"
+            fill="none"
+            :stroke="arcColor"
+            stroke-width="3"
+            stroke-linecap="round"
+            :stroke-dasharray="circumference"
+            :stroke-dashoffset="dashOffset"
+            transform="rotate(-90, 14, 14)"
+            class="progress-arc"
+          />
+          <text x="14" y="14" text-anchor="middle" dominant-baseline="central" :fill="textColor" font-size="8" font-weight="600">
+            {{ percentage }}%
+          </text>
+        </svg>
         <button
           :class="{ 'btn-cancel': streaming.isStreaming }"
           :disabled="!streaming.isStreaming && (disabled || !input.trim())"
@@ -332,6 +389,13 @@ watch(input, (val) => {
 }
 .btn-cancel:hover {
   background: var(--danger-hover) !important;
+}
+.context-ring {
+  flex-shrink: 0;
+  cursor: default;
+}
+.progress-arc {
+  transition: stroke-dashoffset 0.3s ease, stroke 0.3s ease;
 }
 .scroll-to-bottom {
   position: absolute;

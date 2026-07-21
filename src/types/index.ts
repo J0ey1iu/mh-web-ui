@@ -70,6 +70,7 @@ export interface ToolCallComponentProps {
 export const SSE_EVENTS = {
   LLM_CHUNK: "LLMChunk",
   LLM_END: "LLMEnd",
+  MODEL_INFO: "ModelInfo",
   TOOL_START: "ToolStart",
   TOOL_PROGRESS: "ToolProgress",
   TOOL_END: "ToolEnd",

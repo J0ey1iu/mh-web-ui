@@ -45,6 +45,7 @@ export const useChatStore = defineStore("chat", () => {
 
   const streaming = ref<StreamingState>(freshState())
   const compacting = ref(false)
+  const contextUsage = ref<{ totalTokens: number; maxContext: number }>({ totalTokens: 0, maxContext: 0 })
 
   let errorTimer: ReturnType<typeof setTimeout> | null = null
 
@@ -167,6 +168,10 @@ export const useChatStore = defineStore("chat", () => {
   }
 
   function handleSSEEvent(sid: string, event: string, data: any) {
+    if (event === SSE_EVENTS.MODEL_INFO) {
+      contextUsage.value.maxContext = data.max_context
+      return
+    }
     const p = sessionPendingMap[sid]
     if (!p) return
     switch (event) {
@@ -188,6 +193,9 @@ export const useChatStore = defineStore("chat", () => {
         if (data.reasoning_content && !p.reasoning) {
           p.reasoning = data.reasoning_content
           appendOrUpdateItem(sid, "reasoning", data.reasoning_content)
+        }
+        if (data.usage?.total_tokens) {
+          contextUsage.value.totalTokens += data.usage.total_tokens
         }
         break
 
@@ -334,6 +342,7 @@ export const useChatStore = defineStore("chat", () => {
       const session = await createSession(agentName, currentScenario.value?.id)
       currentSessionId.value = session.memory_id
       messages.value = []
+      contextUsage.value = { totalTokens: 0, maxContext: 0 }
       const i18n = useI18nStore()
       sessions.value = [{ ...session, title: i18n.t("new_chat_title", { time: formatTime() }), message_count: 1 }, ...sessions.value.filter((s) => s.memory_id !== session.memory_id)]
       await router.replace({ query: { ...router.currentRoute.value.query, session: session.memory_id, agent: undefined } })
@@ -356,6 +365,7 @@ export const useChatStore = defineStore("chat", () => {
         currentSessionId.value = null
         messages.value = []
         streaming.value = freshState()
+        contextUsage.value = { totalTokens: 0, maxContext: 0 }
         const query = { ...router.currentRoute.value.query }
         delete query.session
         await router.replace({ query })
@@ -370,6 +380,7 @@ export const useChatStore = defineStore("chat", () => {
     saveCurrentSession()
     currentSessionId.value = memoryId
     pendingAgent.value = null
+    contextUsage.value = { totalTokens: 0, maxContext: 0 }
 
     if (sessionMessagesMap[memoryId]) {
       messages.value = [...sessionMessagesMap[memoryId]]
@@ -402,6 +413,7 @@ export const useChatStore = defineStore("chat", () => {
         const session = await createSession(agentName, currentScenario.value?.id)
         currentSessionId.value = session.memory_id
         messages.value = []
+        contextUsage.value = { totalTokens: 0, maxContext: 0 }
         const i18n = useI18nStore()
         sessions.value = [{ ...session, title: i18n.t("new_chat_title", { time: formatTime() }), message_count: 1 }, ...sessions.value.filter((s) => s.memory_id !== session.memory_id)]
         await router.replace({ query: { ...router.currentRoute.value.query, session: session.memory_id, agent: undefined } })
@@ -589,6 +601,7 @@ export const useChatStore = defineStore("chat", () => {
           messages.value = [...sessionMessagesMap[memoryId]]
         }
         compacting.value = false
+        contextUsage.value.totalTokens = 0
       },
       () => {
         if (compactFlushTimer) {
@@ -724,7 +737,7 @@ export const useChatStore = defineStore("chat", () => {
 
   return {
     sessions, currentSessionId, currentSession, pendingAgent, messages, streaming, compacting, error,
-    backendOnline, availableScenarios, currentScenario, availableAgents, toolDisplayNames,
+    contextUsage, backendOnline, availableScenarios, currentScenario, availableAgents, toolDisplayNames,
     sessionsLoading, messagesLoading,
     saveCurrentSession,
     loadSessions, newSession, removeSession, selectSession, sendMessage, cancelStream, triggerCompact,

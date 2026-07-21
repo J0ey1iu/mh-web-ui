@@ -23,6 +23,7 @@ const {
   messages,
   streaming,
   compacting,
+  contextUsage,
   backendOnline,
   error,
   currentScenario,
@@ -411,6 +412,7 @@ async function handleLogout() {
           :messages="messages"
           :messages-loading="messagesLoading"
           :streaming="streaming"
+          :context-usage="contextUsage"
           :disabled="!backendOnline"
           @send="handleSendMessage"
           @cancel="cancelStream"
