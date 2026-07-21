@@ -393,7 +393,7 @@ onMounted(load)
       </div>
 
     <Teleport to="body">
-      <div v-if="showDialog" class="dialog-overlay" @click.self="showDialog = false">
+      <div v-if="showDialog" class="dialog-overlay" @mousedown.self="showDialog = false">
         <div class="dialog">
           <h2>{{ editing ? t("mgmt_edit_scene") : t("mgmt_new_scene_title") }}</h2>
           <div class="form-group">
@@ -444,7 +444,7 @@ onMounted(load)
 
     <!-- Detail panel -->
     <Teleport to="body">
-      <div v-if="showDetail && detailScenario" class="dialog-overlay" @click.self="showDetail = false">
+      <div v-if="showDetail && detailScenario" class="dialog-overlay" @mousedown.self="showDetail = false">
         <div class="dialog dialog-lg">
           <div class="detail-header">
             <span class="detail-icon">{{ detailScenario.icon }}</span>
@@ -508,7 +508,7 @@ onMounted(load)
     </Teleport>
 
     <Teleport to="body">
-      <div v-if="fsVisible" class="tc-overlay" @click.self="closeFs">
+      <div v-if="fsVisible" class="tc-overlay" @mousedown.self="closeFs">
         <div class="tc-overlay-content">
           <div class="tc-overlay-header">
             <span class="tc-overlay-title">{{ fsTitle }}</span>

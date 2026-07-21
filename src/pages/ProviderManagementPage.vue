@@ -6,7 +6,7 @@ import {
   updateManageProviderConfig,
   deleteManageProviderConfig,
 } from "../api/client"
-import type { ManageProvider } from "../types"
+import type { ManageProvider, ProviderModel } from "../types"
 import ManagementNav from "../components/ManagementNav.vue"
 import SearchSelect from "../components/SearchSelect.vue"
 import { useI18nStore } from "../stores/i18n"
@@ -29,7 +29,14 @@ const form = ref<Partial<ManageProvider>>({
   base_url: "",
   default_model: "",
   description: "",
+  models: [],
 })
+
+// Model sub-dialog
+const showModelDialog = ref(false)
+const editingModel = ref(false)
+const modelForm = ref<ProviderModel>({ id: "", code: "", display_name: "", max_context: 0 })
+const editingModelIndex = ref(-1)
 
 const searchQuery = ref("")
 const currentPage = ref(1)
@@ -119,6 +126,43 @@ function fmtAudit(dt: string | undefined, by: string | undefined): string {
   return by ? `${t} by ${by}` : t
 }
 
+// Model management
+function openAddModel() {
+  editingModel.value = false
+  editingModelIndex.value = -1
+  modelForm.value = { id: "", code: "", display_name: "", max_context: 0 }
+  showModelDialog.value = true
+}
+
+function openEditModel(idx: number) {
+  editingModel.value = true
+  editingModelIndex.value = idx
+  modelForm.value = { ...(form.value.models ?? [])[idx] }
+  showModelDialog.value = true
+}
+
+function saveModel() {
+  if (!modelForm.value.id) return
+  if (editingModel.value && editingModelIndex.value >= 0) {
+    const models = form.value.models ?? []
+    models[editingModelIndex.value] = { ...modelForm.value }
+    form.value.models = [...models]
+  } else {
+    const models = form.value.models ?? []
+    if (models.some((m) => m.id === modelForm.value.id)) {
+      alertStore.show(t("mgmt_confirm_delete"))
+      return
+    }
+    form.value.models = [...models, { ...modelForm.value }]
+  }
+  showModelDialog.value = false
+}
+
+function removeModel(idx: number) {
+  const models = form.value.models ?? []
+  form.value.models = models.filter((_, i) => i !== idx)
+}
+
 onMounted(load)
 </script>
 
@@ -199,7 +243,7 @@ onMounted(load)
     </div>
 
     <Teleport to="body">
-      <div v-if="showDialog" class="dialog-overlay" @click.self="showDialog = false">
+      <div v-if="showDialog" class="dialog-overlay" @mousedown.self="showDialog = false">
         <div class="dialog dialog-wide">
           <h2>{{ editing ? t("mgmt_edit_provider") : t("mgmt_new_provider_title") }}</h2>
           <div class="form-group">
@@ -228,10 +272,58 @@ onMounted(load)
             <label>{{ t("mgmt_description") }}</label>
             <textarea v-model="form.description" rows="2"></textarea>
           </div>
+          <details class="locale-section" open>
+            <summary>{{ t("mgmt_models") }}</summary>
+            <div v-if="(form.models ?? []).length === 0" class="mgmt-empty" style="padding:8px 0;font-size:13px">{{ t("mgmt_no_models") }}</div>
+            <div v-else class="model-list">
+              <div v-for="(m, idx) in form.models" :key="m.id" class="model-item">
+                <div class="model-item-info">
+                  <strong>{{ m.display_name || m.id }}</strong>
+                  <span class="model-item-code"><code>{{ m.code || m.id }}</code></span>
+                  <span class="model-item-ctx" v-if="m.max_context > 0">{{ m.max_context.toLocaleString() }} ctx</span>
+                </div>
+                <div class="model-item-actions">
+                  <button class="btn-sm btn-action" @click="openEditModel(idx)">{{ t("mgmt_edit") }}</button>
+                  <button class="btn-sm btn-action btn-danger" @click="removeModel(idx)">{{ t("mgmt_delete") }}</button>
+                </div>
+              </div>
+            </div>
+            <button class="btn-sm btn-primary" style="margin-top:8px" @click="openAddModel">{{ t("mgmt_add_model") }}</button>
+          </details>
           <div class="dialog-actions">
             <button class="btn-action" @click="showDialog = false">{{ t("mgmt_cancel") }}</button>
             <button class="btn-primary" @click="save" :disabled="!form.name || saving">
               {{ saving ? t("mgmt_saving") : t("mgmt_save") }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
+
+    <Teleport to="body">
+      <div v-if="showModelDialog" class="dialog-overlay" @mousedown.self="showModelDialog = false">
+        <div class="dialog">
+          <h2>{{ editingModel ? t("mgmt_edit_model") : t("mgmt_add_model") }}</h2>
+          <div class="form-group">
+            <label>{{ t("mgmt_model_id") }}</label>
+            <input v-model="modelForm.id" :placeholder="t('mgmt_placeholder_id')" :disabled="editingModel" />
+          </div>
+          <div class="form-group">
+            <label>{{ t("mgmt_model_code") }}</label>
+            <input v-model="modelForm.code" :placeholder="t('mgmt_model_placeholder_code')" />
+          </div>
+          <div class="form-group">
+            <label>{{ t("mgmt_model_display_name") }}</label>
+            <input v-model="modelForm.display_name" :placeholder="t('mgmt_placeholder_display_name')" />
+          </div>
+          <div class="form-group">
+            <label>{{ t("mgmt_model_max_context") }}</label>
+            <input v-model.number="modelForm.max_context" type="number" min="0" :placeholder="t('mgmt_model_placeholder_context')" />
+          </div>
+          <div class="dialog-actions">
+            <button class="btn-action" @click="showModelDialog = false">{{ t("mgmt_cancel") }}</button>
+            <button class="btn-primary" @click="saveModel" :disabled="!modelForm.id">
+              {{ t("mgmt_save") }}
             </button>
           </div>
         </div>
@@ -259,4 +351,51 @@ onMounted(load)
   border-color: var(--accent);
   box-shadow: 0 0 0 3px var(--accent-dim);
 }
+.model-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.model-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px;
+  background: var(--glass-highlight);
+  border: 1px solid var(--glass-border);
+  border-radius: 8px;
+  gap: 8px;
+}
+.model-item-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+}
+.model-item-code {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+.model-item-ctx {
+  color: var(--accent);
+  font-size: 11px;
+  white-space: nowrap;
+}
+.model-item-actions {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+.btn-sm {
+  padding: 4px 10px;
+  font-size: 12px;
+  border-radius: 6px;
+  border: 1px solid var(--glass-border);
+  background: var(--glass-highlight);
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+.btn-sm:hover { opacity: 0.8; }
 </style>

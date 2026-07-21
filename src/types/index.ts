@@ -185,6 +185,13 @@ export interface ManageScenario {
   updated_by?: string
 }
 
+export interface ProviderModel {
+  id: string
+  code: string
+  display_name: string
+  max_context: number
+}
+
 export interface ManageProvider {
   name: string
   provider_type: string
@@ -192,6 +199,7 @@ export interface ManageProvider {
   base_url?: string
   default_model?: string
   description?: string
+  models?: ProviderModel[]
   created_at?: string
   updated_at?: string
   created_by?: string
