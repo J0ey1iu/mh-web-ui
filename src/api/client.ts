@@ -232,6 +232,10 @@ export async function deleteManageAgent(name: string): Promise<void> {
   await request(fillUrl(appConfig.apiManagementAgent, { name }), { method: "DELETE" })
 }
 
+export async function fetchAgentTypes(): Promise<any[]> {
+  return request<any[]>(appConfig.apiManagementAgentTypes)
+}
+
 export async function fetchProviders(): Promise<string[]> {
   return request<string[]>(appConfig.apiManagementProviders)
 }

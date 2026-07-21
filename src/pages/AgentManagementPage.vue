@@ -6,6 +6,7 @@ import {
   updateManageAgent,
   deleteManageAgent,
   fetchManageProviderConfigs,
+  fetchAgentTypes,
 } from "../api/client"
 import type { ManageAgent, ManageProvider } from "../types"
 import ManagementNav from "../components/ManagementNav.vue"
@@ -117,9 +118,12 @@ const llmConfigStr = ref("")
 /* Agent type config registry — add new types here */
 interface AgentTypeSettingField {
   key: string
-  labelKey: string
-  type: "number" | "string"
-  placeholderKey?: string
+  display_name: string
+  display_name_zh: string
+  type: "number" | "boolean"
+  default?: any
+  placeholder?: string
+  placeholder_zh?: string
   min?: number
   max?: number
   step?: number
@@ -127,41 +131,65 @@ interface AgentTypeSettingField {
 
 interface AgentTypeConfig {
   value: string
-  labelKey: string
-  settingsKey?: string
-  settingsTitleKey?: string
-  settingsFields?: AgentTypeSettingField[]
+  display_name: string
+  display_name_zh: string
+  settings_key?: string
+  settings_title?: string
+  settings_title_zh?: string
+  settings_fields?: AgentTypeSettingField[]
 }
 
-const agentTypeConfigs: Record<string, AgentTypeConfig> = {
-  simple: { value: "simple", labelKey: "mgmt_agent_type_simple" },
-  dummy: { value: "dummy", labelKey: "mgmt_agent_type_dummy" },
-  compacting: {
-    value: "compacting",
-    labelKey: "mgmt_agent_type_compacting",
-    settingsKey: "compaction",
-    settingsTitleKey: "mgmt_compaction_settings",
-    settingsFields: [
-      { key: "prompt_token_threshold", labelKey: "mgmt_compaction_threshold", type: "number", placeholderKey: "mgmt_compaction_threshold_placeholder", min: 0 },
-      { key: "keep_recent", labelKey: "mgmt_compaction_keep_recent", type: "number", placeholderKey: "mgmt_compaction_keep_recent_placeholder", min: 0 },
-    ],
-  },
+const agentTypeConfigs = ref<Record<string, AgentTypeConfig>>({})
+
+function resolveAgentTypeLabel(c: AgentTypeConfig): string {
+  return localeVal(JSON.stringify({zh: c.display_name_zh, en: c.display_name}), c.display_name)
+}
+
+function resolveAgentTypeTitle(c: AgentTypeConfig): string {
+  if (c.settings_title || c.settings_title_zh) {
+    return localeVal(JSON.stringify({zh: c.settings_title_zh, en: c.settings_title}), c.settings_title || "")
+  }
+  return ""
+}
+
+function resolveFieldLabel(f: AgentTypeSettingField): string {
+  return localeVal(JSON.stringify({zh: f.display_name_zh, en: f.display_name}), f.display_name)
+}
+
+function resolveFieldPlaceholder(f: AgentTypeSettingField): string {
+  if (!f.placeholder && !f.placeholder_zh) return ""
+  return localeVal(JSON.stringify({zh: f.placeholder_zh, en: f.placeholder}), f.placeholder || "")
+}
+
+async function loadAgentTypes() {
+  try {
+    const types = await fetchAgentTypes()
+    const map: Record<string, AgentTypeConfig> = {}
+    for (const t of types) {
+      map[t.value] = t
+    }
+    agentTypeConfigs.value = map
+  } catch {
+    agentTypeConfigs.value = {}
+  }
 }
 
 const agentSettings = ref<Record<string, any>>({})
 
-const currentAgentTypeConfig = computed(() => agentTypeConfigs[form.value.agent_type ?? "simple"] ?? agentTypeConfigs.simple)
+const currentAgentTypeConfig = computed(() =>
+  agentTypeConfigs.value[form.value.agent_type ?? "simple"] ?? agentTypeConfigs.value["simple"] ?? null
+)
 
 const agentTypeOptions = computed(() =>
-  Object.values(agentTypeConfigs).map(c => ({ value: c.value, label: t(c.labelKey) }))
+  Object.values(agentTypeConfigs.value).map(c => ({ value: c.value, label: resolveAgentTypeLabel(c) }))
 )
 
 function loadAgentSettingsFromForm() {
   const config = currentAgentTypeConfig.value
-  if (config.settingsKey && config.settingsFields) {
-    const raw = (form.value as any)[config.settingsKey] ?? {}
+  if (config && config.settings_key && config.settings_fields) {
+    const raw = (form.value as any)[config.settings_key] ?? {}
     const loaded: Record<string, any> = {}
-    for (const field of config.settingsFields) {
+    for (const field of config.settings_fields) {
       loaded[field.key] = raw[field.key] ?? undefined
     }
     agentSettings.value = loaded
@@ -171,22 +199,22 @@ function loadAgentSettingsFromForm() {
 }
 
 function applyAgentSettingsToForm() {
-  for (const c of Object.values(agentTypeConfigs)) {
-    if (c.settingsKey) {
-      delete (form.value as any)[c.settingsKey]
+  for (const c of Object.values(agentTypeConfigs.value)) {
+    if (c.settings_key) {
+      delete (form.value as any)[c.settings_key]
     }
   }
   const config = currentAgentTypeConfig.value
-  if (config.settingsKey && config.settingsFields) {
+  if (config && config.settings_key && config.settings_fields) {
     const c: Record<string, any> = {}
-    for (const field of config.settingsFields) {
+    for (const field of config.settings_fields) {
       const val = agentSettings.value[field.key]
       if (val !== undefined && val !== null && val !== "") {
         c[field.key] = field.type === "number" ? Number(val) : val
       }
     }
     if (Object.keys(c).length > 0) {
-      (form.value as any)[config.settingsKey] = c
+      (form.value as any)[config.settings_key] = c
     }
   }
 }
@@ -330,6 +358,7 @@ async function remove(name: string) {
 }
 
 onMounted(() => {
+  loadAgentTypes()
   loadProviders()
   load()
 })
@@ -451,25 +480,33 @@ onMounted(() => {
                 <label>{{ t("mgmt_agent_type") }}</label>
                 <SearchSelect v-model="form.agent_type" :options="agentTypeOptions" :searchable="false" />
               </div>
-              <template v-if="currentAgentTypeConfig.settingsFields">
+              <template v-if="currentAgentTypeConfig && currentAgentTypeConfig.settings_fields && currentAgentTypeConfig.settings_fields.length > 0">
                 <details class="locale-section" open>
-                  <summary>{{ t(currentAgentTypeConfig.settingsTitleKey!) }}</summary>
-                  <div class="form-group" v-for="field in currentAgentTypeConfig.settingsFields" :key="field.key">
-                    <label>{{ t(field.labelKey) }}</label>
-                    <input
-                      v-if="field.type === 'number'"
-                      v-model.number="agentSettings[field.key]"
-                      type="number"
-                      :min="field.min"
-                      :max="field.max"
-                      :step="field.step ?? 1"
-                      :placeholder="field.placeholderKey ? t(field.placeholderKey) : ''"
-                    />
-                    <input
-                      v-else
-                      v-model="agentSettings[field.key]"
-                      :placeholder="field.placeholderKey ? t(field.placeholderKey) : ''"
-                    />
+                  <summary>{{ resolveAgentTypeTitle(currentAgentTypeConfig) }}</summary>
+                  <div class="form-group" v-for="field in currentAgentTypeConfig.settings_fields" :key="field.key">
+                    <template v-if="field.type === 'boolean'">
+                      <label class="checkbox-label">
+                        <input v-model="agentSettings[field.key]" type="checkbox" />
+                        {{ resolveFieldLabel(field) }}
+                      </label>
+                    </template>
+                    <template v-else>
+                      <label>{{ resolveFieldLabel(field) }}</label>
+                      <input
+                        v-if="field.type === 'number'"
+                        v-model.number="agentSettings[field.key]"
+                        type="number"
+                        :min="field.min"
+                        :max="field.max"
+                        :step="field.step ?? 1"
+                        :placeholder="resolveFieldPlaceholder(field)"
+                      />
+                      <input
+                        v-else
+                        v-model="agentSettings[field.key]"
+                        :placeholder="resolveFieldPlaceholder(field)"
+                      />
+                    </template>
                   </div>
                 </details>
               </template>
@@ -631,6 +668,19 @@ onMounted(() => {
 .btn-send:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+/* Boolean toggle: checkbox + label on one line */
+.checkbox-label {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  cursor: pointer !important;
+  margin-bottom: 0 !important;
+}
+.checkbox-label input[type="checkbox"] {
+  width: auto !important;
+  flex-shrink: 0 !important;
 }
 </style>
 
