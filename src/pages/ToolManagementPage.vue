@@ -288,7 +288,7 @@ onMounted(load)
         </div>
 
         <Teleport to="body">
-          <div v-if="showDialog" class="dialog-overlay" @click.self="showDialog = false">
+          <div v-if="showDialog" class="dialog-overlay" @mousedown.self="showDialog = false">
             <div class="dialog dialog-wide">
               <h2>{{ editing ? t("mgmt_edit_tool") : t("mgmt_new_tool_title") }}</h2>
               <div class="form-group">
@@ -353,7 +353,7 @@ onMounted(load)
 
         <!-- Mgmt Dialog Fullscreen Overlay -->
         <Teleport to="body">
-          <div v-if="mgmtFs" class="tc-overlay" @click.self="closeMgmtFs()">
+          <div v-if="mgmtFs" class="tc-overlay" @mousedown.self="closeMgmtFs()">
             <div class="tc-overlay-content">
               <div class="tc-overlay-header">
                 <span class="tc-overlay-title">{{ mgmtFsTitle }}</span>

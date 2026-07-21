@@ -22,6 +22,19 @@ const providerOptions = computed(() =>
   providers.value.map(p => ({ value: p.name, label: p.name }))
 )
 
+const selectedProvider = computed(() =>
+  providers.value.find(p => p.name === form.value.provider)
+)
+
+const modelOptions = computed(() => {
+  const p = selectedProvider.value
+  if (!p || !p.models || p.models.length === 0) return []
+  return p.models.map(m => ({
+    value: m.code || m.id,
+    label: m.display_name || m.code || m.id,
+  })
+)})
+
 const agents = ref<ManageAgent[]>([])
 const loading = ref(false)
 const showDialog = ref(false)
@@ -38,6 +51,13 @@ const form = ref<Partial<ManageAgent>>({
   model: "",
   llm_config: {},
   agent_type: "simple",
+})
+
+watch(() => form.value.provider, () => {
+  const opts = modelOptions.value
+  if (opts.length > 0 && !opts.some(o => o.value === form.value.model)) {
+    form.value.model = opts[0].value
+  }
 })
 
 const localeForm = ref({
@@ -394,7 +414,7 @@ onMounted(() => {
         </div>
 
         <Teleport to="body">
-          <div v-if="showDialog" class="dialog-overlay" @click.self="showDialog = false">
+          <div v-if="showDialog" class="dialog-overlay" @mousedown.self="showDialog = false">
             <div class="dialog dialog-wide">
               <h2>{{ editing ? t("mgmt_edit_agent") : t("mgmt_new_agent_title") }}</h2>
               <div class="form-group">
@@ -425,7 +445,7 @@ onMounted(() => {
               </div>
               <div class="form-group">
                 <label>{{ t("mgmt_model") }}</label>
-                <input v-model="form.model" :placeholder="t('mgmt_model_placeholder')" />
+                <SearchSelect v-model="form.model" :options="modelOptions" :searchable="true" :placeholder="t('mgmt_model_placeholder')" />
               </div>
               <div class="form-group">
                 <label>{{ t("mgmt_agent_type") }}</label>
@@ -498,7 +518,7 @@ onMounted(() => {
         </Teleport>
 
         <Teleport to="body">
-          <div v-if="fsVisible" class="tc-overlay" @click.self="closeFs">
+          <div v-if="fsVisible" class="tc-overlay" @mousedown.self="closeFs">
             <div class="tc-overlay-content">
               <div class="tc-overlay-header">
                 <span class="tc-overlay-title">{{ fsTitle }}</span>

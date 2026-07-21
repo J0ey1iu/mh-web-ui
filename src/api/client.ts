@@ -1,4 +1,4 @@
-import type { AgentInfo, FetchListParams, ManageAgent, ManageProvider, ManageScenario, ManageTool, MessagesResponse, PaginatedResponse, ScenarioDetail, ScenarioInfo, SessionInfo, UserInfo, SSEEventName } from "../types"
+import type { AgentInfo, FetchListParams, ManageAgent, ManageProvider, ManageScenario, ManageTool, MessagesResponse, PaginatedResponse, ProviderModel, ScenarioDetail, ScenarioInfo, SessionInfo, UserInfo, SSEEventName } from "../types"
 import { appConfig } from "../config"
 
 function fillUrl(template: string, params?: Record<string, string>): string {
@@ -284,6 +284,38 @@ export async function updateManageProviderConfig(name: string, provider: Partial
 
 export async function deleteManageProviderConfig(name: string): Promise<void> {
   await request(fillUrl(appConfig.apiManagementProviderConfig, { name }), { method: "DELETE" })
+}
+
+// ── Provider Model CRUD ──
+
+function _providerModelUrl(name: string): string {
+  return `${appConfig.apiManagementProviderConfigs}/${encodeURIComponent(name)}/models`
+}
+
+function _providerModelItemUrl(name: string, modelId: string): string {
+  return `${_providerModelUrl(name)}/${encodeURIComponent(modelId)}`
+}
+
+export async function fetchProviderModels(name: string): Promise<ProviderModel[]> {
+  return request<ProviderModel[]>(_providerModelUrl(name))
+}
+
+export async function createProviderModel(name: string, model: ProviderModel): Promise<ProviderModel> {
+  return request<ProviderModel>(_providerModelUrl(name), {
+    method: "POST",
+    body: JSON.stringify(model),
+  })
+}
+
+export async function updateProviderModel(name: string, modelId: string, model: ProviderModel): Promise<ProviderModel> {
+  return request<ProviderModel>(_providerModelItemUrl(name, modelId), {
+    method: "PUT",
+    body: JSON.stringify(model),
+  })
+}
+
+export async function deleteProviderModel(name: string, modelId: string): Promise<void> {
+  await request(_providerModelItemUrl(name, modelId), { method: "DELETE" })
 }
 
 // ── Relationship management ──

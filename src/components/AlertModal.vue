@@ -8,7 +8,7 @@ const { t } = useI18nStore()
 
 <template>
   <Teleport to="body">
-    <div v-if="alert.message" class="alert-overlay" @click.self="alert.isConfirm ? null : alert.hide()">
+    <div v-if="alert.message" class="alert-overlay" @mousedown.self="alert.isConfirm ? null : alert.hide()">
       <div class="alert-box">
         <div class="alert-icon-wrap">
           <svg class="alert-icon" viewBox="0 0 20 20" fill="currentColor" width="20" height="20">
