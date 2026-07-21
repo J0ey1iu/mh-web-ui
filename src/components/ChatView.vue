@@ -15,50 +15,29 @@ const props = defineProps<{
   contextUsage: { totalTokens: number; maxContext: number }
 }>()
 
-const circumference = 2 * Math.PI * 11
+const hasMaxCtx = computed(() => props.contextUsage.maxContext > 0)
 
-const showContextRing = computed(() => props.contextUsage.maxContext > 0 || props.contextUsage.totalTokens > 0)
-
-const percentage = computed(() => {
+const pct = computed(() => {
   const { totalTokens, maxContext } = props.contextUsage
   if (maxContext <= 0) return 0
-  return Math.min(100, Math.round(totalTokens / maxContext * 100))
+  return Math.min(1, totalTokens / maxContext)
 })
 
-const hasContextLimit = computed(() => props.contextUsage.maxContext > 0)
+const barFill = computed(() => `${Math.round(pct.value * 100)}%`)
 
-const dashOffset = computed(() => {
-  if (!hasContextLimit.value) return circumference
-  return circumference * (1 - percentage.value / 100)
-})
-
-const arcColor = computed(() => {
-  if (!hasContextLimit.value) return "var(--border)"
-  const pct = percentage.value
-  if (pct < 60) return "var(--accent)"
-  if (pct < 80) return "#eab308"
+const barColor = computed(() => {
+  const v = pct.value
+  if (v < 0.6) return "var(--accent)"
+  if (v < 0.8) return "#eab308"
   return "#ef4444"
 })
 
-const textColor = computed(() => {
-  if (!hasContextLimit.value) return "var(--text-muted)"
-  const pct = percentage.value
-  if (pct < 60) return "var(--text-secondary)"
-  if (pct < 80) return "#eab308"
-  return "#ef4444"
-})
-
-const displayText = computed(() => {
-  if (hasContextLimit.value) return `${percentage.value}%`
-  return `${props.contextUsage.totalTokens}`
-})
-
-const contextTooltip = computed(() => {
+const contextLabel = computed(() => {
   const { totalTokens, maxContext } = props.contextUsage
-  if (hasContextLimit.value) {
-    return `${totalTokens.toLocaleString()} / ${maxContext.toLocaleString()} (${percentage.value}%)`
+  if (hasMaxCtx.value) {
+    return `${totalTokens.toLocaleString()} / ${maxContext.toLocaleString()} (${Math.round(pct.value * 100)}%)`
   }
-  return `${totalTokens.toLocaleString()} tokens used`
+  return `${totalTokens.toLocaleString()} tokens`
 })
 
 const emit = defineEmits<{
@@ -262,28 +241,6 @@ watch(input, (val) => {
           rows="1"
           @keydown="onKeydown"
         ></textarea>
-        <svg
-          v-if="showContextRing"
-          width="28" height="28" viewBox="0 0 28 28"
-          class="context-ring"
-          :title="contextTooltip"
-        >
-          <circle cx="14" cy="14" r="11" fill="none" stroke="var(--glass-border)" stroke-width="3" />
-          <circle
-            cx="14" cy="14" r="11"
-            fill="none"
-            :stroke="arcColor"
-            stroke-width="3"
-            stroke-linecap="round"
-            :stroke-dasharray="circumference"
-            :stroke-dashoffset="dashOffset"
-            transform="rotate(-90, 14, 14)"
-            class="progress-arc"
-          />
-          <text x="14" y="14" text-anchor="middle" dominant-baseline="central" :fill="textColor" font-size="8" font-weight="600">
-            {{ displayText }}
-          </text>
-        </svg>
         <button
           :class="{ 'btn-cancel': streaming.isStreaming }"
           :disabled="!streaming.isStreaming && (disabled || !input.trim())"
@@ -291,6 +248,10 @@ watch(input, (val) => {
         >
           {{ streaming.isStreaming ? t("stop") : t("send") }}
         </button>
+      </div>
+      <div class="context-bar">
+        <div class="context-bar-fill" :style="{ width: barFill, background: barColor }"></div>
+        <span class="context-bar-text">{{ contextLabel }}</span>
       </div>
     </div>
   </div>
@@ -402,16 +363,33 @@ watch(input, (val) => {
 .btn-cancel:hover {
   background: var(--danger-hover) !important;
 }
-.context-ring {
-  flex-shrink: 0;
-  cursor: default;
+.context-bar {
+  position: relative;
+  height: 20px;
+  background: var(--glass-highlight);
+  border-top: 1px solid var(--glass-border);
+  overflow: hidden;
 }
-.progress-arc {
-  transition: stroke-dashoffset 0.3s ease, stroke 0.3s ease;
+.context-bar-fill {
+  position: absolute;
+  inset: 0;
+  height: 100%;
+  transition: width 0.4s ease, background 0.4s ease;
+}
+.context-bar-text {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  height: 100%;
+  padding: 0 10px;
+  font-size: 11px;
+  white-space: nowrap;
+  color: var(--text-secondary);
 }
 .scroll-to-bottom {
   position: absolute;
-  bottom: 76px;
+  bottom: 96px;
   left: 50%;
   transform: translateX(-50%);
   z-index: 10;

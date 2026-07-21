@@ -170,6 +170,9 @@ export const useChatStore = defineStore("chat", () => {
   function handleSSEEvent(sid: string, event: string, data: any) {
     if (event === SSE_EVENTS.MODEL_INFO) {
       contextUsage.value.maxContext = data.max_context
+      if (typeof data.total_tokens === "number") {
+        contextUsage.value.totalTokens = data.total_tokens
+      }
       return
     }
     const p = sessionPendingMap[sid]
