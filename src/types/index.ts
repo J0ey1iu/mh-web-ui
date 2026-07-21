@@ -7,11 +7,15 @@ export interface SessionInfo {
   scenario_id?: string
   display_name?: string
   compact_offset?: number
+  max_context?: number
+  total_tokens?: number
 }
 
 export interface MessagesResponse {
   items: MessageItem[]
   compact_offset: number
+  total_tokens: number
+  max_context: number
 }
 
 export interface ToolCall {
@@ -70,6 +74,7 @@ export interface ToolCallComponentProps {
 export const SSE_EVENTS = {
   LLM_CHUNK: "LLMChunk",
   LLM_END: "LLMEnd",
+  MEMORY_UPDATE: "MemoryUpdate",
   TOOL_START: "ToolStart",
   TOOL_PROGRESS: "ToolProgress",
   TOOL_END: "ToolEnd",

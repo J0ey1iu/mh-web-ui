@@ -12,7 +12,33 @@ const props = defineProps<{
   messagesLoading: boolean
   streaming: StreamingState
   disabled: boolean
+  contextUsage: { totalTokens: number; maxContext: number }
 }>()
+
+const hasMaxCtx = computed(() => props.contextUsage.maxContext > 0)
+
+const pct = computed(() => {
+  const { totalTokens, maxContext } = props.contextUsage
+  if (maxContext <= 0) return 0
+  return Math.min(1, totalTokens / maxContext)
+})
+
+const barFill = computed(() => `${Math.round(pct.value * 100)}%`)
+
+const barColor = computed(() => {
+  const v = pct.value
+  if (v < 0.4) return "var(--accent)"
+  if (v < 0.7) return "#eab308"
+  return "#ef4444"
+})
+
+const contextLabel = computed(() => {
+  const { totalTokens, maxContext } = props.contextUsage
+  if (hasMaxCtx.value) {
+    return `${totalTokens.toLocaleString()} / ${maxContext.toLocaleString()} (${Math.round(pct.value * 100)}%)`
+  }
+  return `${totalTokens.toLocaleString()} tokens`
+})
 
 const emit = defineEmits<{
   send: [text: string]
@@ -223,6 +249,10 @@ watch(input, (val) => {
           {{ streaming.isStreaming ? t("stop") : t("send") }}
         </button>
       </div>
+      <div class="context-bar">
+        <div class="context-bar-fill" :style="{ width: barFill, background: barColor }"></div>
+        <div class="context-bar-text"><span>{{ contextLabel }}</span></div>
+      </div>
     </div>
   </div>
 </template>
@@ -333,9 +363,48 @@ watch(input, (val) => {
 .btn-cancel:hover {
   background: var(--danger-hover) !important;
 }
+.context-bar {
+  position: relative;
+  height: 4px;
+  background: var(--glass-highlight);
+  border-top: 1px solid var(--glass-border);
+  cursor: pointer;
+  overflow: hidden;
+  transition: height 0.2s ease;
+}
+.context-bar:hover {
+  height: 22px;
+}
+.context-bar-fill {
+  position: absolute;
+  inset: 0;
+  height: 100%;
+  transition: width 0.4s ease, background 0.4s ease, border-radius 0.2s ease;
+}
+.context-bar-text {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  pointer-events: none;
+}
+.context-bar:hover .context-bar-text {
+  opacity: 1;
+}
+.context-bar-text span {
+  background: var(--page-bg);
+  padding: 1px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  white-space: nowrap;
+  color: var(--text-primary);
+}
 .scroll-to-bottom {
   position: absolute;
-  bottom: 76px;
+  bottom: 80px;
   left: 50%;
   transform: translateX(-50%);
   z-index: 10;

@@ -23,6 +23,7 @@ const {
   messages,
   streaming,
   compacting,
+  contextUsage,
   backendOnline,
   error,
   currentScenario,
@@ -105,6 +106,7 @@ function handleNewChat() {
   chatStore.pendingAgent = null
   currentSessionId.value = null
   messages.value = []
+  contextUsage.value = { totalTokens: 0, maxContext: 0 }
   showAgentSelector.value = true
   router.replace({ query: { ...route.query, session: undefined, agent: undefined } })
 }
@@ -411,6 +413,7 @@ async function handleLogout() {
           :messages="messages"
           :messages-loading="messagesLoading"
           :streaming="streaming"
+          :context-usage="contextUsage"
           :disabled="!backendOnline"
           @send="handleSendMessage"
           @cancel="cancelStream"
