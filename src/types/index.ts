@@ -225,6 +225,7 @@ export interface ManageAgent {
   llm_config?: Record<string, any>
   agent_type?: string
   compaction?: Record<string, any>
+  tool_compaction?: Record<string, any>
   created_at?: string
   updated_at?: string
   created_by?: string
