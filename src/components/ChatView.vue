@@ -27,8 +27,8 @@ const barFill = computed(() => `${Math.round(pct.value * 100)}%`)
 
 const barColor = computed(() => {
   const v = pct.value
-  if (v < 0.6) return "var(--accent)"
-  if (v < 0.8) return "#eab308"
+  if (v < 0.4) return "var(--accent)"
+  if (v < 0.7) return "#eab308"
   return "#ef4444"
 })
 
@@ -251,7 +251,7 @@ watch(input, (val) => {
       </div>
       <div class="context-bar">
         <div class="context-bar-fill" :style="{ width: barFill, background: barColor }"></div>
-        <span class="context-bar-text">{{ contextLabel }}</span>
+        <div class="context-bar-text"><span>{{ contextLabel }}</span></div>
       </div>
     </div>
   </div>
@@ -365,31 +365,46 @@ watch(input, (val) => {
 }
 .context-bar {
   position: relative;
-  height: 20px;
+  height: 4px;
   background: var(--glass-highlight);
   border-top: 1px solid var(--glass-border);
+  cursor: pointer;
   overflow: hidden;
+  transition: height 0.2s ease;
+}
+.context-bar:hover {
+  height: 22px;
 }
 .context-bar-fill {
   position: absolute;
   inset: 0;
   height: 100%;
-  transition: width 0.4s ease, background 0.4s ease;
+  transition: width 0.4s ease, background 0.4s ease, border-radius 0.2s ease;
 }
 .context-bar-text {
-  position: relative;
-  z-index: 1;
+  position: absolute;
+  inset: 0;
   display: flex;
   align-items: center;
-  height: 100%;
-  padding: 0 10px;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  pointer-events: none;
+}
+.context-bar:hover .context-bar-text {
+  opacity: 1;
+}
+.context-bar-text span {
+  background: var(--page-bg);
+  padding: 1px 8px;
+  border-radius: 4px;
   font-size: 11px;
   white-space: nowrap;
-  color: var(--text-secondary);
+  color: var(--text-primary);
 }
 .scroll-to-bottom {
   position: absolute;
-  bottom: 96px;
+  bottom: 80px;
   left: 50%;
   transform: translateX(-50%);
   z-index: 10;

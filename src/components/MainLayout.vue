@@ -106,6 +106,7 @@ function handleNewChat() {
   chatStore.pendingAgent = null
   currentSessionId.value = null
   messages.value = []
+  contextUsage.value = { totalTokens: 0, maxContext: 0 }
   showAgentSelector.value = true
   router.replace({ query: { ...route.query, session: undefined, agent: undefined } })
 }
