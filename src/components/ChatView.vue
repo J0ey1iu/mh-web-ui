@@ -17,7 +17,7 @@ const props = defineProps<{
 
 const circumference = 2 * Math.PI * 11
 
-const showContextRing = computed(() => props.contextUsage.maxContext > 0)
+const showContextRing = computed(() => props.contextUsage.maxContext > 0 || props.contextUsage.totalTokens > 0)
 
 const percentage = computed(() => {
   const { totalTokens, maxContext } = props.contextUsage
@@ -25,12 +25,15 @@ const percentage = computed(() => {
   return Math.min(100, Math.round(totalTokens / maxContext * 100))
 })
 
+const hasContextLimit = computed(() => props.contextUsage.maxContext > 0)
+
 const dashOffset = computed(() => {
-  if (!showContextRing.value) return circumference
+  if (!hasContextLimit.value) return circumference
   return circumference * (1 - percentage.value / 100)
 })
 
 const arcColor = computed(() => {
+  if (!hasContextLimit.value) return "var(--border)"
   const pct = percentage.value
   if (pct < 60) return "var(--accent)"
   if (pct < 80) return "#eab308"
@@ -38,15 +41,24 @@ const arcColor = computed(() => {
 })
 
 const textColor = computed(() => {
+  if (!hasContextLimit.value) return "var(--text-muted)"
   const pct = percentage.value
   if (pct < 60) return "var(--text-secondary)"
   if (pct < 80) return "#eab308"
   return "#ef4444"
 })
 
+const displayText = computed(() => {
+  if (hasContextLimit.value) return `${percentage.value}%`
+  return `${props.contextUsage.totalTokens}`
+})
+
 const contextTooltip = computed(() => {
   const { totalTokens, maxContext } = props.contextUsage
-  return `${totalTokens.toLocaleString()} / ${maxContext.toLocaleString()} (${percentage.value}%)`
+  if (hasContextLimit.value) {
+    return `${totalTokens.toLocaleString()} / ${maxContext.toLocaleString()} (${percentage.value}%)`
+  }
+  return `${totalTokens.toLocaleString()} tokens used`
 })
 
 const emit = defineEmits<{
@@ -269,7 +281,7 @@ watch(input, (val) => {
             class="progress-arc"
           />
           <text x="14" y="14" text-anchor="middle" dominant-baseline="central" :fill="textColor" font-size="8" font-weight="600">
-            {{ percentage }}%
+            {{ displayText }}
           </text>
         </svg>
         <button
