@@ -480,7 +480,7 @@ onMounted(() => {
                 <label>{{ t("mgmt_agent_type") }}</label>
                 <SearchSelect v-model="form.agent_type" :options="agentTypeOptions" :searchable="false" />
               </div>
-              <template v-if="currentAgentTypeConfig && currentAgentTypeConfig.settings_fields">
+              <template v-if="currentAgentTypeConfig && currentAgentTypeConfig.settings_fields && currentAgentTypeConfig.settings_fields.length > 0">
                 <details class="locale-section" open>
                   <summary>{{ resolveAgentTypeTitle(currentAgentTypeConfig) }}</summary>
                   <div class="form-group" v-for="field in currentAgentTypeConfig.settings_fields" :key="field.key">
