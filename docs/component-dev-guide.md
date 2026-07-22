@@ -28,7 +28,6 @@ web-frontend/extra/                  ← Extra component library (standalone, sa
 ├── src/
 │   ├── index.ts
 │   ├── calculate/index.vue
-│   ├── general_viz/index.vue
 │   ├── get_current_time/index.vue
 │   ├── show_ui_meta/index.vue
 │   └── types.ts
@@ -329,7 +328,7 @@ No extra code needed in your component. The 1-second delay is managed by `Messag
 If your component should **not** auto-collapse when the response finishes (e.g., a visualization viewer), pass `{ autoCollapsible: false }` as the third argument when registering:
 
 ```ts
-registry.register("general_visualization", GeneralViz, { autoCollapsible: false })
+registry.register("my_visualization", MyViz, { autoCollapsible: false })
 ```
 
 The portal's `BaseToolCard` checks this flag per-tool and will ignore the collapse signal for that component. The user can still manually collapse/expand via the header chevron.
