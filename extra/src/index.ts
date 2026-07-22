@@ -3,7 +3,6 @@ import type { ToolCallDisplay } from "./types"
 import Calculate, { demoMock as calculateMock } from "./calculate/index.vue"
 import GetCurrentTime, { demoMock as getCurrentTimeMock } from "./get_current_time/index.vue"
 import ShowUiMeta, { demoMock as showUiMetaMock } from "./show_ui_meta/index.vue"
-import GeneralViz, { demoMock as generalVizMock } from "./general_viz/index.vue"
 import Bash, { demoMock as bashMock, demoMockRunning as bashMockRunning, demoMockStreaming as bashMockStreaming, demoMockError as bashMockError } from "./bash/index.vue"
 import LocalFileOperator, { demoMock as lfoMock, demoMockRunning as lfoMockRunning, demoMockError as lfoMockError, demoMockListDir as lfoMockListDir, demoMockExists as lfoMockExists, demoMockEdit as lfoMockEdit } from "./local_file_operator/index.vue"
 
@@ -25,9 +24,6 @@ if (registry) {
 
   registry.register("show_ui_meta", ShowUiMeta as ToolComponent)
   registry.registerMock?.("show_ui_meta", showUiMetaMock)
-
-  registry.register("general_visualization", GeneralViz as ToolComponent, { autoCollapsible: false })
-  registry.registerMock?.("general_visualization", generalVizMock)
 
   registry.register("bash", Bash as ToolComponent)
   registry.registerMock?.("bash", bashMock)
