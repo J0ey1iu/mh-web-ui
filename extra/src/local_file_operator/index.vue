@@ -201,76 +201,38 @@ const formatSize = (bytes: number): string => {
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
 }
-
-const opIcon = computed(() => {
-  const r = parsedResult.value
-  if (!r || !r.message) return ""
-  const m = r.message.toLowerCase()
-  if (m.includes("read")) return "?"
-  if (m.includes("wrote") || m.includes("written")) return "?"
-  if (m.includes("append")) return "?"
-  if (m.includes("replace")) return "?"
-  if (m.includes("delet")) return "?"
-  if (m.includes("listed") || m.includes("entries")) return "?"
-  if (m.includes("creat")) return "?"
-  if (m.includes("move")) return "?"
-  if (m.includes("copi")) return "?"
-  if (m.includes("exist")) return "?"
-  return "?"
-})
 </script>
 
 <template>
   <div class="lfo" :class="{ running: tool.status === 'running', success: tool.status === 'success' && !isError, error: tool.status === 'error' || isError }">
-    <!-- Running state -->
     <template v-if="tool.status === 'running'">
       <div class="lfo-loading">
         <span class="lfo-spinner" />
-        <div class="lfo-progress-text">
-          <div class="lfo-status-label">{{ t("executing") }}</div>
-          <div v-if="progressMessage" class="lfo-progress-msg">{{ progressMessage }}</div>
-        </div>
+        <span class="lfo-status-label">{{ progressMessage || t("executing") }}</span>
       </div>
     </template>
 
-    <!-- Result state -->
     <template v-else-if="parsedResult">
       <div class="lfo-card">
-        <!-- Header with icon and message -->
         <div class="lfo-header">
-          <span class="lfo-op-icon">{{ opIcon }}</span>
           <span class="lfo-message" :class="{ error: isError }">{{ parsedResult.message }}</span>
         </div>
 
-        <!-- content preview (for read) -->
         <div v-if="showContent" class="lfo-section">
-          <div class="lfo-section-label">{{ t("content_preview") }}</div>
           <pre class="lfo-content"><code>{{ parsedResult.content }}</code></pre>
         </div>
 
-        <!-- file_content_preview (for edit old_string not found) -->
         <div v-else-if="parsedResult.file_content_preview" class="lfo-section">
-          <div class="lfo-section-label">{{ t("content_preview") }}</div>
           <pre class="lfo-content"><code>{{ parsedResult.file_content_preview }}</code></pre>
         </div>
 
-        <!-- path + size info row -->
         <div v-if="parsedResult.path" class="lfo-info-row">
-          <span class="lfo-info-label">{{ t("path") }}</span>
-          <span class="lfo-info-value lfo-path-value">{{ parsedResult.path }}</span>
-        </div>
-        <div v-if="parsedResult.size !== undefined" class="lfo-info-row">
-          <span class="lfo-info-label">{{ t("size") }}</span>
-          <span class="lfo-info-value">{{ formatSize(parsedResult.size) }} ({{ parsedResult.size }} {{ t("characters") }})</span>
-        </div>
-        <div v-if="parsedResult.replacement_count !== undefined" class="lfo-info-row">
-          <span class="lfo-info-label">{{ t("replacements") }}</span>
-          <span class="lfo-info-value">{{ parsedResult.replacement_count }}</span>
+          <span class="lfo-path-value">{{ parsedResult.path }}</span>
+          <span v-if="parsedResult.size !== undefined" class="lfo-size-value">({{ formatSize(parsedResult.size) }})</span>
+          <span v-if="parsedResult.replacement_count !== undefined" class="lfo-size-value">({{ parsedResult.replacement_count }} {{ t("replacements") }})</span>
         </div>
 
-        <!-- diff display (for edit) -->
         <div v-if="showDiff" class="lfo-section">
-          <div class="lfo-section-label">diff</div>
           <div class="lfo-diff">
             <div
               v-for="(line, idx) in parsedResult.diff"
@@ -281,9 +243,7 @@ const opIcon = computed(() => {
           </div>
         </div>
 
-        <!-- directory listing -->
         <div v-if="showEntries" class="lfo-section">
-          <div class="lfo-section-label">{{ t("entries") }} ({{ parsedResult.total }})</div>
           <div class="lfo-file-list">
             <div
               v-for="entry in parsedResult.entries"
@@ -291,7 +251,6 @@ const opIcon = computed(() => {
               class="lfo-file-row"
               :class="{ isDir: entry.type === 'directory' }"
             >
-              <span class="lfo-file-icon">{{ entry.type === "directory" ? "?" : "?" }}</span>
               <span class="lfo-file-name">{{ entry.name }}</span>
               <span v-if="entry.type === 'file'" class="lfo-file-size">{{ formatSize(entry.size) }}</span>
               <span v-else class="lfo-file-size lfo-dir-label">{{ t("directory") }}</span>
@@ -299,40 +258,21 @@ const opIcon = computed(() => {
           </div>
         </div>
 
-        <!-- exists status -->
-        <div v-if="showExists" class="lfo-section">
-          <div class="lfo-exists-row">
-            <span v-if="parsedResult.exists" class="lfo-exists-badge lfo-exists-yes">{{ t("exists") }}</span>
-            <span v-else class="lfo-exists-badge lfo-exists-no">{{ t("not_exists") }}</span>
-            <span v-if="parsedResult.is_dir" class="lfo-type-badge">{{ t("directory") }}</span>
-            <span v-if="parsedResult.is_file" class="lfo-type-badge">{{ t("file") }}</span>
-          </div>
+        <div v-if="showExists" class="lfo-exists-row">
+          <span v-if="parsedResult.exists" class="lfo-exists-badge lfo-exists-yes">{{ t("exists") }}</span>
+          <span v-else class="lfo-exists-badge lfo-exists-no">{{ t("not_exists") }}</span>
+          <span v-if="parsedResult.is_dir" class="lfo-type-badge">{{ t("directory") }}</span>
+          <span v-if="parsedResult.is_file" class="lfo-type-badge">{{ t("file") }}</span>
         </div>
 
-        <!-- move/copy source -> destination -->
-        <div v-if="showMoveCopy" class="lfo-section">
-          <div class="lfo-move-row">
-            <div class="lfo-move-item">
-              <span class="lfo-move-label">source</span>
-              <span class="lfo-move-path">{{ parsedResult.source }}</span>
-            </div>
-            <span class="lfo-move-arrow">?</span>
-            <div class="lfo-move-item">
-              <span class="lfo-move-label">destination</span>
-              <span class="lfo-move-path">{{ parsedResult.destination }}</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Suggestion -->
-        <div v-if="parsedResult.suggestion" class="lfo-suggestion">
-          <span class="lfo-suggestion-icon">?</span>
-          <span><strong>{{ t("suggestion") }}:</strong> {{ parsedResult.suggestion }}</span>
+        <div v-if="showMoveCopy" class="lfo-move-row">
+          <span class="lfo-move-path">{{ parsedResult.source }}</span>
+          <span class="lfo-move-arrow">&rarr;</span>
+          <span class="lfo-move-path">{{ parsedResult.destination }}</span>
         </div>
       </div>
     </template>
 
-    <!-- Error without parsed result -->
     <template v-else-if="tool.status === 'error'">
       <div class="lfo-card lfo-card-error">
         <div class="lfo-error-msg">{{ tool.result }}</div>
@@ -342,57 +282,46 @@ const opIcon = computed(() => {
 </template>
 
 <style scoped>
-.lfo { margin: 2px 0; }
+.lfo { margin: 2px 0; font-family: var(--font-sans, "Inter Variable", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif); }
 .lfo-loading { display: flex; align-items: center; gap: 8px; padding: 8px 0; }
 .lfo-spinner { width: 14px; height: 14px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: lfoSpin 0.8s linear infinite; flex-shrink: 0; }
-.lfo-progress-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-.lfo-status-label { font-size: 12px; color: var(--text-secondary); font-weight: 500; }
-.lfo-progress-msg { font-size: 11px; color: var(--text-tertiary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.lfo-card { border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; background: color-mix(in srgb, var(--surface-bg) 60%, transparent); }
-.lfo.success .lfo-card { border-color: color-mix(in srgb, var(--success) 30%, transparent); }
+.lfo-status-label { font-size: 13px; color: var(--text-secondary); }
+.lfo-card { border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; background: var(--glass-bg, transparent); }
+.lfo.success .lfo-card { border-color: var(--success); }
 .lfo.error .lfo-card,
-.lfo-card-error { border-color: color-mix(in srgb, var(--error) 30%, transparent); }
-.lfo-header { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
-.lfo-op-icon { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 8px; background: color-mix(in srgb, var(--accent) 10%, transparent); flex-shrink: 0; font-size: 14px; }
+.lfo-card-error { border-color: var(--error); }
+.lfo-header { margin-bottom: 6px; }
 .lfo-message { font-size: 13px; color: var(--text-primary); line-height: 1.4; word-break: break-word; }
 .lfo-message.error { color: var(--error); }
-.lfo-section { margin-bottom: 10px; }
-.lfo-section-label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); margin-bottom: 6px; }
-.lfo-content { margin: 0; padding: 8px 10px; border-radius: 6px; background: color-mix(in srgb, var(--surface-bg) 40%, transparent); border: 1px solid var(--border); font-family: "SF Mono", "Fira Code", "Cascadia Code", monospace; font-size: 12px; line-height: 1.5; overflow-x: auto; max-height: 200px; overflow-y: auto; white-space: pre-wrap; word-break: break-all; color: var(--text-primary); }
-.lfo-info-row { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; font-size: 12px; }
-.lfo-info-label { color: var(--text-muted); font-weight: 500; min-width: 60px; flex-shrink: 0; }
-.lfo-info-value { color: var(--text-secondary); word-break: break-all; }
-.lfo-path-value { font-family: "SF Mono", "Fira Code", monospace; font-size: 11px; }
+.lfo-section { margin-bottom: 6px; }
+.lfo-content { margin: 4px 0 0; padding: 6px 10px; border-radius: 6px; background: color-mix(in srgb, var(--surface-bg, #1a1a20) 40%, transparent); border: 1px solid var(--border); font-family: var(--font-mono, ui-monospace, "SF Mono", "Cascadia Code", "Consolas", monospace); font-size: 12px; line-height: 1.5; overflow-x: auto; max-height: 200px; overflow-y: auto; white-space: pre-wrap; word-break: break-all; color: var(--text-primary); }
+.lfo-info-row { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-secondary); }
+.lfo-path-value { font-family: var(--font-mono, ui-monospace, "SF Mono", "Cascadia Code", "Consolas", monospace); font-size: 12px; word-break: break-all; }
+.lfo-size-value { color: var(--text-tertiary); flex-shrink: 0; }
 .lfo-file-list { display: flex; flex-direction: column; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
-.lfo-file-row { display: flex; align-items: center; gap: 8px; padding: 6px 10px; font-size: 12px; border-bottom: 1px solid var(--border); }
+.lfo-file-row { display: flex; align-items: center; gap: 8px; padding: 5px 10px; font-size: 12px; border-bottom: 1px solid var(--border); }
 .lfo-file-row:last-child { border-bottom: none; }
-.lfo-file-row:hover { background: color-mix(in srgb, var(--accent) 4%, transparent); }
-.lfo-file-icon { flex-shrink: 0; font-size: 13px; }
-.lfo-file-name { flex: 1; color: var(--text-primary); font-family: "SF Mono", "Fira Code", monospace; font-size: 12px; word-break: break-all; }
+.lfo-file-name { flex: 1; color: var(--text-primary); font-family: var(--font-mono, ui-monospace, "SF Mono", "Cascadia Code", "Consolas", monospace); font-size: 12px; word-break: break-all; }
 .lfo-file-row.isDir .lfo-file-name { font-weight: 500; }
 .lfo-file-size { font-size: 11px; color: var(--text-tertiary); flex-shrink: 0; }
 .lfo-dir-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.3px; }
 .lfo-exists-row { display: flex; align-items: center; gap: 8px; }
-.lfo-exists-badge { font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 6px; }
+.lfo-exists-badge { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 6px; }
 .lfo-exists-yes { background: color-mix(in srgb, var(--success) 12%, transparent); color: var(--success); }
 .lfo-exists-no { background: color-mix(in srgb, var(--error) 12%, transparent); color: var(--error); }
-.lfo-type-badge { font-size: 10px; font-weight: 500; padding: 2px 8px; border-radius: 4px; background: var(--border); color: var(--text-tertiary); }
-.lfo-move-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.lfo-move-item { flex: 1; min-width: 120px; }
-.lfo-move-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.3px; color: var(--text-muted); display: block; margin-bottom: 2px; }
-.lfo-move-path { font-family: "SF Mono", "Fira Code", monospace; font-size: 11px; color: var(--text-primary); word-break: break-all; }
-.lfo-move-arrow { font-size: 16px; color: var(--text-muted); flex-shrink: 0; }
-.lfo-diff { border: 1px solid var(--border); border-radius: 8px; overflow: hidden; font-family: "SF Mono", "Fira Code", "Cascadia Code", "Consolas", monospace; font-size: 12px; line-height: 1.5; background: color-mix(in srgb, #000 4%, var(--surface-bg) 96%); }
+.lfo-type-badge { font-size: 10px; font-weight: 500; padding: 2px 6px; border-radius: 4px; background: var(--border); color: var(--text-tertiary); }
+.lfo-move-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 12px; }
+.lfo-move-path { font-family: var(--font-mono, ui-monospace, "SF Mono", "Cascadia Code", "Consolas", monospace); font-size: 12px; color: var(--text-primary); word-break: break-all; }
+.lfo-move-arrow { font-size: 14px; color: var(--text-muted); flex-shrink: 0; }
+.lfo-diff { border: 1px solid var(--border); border-radius: 8px; overflow: hidden; font-family: var(--font-mono, ui-monospace, "SF Mono", "Cascadia Code", "Consolas", monospace); font-size: 12px; line-height: 1.5; background: color-mix(in srgb, #000 4%, var(--surface-bg, #1a1a20) 96%); }
 .lfo-diff-line { padding: 0 10px; white-space: pre-wrap; word-break: break-all; min-height: 1.5em; display: flex; align-items: center; }
 .lfo-diff-code { white-space: pre-wrap; word-break: break-all; width: 100%; }
-.lfo-diff-meta { background: color-mix(in srgb, var(--accent) 8%, transparent); color: var(--accent); font-weight: 500; letter-spacing: -0.2px; }
+.lfo-diff-meta { background: color-mix(in srgb, var(--accent) 8%, transparent); color: var(--accent); font-weight: 500; }
 .lfo-diff-add { background: color-mix(in srgb, #22c55e 8%, transparent); border-left: 3px solid #22c55e; padding-left: 7px; }
 .lfo-diff-add .lfo-diff-code { color: #22c55e; }
 .lfo-diff-del { background: color-mix(in srgb, #ef4444 8%, transparent); border-left: 3px solid #ef4444; padding-left: 7px; }
 .lfo-diff-del .lfo-diff-code { color: #ef4444; }
-.lfo-diff-ctx { color: var(--text-secondary); padding-left: 10px; }
-.lfo-suggestion { display: flex; align-items: flex-start; gap: 6px; margin-top: 8px; padding: 6px 8px; background: color-mix(in srgb, var(--accent) 6%, transparent); border-radius: 6px; font-size: 12px; color: var(--text-secondary); line-height: 1.4; }
-.lfo-suggestion-icon { display: inline-flex; align-items: center; justify-content: center; width: 16px; height: 16px; border-radius: 50%; background: color-mix(in srgb, var(--accent) 15%, transparent); color: var(--accent); font-size: 10px; font-weight: 700; flex-shrink: 0; margin-top: 1px; }
+.lfo-diff-ctx { color: var(--text-secondary); }
 .lfo-error-msg { font-size: 13px; color: var(--error); padding: 4px 0; }
 @keyframes lfoSpin { to { transform: rotate(360deg); } }
 </style>

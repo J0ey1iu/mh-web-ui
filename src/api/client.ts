@@ -51,7 +51,10 @@ export function compactSession(
 }
 
 async function request<T>(url: string, options?: RequestInit): Promise<T> {
-  const headers: Record<string, string> = { "Content-Type": "application/json", "Accept-Language": getLocale() }
+  const headers: Record<string, string> = { "Accept-Language": getLocale() }
+  if (!(options?.body instanceof FormData)) {
+    headers["Content-Type"] = "application/json"
+  }
   let res: Response
   try {
     res = await fetch(url, { credentials: "include", ...options, headers: { ...headers, ...(options?.headers as Record<string, string> | undefined) } })
@@ -258,8 +261,53 @@ export async function updateManageTool(name: string, tool: Partial<ManageTool>):
   })
 }
 
-export async function deleteManageTool(name: string): Promise<void> {
-  await request(fillUrl(appConfig.apiManagementTool, { name }), { method: "DELETE" })
+export async function deleteManageTool(name: string, force = false): Promise<void | { usages: { scenario_id: string; agent_name: string }[] }> {
+  const url = fillUrl(appConfig.apiManagementTool, { name }) + (force ? "?force=true" : "")
+  const headers: Record<string, string> = { "Accept-Language": getLocale() }
+  const res = await fetch(url, { method: "DELETE", credentials: "include", headers })
+  if (res.status === 409) {
+    const body = await res.json()
+    const err = new Error("TOOL_IN_USE")
+    ;(err as any).usages = body?.detail?.usages ?? []
+    throw err
+  }
+  if (res.status === 401) {
+    if (appConfig.loginUrl) window.location.replace(`${appConfig.loginUrl}?redirect=${encodeURIComponent(window.location.href)}`)
+    throw new Error("Unauthorized")
+  }
+  if (res.status === 403) throw new Error("Forbidden: permission denied")
+  if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`)
+}
+
+// ── Tool Upload ──
+
+export interface UploadToolResult {
+  tool: Record<string, any>
+  name: string
+  script_path: string
+}
+
+export interface UploadToolsResponse {
+  created: UploadToolResult[]
+  errors: { filename: string; error: string }[]
+}
+
+export async function uploadToolScript(file: File, overwrite = false): Promise<UploadToolResult> {
+  const form = new FormData()
+  form.append("file", file)
+  return request<UploadToolResult>(`${appConfig.apiManagementTools}/upload?overwrite=${overwrite}`, {
+    method: "POST",
+    body: form,
+  })
+}
+
+export async function uploadToolScripts(files: File[], overwrite = false): Promise<UploadToolsResponse> {
+  const form = new FormData()
+  files.forEach(f => form.append("files", f))
+  return request<UploadToolsResponse>(`${appConfig.apiManagementTools}/upload-batch?overwrite=${overwrite}`, {
+    method: "POST",
+    body: form,
+  })
 }
 
 // ── Provider Configs ──

@@ -241,6 +241,7 @@ export interface ManageTool {
   parameters: Record<string, any>
   source_code?: string
   endpoint_url?: string
+  script_path?: string
   created_at?: string
   updated_at?: string
   created_by?: string
