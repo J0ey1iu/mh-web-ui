@@ -5,6 +5,7 @@ import {
   createManageTool,
   updateManageTool,
   deleteManageTool,
+  uploadToolScripts,
 } from "../api/client"
 import type { ManageTool } from "../types"
 import ManagementNav from "../components/ManagementNav.vue"
@@ -44,6 +45,7 @@ const form = ref<Partial<ManageTool>>({
   parameters: { type: "object", properties: {}, required: [] },
   endpoint_url: "",
   source_code: "",
+  script_path: "",
 })
 
 const localeForm = ref({ display_zh: "", display_en: "", desc_zh: "", desc_en: "" })
@@ -145,7 +147,7 @@ function onPageSizeChange() {
 
 function openCreate() {
   editing.value = false
-  form.value = { name: "", display_name: "", display_name_locale: "", description: "", description_locale: "", parameters: { type: "object", properties: {}, required: [] }, endpoint_url: "", source_code: "" }
+  form.value = { name: "", display_name: "", display_name_locale: "", description: "", description_locale: "", parameters: { type: "object", properties: {}, required: [] }, endpoint_url: "", source_code: "", script_path: "" }
   localeForm.value = { display_zh: "", display_en: "", desc_zh: "", desc_en: "" }
   parametersText.value = JSON.stringify(form.value.parameters, null, 2)
   showDialog.value = true
@@ -198,8 +200,82 @@ async function remove(name: string) {
   try {
     await deleteManageTool(name)
     await load()
+  } catch (e: any) {
+    if (e.message === "TOOL_IN_USE" && e.usages?.length) {
+      const agentList = [...new Set(e.usages.map((u: any) => u.agent_name))].join(", ")
+      const msg = t("mgmt_tool_in_use_confirm", { name, agents: agentList, count: e.usages.length })
+      if (!await alertStore.confirm(msg)) return
+      try {
+        await deleteManageTool(name, true)
+        await load()
+      } catch (e2) {
+        alertStore.show("Failed to delete: " + (e2 as Error).message)
+      }
+    } else {
+      alertStore.show("Failed to delete: " + (e as Error).message)
+    }
+  }
+}
+
+// ===== Upload =====
+const showUpload = ref(false)
+const uploadFiles = ref<File[]>([])
+const uploading = ref(false)
+const fileInput = ref<HTMLInputElement>()
+
+function openUpload() {
+  uploadFiles.value = []
+  showUpload.value = true
+}
+
+function onFilesSelected(e: Event) {
+  const input = e.target as HTMLInputElement
+  if (input.files) {
+    const newFiles = Array.from(input.files).filter(f => f.name.endsWith('.py'))
+    uploadFiles.value.push(...newFiles)
+  }
+}
+
+function onDrop(e: DragEvent) {
+  if (e.dataTransfer?.files) {
+    const newFiles = Array.from(e.dataTransfer.files).filter(f => f.name.endsWith('.py'))
+    uploadFiles.value.push(...newFiles)
+  }
+}
+
+function removeUploadFile(index: number) {
+  uploadFiles.value.splice(index, 1)
+}
+
+function formatSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes}B`
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)}KB`
+  return `${(bytes / (1024 * 1024)).toFixed(1)}MB`
+}
+
+async function doUpload() {
+  if (!uploadFiles.value.length) return
+  uploading.value = true
+  try {
+    const resp = await uploadToolScripts(uploadFiles.value)
+    const created = resp.created?.length ?? 0
+    const errors = resp.errors?.length ?? 0
+    if (created > 0) {
+      alertStore.show(t("mgmt_upload_success", { count: created }))
+    }
+    if (errors > 0) {
+      const msg = resp.errors?.map(e => `${e.filename}: ${e.error}`).join("; ") ?? ""
+      alertStore.show(t("mgmt_upload_failed") + ": " + msg)
+    }
+    if (created > 0) {
+      showUpload.value = false
+      uploadFiles.value = []
+      await load()
+    }
   } catch (e) {
-    alertStore.show("Failed to delete: " + (e as Error).message)
+    alertStore.show(t("mgmt_upload_failed") + ": " + (e as Error).message)
+  } finally {
+    uploading.value = false
   }
 }
 
@@ -212,7 +288,10 @@ onMounted(load)
     <div class="mgmt-page-content">
       <header class="mgmt-header">
         <h1>{{ t("mgmt_tools") }}</h1>
-        <button class="btn-primary" @click="openCreate">{{ t("mgmt_new_tool") }}</button>
+        <div class="mgmt-header-actions">
+          <button class="btn-primary" @click="openCreate">{{ t("mgmt_new_tool") }}</button>
+          <button class="btn-secondary" @click="openUpload">{{ t("mgmt_new_tool_from_file") }}</button>
+        </div>
       </header>
 
       <!-- ===== Manage Tools ===== -->
@@ -229,7 +308,7 @@ onMounted(load)
                 <th>{{ t("mgmt_name") }}</th>
                 <th>{{ t("mgmt_display_name") }}</th>
                 <th>{{ t("mgmt_description") }}</th>
-                <th>{{ t("mgmt_endpoint") }}</th>
+                <th>{{ t("mgmt_tool_binding") }}</th>
                 <th>{{ t("mgmt_created_at") }}</th>
                 <th>{{ t("mgmt_updated_at") }}</th>
                 <th>{{ t("mgmt_actions") }}</th>
@@ -257,7 +336,7 @@ onMounted(load)
                   <th>{{ t("mgmt_name") }}</th>
                   <th>{{ t("mgmt_display_name") }}</th>
                   <th>{{ t("mgmt_description") }}</th>
-                  <th>{{ t("mgmt_endpoint") }}</th>
+                  <th>{{ t("mgmt_tool_binding") }}</th>
                   <th>{{ t("mgmt_created_at") }}</th>
                   <th>{{ t("mgmt_updated_at") }}</th>
                   <th>{{ t("mgmt_actions") }}</th>
@@ -268,7 +347,11 @@ onMounted(load)
             <td :title="tl.name"><code>{{ tl.name }}</code></td>
             <td :title="localeVal(tl.display_name_locale, tl.display_name)">{{ localeVal(tl.display_name_locale, tl.display_name) }}</td>
             <td class="cell-desc" :title="localeVal(tl.description_locale, tl.description)">{{ localeVal(tl.description_locale, tl.description) }}</td>
-            <td><code class="cell-url" :title="tl.endpoint_url || t('mgmt_local')">{{ tl.endpoint_url || t("mgmt_local") }}</code></td>
+            <td :title="tl.script_path || tl.endpoint_url || t('mgmt_binding_local')">
+              <span v-if="tl.script_path" class="cell-binding-label">{{ t('mgmt_binding_file') }}</span>
+              <span v-else-if="tl.endpoint_url" class="cell-binding-label">{{ t('mgmt_binding_remote') }}</span>
+              <span v-else class="cell-binding-label">{{ t('mgmt_binding_local') }}</span>
+            </td>
             <td class="cell-audit" :title="fmtAudit(tl.created_at, tl.created_by)">{{ fmtAudit(tl.created_at, tl.created_by) }}</td>
             <td class="cell-audit" :title="fmtAudit(tl.updated_at, tl.updated_by)">{{ fmtAudit(tl.updated_at, tl.updated_by) }}</td>
             <td class="cell-actions">
@@ -318,6 +401,10 @@ onMounted(load)
                 <input v-model="form.endpoint_url" :placeholder="t('mgmt_placeholder_endpoint')" />
               </div>
               <div class="form-group">
+                <label>{{ t("mgmt_script_path") }}</label>
+                <input v-model="form.script_path" :placeholder="t('mgmt_placeholder_script_path')" />
+              </div>
+              <div class="form-group">
                 <div class="tc-label-row">
                   <label>{{ t("mgmt_tc_source_code") }}</label>
                   <button class="tc-fullscreen-btn" @click="openMgmtFs(t('mgmt_tc_source_code'), form.source_code ?? '', 'source_code')" :title="t('mgmt_tc_source_code')">&#x26F6;</button>
@@ -345,6 +432,39 @@ onMounted(load)
                 <button class="btn-cancel" @click="showDialog = false">{{ t("mgmt_cancel") }}</button>
                 <button class="btn-primary" :disabled="saving || !form.name" @click="save">
                   {{ saving ? t("mgmt_saving") : t("mgmt_save") }}
+                </button>
+              </div>
+            </div>
+          </div>
+        </Teleport>
+
+        <!-- Upload Dialog -->
+        <Teleport to="body">
+          <div v-if="showUpload" class="dialog-overlay" @mousedown.self="showUpload = false">
+            <div class="dialog dialog-wide">
+              <h2>{{ t("mgmt_upload_title") }}</h2>
+              <p class="mgmt-hint">{{ t("mgmt_upload_file_hint") }}</p>
+              <div
+                class="upload-drop-area"
+                @drop.prevent="onDrop"
+                @dragover.prevent
+                @click="$refs.fileInput?.click()"
+              >
+                <input ref="fileInput" type="file" accept=".py" multiple
+                       @change="onFilesSelected" style="display:none" />
+                <span class="upload-placeholder-text">{{ t("mgmt_upload_select") }}</span>
+              </div>
+              <div v-if="uploadFiles.length" class="upload-file-list">
+                <div v-for="(f, i) in uploadFiles" :key="i" class="upload-file-item">
+                  <code>{{ f.name }}</code>
+                  <span class="upload-file-size">{{ formatSize(f.size) }}</span>
+                  <button class="upload-file-remove" @click="removeUploadFile(i)">&times;</button>
+                </div>
+              </div>
+              <div class="dialog-actions">
+                <button class="btn-cancel" @click="showUpload = false">{{ t("mgmt_cancel") }}</button>
+                <button class="btn-primary" :disabled="!uploadFiles.length || uploading" @click="doUpload">
+                  {{ uploading ? t("mgmt_uploading") : t("mgmt_upload_batch") }}
                 </button>
               </div>
             </div>
@@ -470,5 +590,81 @@ onMounted(load)
   height: 1px;
   background: var(--glass-border);
   margin: 24px 0;
+}
+
+/* Upload dialog */
+.mgmt-header-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+.btn-secondary {
+  padding: 8px 18px;
+  border: 1px solid var(--glass-border);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.btn-secondary:hover { background: var(--glass-highlight); }
+.mgmt-hint {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-bottom: 12px;
+  line-height: 1.5;
+}
+.upload-drop-area {
+  border: 2px dashed var(--glass-border);
+  border-radius: 10px;
+  padding: 40px 20px;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+.upload-drop-area:hover {
+  border-color: var(--accent);
+  background: var(--glass-highlight);
+}
+.upload-placeholder-text {
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+.upload-file-list {
+  margin-top: 12px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+.upload-file-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  background: var(--glass-highlight);
+  border: 1px solid var(--glass-border);
+  border-radius: 6px;
+  margin-bottom: 4px;
+  font-size: 13px;
+}
+.upload-file-size {
+  color: var(--text-secondary);
+  font-size: 11px;
+  white-space: nowrap;
+}
+.upload-file-remove {
+  margin-left: auto;
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 16px;
+  padding: 0 4px;
+}
+.upload-file-remove:hover { color: var(--error, #ef4444); }
+.cell-binding-label {
+  font-size: 12px;
+  color: var(--text-secondary);
 }
 </style>
