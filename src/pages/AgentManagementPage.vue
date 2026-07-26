@@ -120,7 +120,7 @@ interface AgentTypeSettingField {
   key: string
   display_name: string
   display_name_zh: string
-  type: "number" | "boolean"
+  type: "number" | "boolean" | "longtext"
   default?: any
   placeholder?: string
   placeholder_zh?: string
@@ -176,6 +176,43 @@ async function loadAgentTypes() {
 
 const agentSettings = ref<Record<string, any>>({})
 
+// Compaction prompt locale pair (zh/en) — styled like the translations section
+const compactionPromptLocale = ref({ zh: "", en: "" })
+
+function parseCompactionPromptLocale(raw: string | undefined): { zh: string; en: string } {
+  if (!raw) return { zh: "", en: "" }
+  try {
+    const parsed = JSON.parse(raw)
+    return { zh: parsed.zh ?? "", en: parsed.en ?? "" }
+  } catch {
+    return { zh: "", en: "" }
+  }
+}
+
+function composeCompactionPromptLocale(zh: string, en: string): string {
+  if (!zh && !en) return ""
+  return JSON.stringify({ zh, en })
+}
+
+function loadCompactionPromptLocale() {
+  const raw = agentSettings.value["compaction_prompt_locale"]
+  const parsed = parseCompactionPromptLocale(raw)
+  compactionPromptLocale.value.zh = parsed.zh
+  compactionPromptLocale.value.en = parsed.en
+}
+
+function applyCompactionPromptLocale() {
+  const composed = composeCompactionPromptLocale(
+    compactionPromptLocale.value.zh,
+    compactionPromptLocale.value.en,
+  )
+  if (composed) {
+    agentSettings.value["compaction_prompt_locale"] = composed
+  } else {
+    delete agentSettings.value["compaction_prompt_locale"]
+  }
+}
+
 const currentAgentTypeConfig = computed(() =>
   agentTypeConfigs.value[form.value.agent_type ?? "simple"] ?? agentTypeConfigs.value["simple"] ?? null
 )
@@ -192,13 +229,20 @@ function loadAgentSettingsFromForm() {
     for (const field of config.settings_fields) {
       loaded[field.key] = raw[field.key] ?? undefined
     }
+    // Load compaction_prompt_locale from the raw data (it's not a settings_field)
+    // so it can be picked up by loadCompactionPromptLocale() below
+    if (raw["compaction_prompt_locale"] !== undefined) {
+      loaded["compaction_prompt_locale"] = raw["compaction_prompt_locale"]
+    }
     agentSettings.value = loaded
+    loadCompactionPromptLocale()
   } else {
     agentSettings.value = {}
   }
 }
 
 function applyAgentSettingsToForm() {
+  applyCompactionPromptLocale()
   for (const c of Object.values(agentTypeConfigs.value)) {
     if (c.settings_key) {
       delete (form.value as any)[c.settings_key]
@@ -213,6 +257,10 @@ function applyAgentSettingsToForm() {
         c[field.key] = field.type === "number" ? Number(val) : val
       }
     }
+    // Include compaction_prompt_locale if set
+    if (agentSettings.value["compaction_prompt_locale"]) {
+      c["compaction_prompt_locale"] = agentSettings.value["compaction_prompt_locale"]
+    }
     if (Object.keys(c).length > 0) {
       (form.value as any)[config.settings_key] = c
     }
@@ -221,6 +269,7 @@ function applyAgentSettingsToForm() {
 
 watch(() => form.value.agent_type, () => {
   agentSettings.value = {}
+  compactionPromptLocale.value = { zh: "", en: "" }
   loadAgentSettingsFromForm()
 })
 
@@ -252,6 +301,13 @@ function closeFs() {
     localeForm.value.prompt_zh = fsContent.value
   } else if (fsTarget === "locale_prompt_en") {
     localeForm.value.prompt_en = fsContent.value
+  } else if (fsTarget === "compaction_prompt_locale_zh") {
+    compactionPromptLocale.value.zh = fsContent.value
+  } else if (fsTarget === "compaction_prompt_locale_en") {
+    compactionPromptLocale.value.en = fsContent.value
+  } else if (fsTarget && fsTarget.startsWith("settings:")) {
+    const key = fsTarget.slice("settings:".length)
+    agentSettings.value[key] = fsContent.value
   }
   fsVisible.value = false
   fsTarget = null
@@ -300,6 +356,7 @@ function openCreate() {
   localeForm.value = { display_zh: "", display_en: "", desc_zh: "", desc_en: "", prompt_zh: "", prompt_en: "" }
   llmConfigStr.value = ""
   agentSettings.value = {}
+  compactionPromptLocale.value = { zh: "", en: "" }
   showDialog.value = true
 }
 
@@ -490,6 +547,13 @@ onMounted(() => {
                         {{ resolveFieldLabel(field) }}
                       </label>
                     </template>
+                    <template v-else-if="field.type === 'longtext'">
+                      <div class="tc-label-row">
+                        <label>{{ resolveFieldLabel(field) }}</label>
+                        <button class="tc-fullscreen-btn" @click="openFs(resolveFieldLabel(field), agentSettings[field.key] ?? '', 'settings:' + field.key)" :title="t('mgmt_tc_source_code')">&#x26F6;</button>
+                      </div>
+                      <textarea v-model="agentSettings[field.key]" rows="6" class="mono" :placeholder="resolveFieldPlaceholder(field)"></textarea>
+                    </template>
                     <template v-else>
                       <label>{{ resolveFieldLabel(field) }}</label>
                       <input
@@ -507,6 +571,14 @@ onMounted(() => {
                         :placeholder="resolveFieldPlaceholder(field)"
                       />
                     </template>
+                  </div>
+                  <!-- Compaction prompt locale pair — styled like translations section -->
+                  <div class="locale-field" v-if="currentAgentTypeConfig.settings_key === 'compaction' || currentAgentTypeConfig.settings_key === 'tool_compaction'">
+                    <div class="locale-field-label">{{ t("mgmt_compaction_prompt_locale") }}</div>
+                    <div class="locale-input-row">
+                      <label class="locale-lang">zh <button class="tc-fullscreen-btn" @click="openFs('zh ' + t('mgmt_compaction_prompt_locale'), compactionPromptLocale.zh, 'compaction_prompt_locale_zh')" :title="t('mgmt_tc_source_code')">&#x26F6;</button> <textarea v-model="compactionPromptLocale.zh" rows="3" placeholder="中文压缩提示词"></textarea></label>
+                      <label class="locale-lang">en <button class="tc-fullscreen-btn" @click="openFs('en ' + t('mgmt_compaction_prompt_locale'), compactionPromptLocale.en, 'compaction_prompt_locale_en')" :title="t('mgmt_tc_source_code')">&#x26F6;</button> <textarea v-model="compactionPromptLocale.en" rows="3" placeholder="Compaction prompt"></textarea></label>
+                    </div>
                   </div>
                 </details>
               </template>
@@ -566,7 +638,7 @@ onMounted(() => {
               <div class="tc-overlay-body">
                 <textarea
                   v-model="fsContent"
-                  :class="fsTarget === 'system_prompt' || fsTarget === 'llm_config' || fsTarget?.startsWith('locale_prompt') ? 'tc-overlay-textarea' : 'tc-overlay-textarea tc-overlay-textarea-text'"
+                  :class="fsTarget === 'system_prompt' || fsTarget === 'llm_config' || fsTarget?.startsWith('locale_prompt') || fsTarget?.startsWith('compaction_prompt_locale') || fsTarget?.startsWith('settings:') ? 'tc-overlay-textarea' : 'tc-overlay-textarea tc-overlay-textarea-text'"
                   spellcheck="false"
                 />
               </div>

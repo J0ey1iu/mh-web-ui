@@ -58,6 +58,7 @@ function hasAnyPermission(prefix: string): boolean {
 const hasScenePermission = computed(() => hasAnyPermission("manage:scene:"))
 const hasAgentPermission = computed(() => hasAnyPermission("manage:agent:"))
 const hasToolPermission = computed(() => hasAnyPermission("manage:tool:"))
+const hasProviderPermission = computed(() => hasAnyPermission("manage:provider:"))
 
 provide(TOOL_CONTEXT_KEY, { streaming, currentSessionId })
 
@@ -303,6 +304,13 @@ async function handleLogout() {
             @click="router.push('/manage/tools'); menuOpen = false"
           >
             Tools
+          </button>
+          <button
+            v-if="authUser && hasProviderPermission"
+            class="dropdown-item"
+            @click="router.push('/manage/providers'); menuOpen = false"
+          >
+            Providers
           </button>
           <div class="dropdown-divider"></div>
           <button
