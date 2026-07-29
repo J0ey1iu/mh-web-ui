@@ -64,12 +64,12 @@ function closeReplay() {
   replayHighlightMsgId.value = ""
 }
 
-function sourceLabel(source: string): string {
-  return source === "agent_tool" ? `[${t("feedback_source_tool")}]` : `[${t("feedback_source_ui")}]`
+function feedbackTypeLabel(fbType: string): string {
+  return fbType === "thumbs_up" ? "表扬" : "批评"
 }
 
-function typeIcon(fbType: string): string {
-  return fbType === "thumbs_up" ? "👍" : "👎"
+function sourceLabel(source: string): string {
+  return source === "agent_tool" ? t("feedback_source_tool") : t("feedback_source_ui")
 }
 
 function ratingStars(rating: number | null): string {
@@ -139,10 +139,9 @@ onMounted(load)
     <table v-else class="fb-table">
       <thead>
         <tr>
-          <th></th>
+          <th>{{ t("feedback_type_col") }}</th>
           <th>{{ t("feedback_source") }}</th>
           <th>{{ t("mgmt_name") }}</th>
-          <th>{{ t("feedback_target") }}</th>
           <th>{{ t("feedback_rating") }}</th>
           <th>{{ t("feedback_comment") }}</th>
           <th>{{ t("mgmt_created_at") }}</th>
@@ -151,10 +150,16 @@ onMounted(load)
       </thead>
       <tbody>
         <tr v-for="fb in items" :key="fb.feedback_id">
-          <td class="fb-type-cell">{{ typeIcon(fb.feedback_type) }}</td>
-          <td>{{ sourceLabel(fb.source) }}</td>
+          <td>
+            <span class="fb-type-tag" :class="fb.feedback_type">
+              {{ fb.feedback_type === 'thumbs_up' ? '👍' : '👎' }}
+              {{ feedbackTypeLabel(fb.feedback_type) }}
+            </span>
+          </td>
+          <td>
+            <span class="fb-source-tag" :class="fb.source">{{ sourceLabel(fb.source) }}</span>
+          </td>
           <td>{{ fb.user_id }}</td>
-          <td><code>{{ fb.target_type }}:{{ fb.target_id?.slice(0, 12) }}</code></td>
           <td>{{ ratingStars(fb.rating) }}</td>
           <td class="fb-comment-cell">{{ truncate(fb.comment ?? "", 60) }}</td>
           <td>{{ formatTime(fb.created_at) }}</td>
@@ -163,7 +168,7 @@ onMounted(load)
           </td>
         </tr>
         <tr v-if="items.length === 0">
-          <td colspan="8" class="fb-empty">{{ t("mgmt_no_results") }}</td>
+          <td colspan="7" class="fb-empty">{{ t("mgmt_no_results") }}</td>
         </tr>
       </tbody>
     </table>
@@ -180,7 +185,7 @@ onMounted(load)
         <div class="fb-replay-header">
           <div class="fb-replay-header-left">
             <span class="fb-replay-badge" :class="replayFeedback?.feedback_type">
-              {{ typeIcon(replayFeedback?.feedback_type ?? "thumbs_up") }}
+              {{ replayFeedback?.feedback_type === 'thumbs_up' ? '👍' : '👎' }}
             </span>
             <h3>{{ t("feedback_replay_title") }}</h3>
           </div>
@@ -188,7 +193,7 @@ onMounted(load)
         </div>
 
         <div class="fb-replay-info" v-if="replayFeedback">
-          <span class="fb-info-tag">{{ typeIcon(replayFeedback.feedback_type) }} {{ replayFeedback.feedback_type === "thumbs_up" ? "表扬" : "批评" }}</span>
+          <span class="fb-info-tag">{{ replayFeedback.feedback_type === 'thumbs_up' ? '👍' : '👎' }} {{ feedbackTypeLabel(replayFeedback.feedback_type) }}</span>
           <span class="fb-info-tag" v-if="replayFeedback.rating">{{ ratingStars(replayFeedback.rating) }}</span>
           <span class="fb-info-tag src">{{ sourceLabel(replayFeedback.source) }}</span>
           <span class="fb-info-comment" v-if="replayFeedback.comment">"{{ replayFeedback.comment }}"</span>
@@ -295,9 +300,48 @@ onMounted(load)
   color: var(--text-primary);
 }
 
-.fb-type-cell {
-  font-size: 18px;
-  text-align: center;
+.fb-type-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.fb-type-tag.thumbs_up {
+  background: color-mix(in srgb, var(--success) 15%, transparent);
+  color: var(--success);
+  border: 1px solid color-mix(in srgb, var(--success) 25%, transparent);
+}
+
+.fb-type-tag.thumbs_down {
+  background: color-mix(in srgb, var(--danger) 15%, transparent);
+  color: var(--danger);
+  border: 1px solid color-mix(in srgb, var(--danger) 25%, transparent);
+}
+
+.fb-source-tag {
+  display: inline-flex;
+  padding: 2px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.fb-source-tag.ui_button {
+  background: var(--glass-highlight);
+  color: var(--accent);
+  border: 1px solid var(--glass-border);
+}
+
+.fb-source-tag.agent_tool {
+  background: color-mix(in srgb, var(--info) 12%, transparent);
+  color: var(--info);
+  border: 1px solid color-mix(in srgb, var(--info) 25%, transparent);
 }
 
 .fb-comment-cell {
