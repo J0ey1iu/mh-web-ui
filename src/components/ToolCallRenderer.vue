@@ -99,8 +99,10 @@ onErrorCaptured((err) => {
 .fb-header-wrap {
   position: absolute;
   right: 0;
-  top: 50%;
-  transform: translateY(-50%);
+  top: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
   z-index: 1;
 }
 
