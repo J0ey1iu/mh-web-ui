@@ -1,13 +1,16 @@
 <script setup lang="ts">
 import { provide, ref, computed, onUnmounted, watch } from "vue"
 import type { Message } from "../types"
+import FeedbackWidget from "./FeedbackWidget.vue"
 import ReasoningBlock from "./ReasoningBlock.vue"
 import ToolCallRenderer from "./ToolCallRenderer.vue"
 import AgentAnswer from "./AgentAnswer.vue"
 import { FOLDABLE_COLLAPSED_KEY } from "../toolContext"
+import { useChatStore } from "../stores/chat"
 import { useI18nStore } from "../stores/i18n"
 
 const { t } = useI18nStore()
+const chatStore = useChatStore()
 
 const props = defineProps<{
   message: Message
@@ -295,6 +298,13 @@ async function copy(text: string) {
             </button>
           </div>
         </template>
+
+        <FeedbackWidget
+          v-if="!isStreaming && message.role === 'assistant'"
+          :session-id="chatStore.currentSessionId ?? ''"
+          target-type="message"
+          :target-id="message.id"
+        />
 
         <div
           v-if="isStreaming && !message.orderedItems?.length"

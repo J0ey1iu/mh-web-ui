@@ -209,6 +209,10 @@ const messages: Record<Locale, Record<string, string>> = {
     compact_desc: "将对话历史压缩为摘要以节省上下文",
     compact_divider: "以上内容已被总结",
     compact_messages: "条消息",
+    feedback_submitted: "已反馈",
+    feedback_thumbs_up: "点赞",
+    feedback_thumbs_down: "点踩",
+    feedback_management: "用户反馈",
   },
   en: {
     sessions: "Sessions",
@@ -412,6 +416,10 @@ const messages: Record<Locale, Record<string, string>> = {
     compact_desc: "Compress chat history to save context",
     compact_divider: "Above content summarized",
     compact_messages: "messages",
+    feedback_submitted: "Submitted",
+    feedback_thumbs_up: "Like",
+    feedback_thumbs_down: "Dislike",
+    feedback_management: "Feedback",
   },
 }
 

@@ -260,3 +260,45 @@ export interface FetchListParams {
   page?: number
   page_size?: number
 }
+
+// ── Feedback ──
+
+export interface FeedbackSubmitRequest {
+  session_id: string
+  target_type: "message" | "tool_call"
+  target_id: string
+  feedback_type: "thumbs_up" | "thumbs_down"
+  rating?: number
+  comment?: string
+  category?: string
+}
+
+export interface FeedbackResponse {
+  feedback_id: string
+  ok: boolean
+}
+
+export type FeedbackStatus = "none" | "submitting" | "submitted"
+
+export interface ManageFeedbackItem {
+  feedback_id: string
+  session_id: string
+  target_type: string
+  target_id: string
+  user_id: string
+  feedback_type: string
+  rating: number | null
+  comment: string | null
+  category: string | null
+  source: string
+  metadata: Record<string, any>
+  created_at: string
+}
+
+export interface FeedbackSessionResponse {
+  session: Record<string, any>
+  messages: Array<MessageItem>
+  highlight_target_type: string
+  highlight_target_id: string
+  feedback: ManageFeedbackItem
+}

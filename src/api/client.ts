@@ -1,4 +1,4 @@
-import type { AgentInfo, FetchListParams, ManageAgent, ManageProvider, ManageScenario, ManageTool, MessagesResponse, PaginatedResponse, ProviderModel, ScenarioDetail, ScenarioInfo, SessionInfo, UserInfo, SSEEventName } from "../types"
+import type { AgentInfo, FetchListParams, FeedbackSubmitRequest, FeedbackResponse, ManageAgent, ManageFeedbackItem, FeedbackSessionResponse, ManageProvider, ManageScenario, ManageTool, MessagesResponse, PaginatedResponse, ProviderModel, ScenarioDetail, ScenarioInfo, SessionInfo, UserInfo, SSEEventName } from "../types"
 import { appConfig } from "../config"
 
 function fillUrl(template: string, params?: Record<string, string>): string {
@@ -336,6 +336,46 @@ export async function updateManageProviderConfig(name: string, provider: Partial
 
 export async function deleteManageProviderConfig(name: string): Promise<void> {
   await request(fillUrl(appConfig.apiManagementProviderConfig, { name }), { method: "DELETE" })
+}
+
+// ── Feedback ──
+
+export async function submitFeedback(
+  data: FeedbackSubmitRequest
+): Promise<FeedbackResponse> {
+  return request<FeedbackResponse>(appConfig.apiFeedback, {
+    method: "POST",
+    body: JSON.stringify(data),
+  })
+}
+
+export async function fetchManageFeedback(
+  params?: FetchListParams & {
+    feedback_type?: string
+    source?: string
+    date_from?: string
+    date_to?: string
+  }
+): Promise<PaginatedResponse<ManageFeedbackItem>> {
+  const query = new URLSearchParams()
+  if (params?.q) query.set("q", params.q)
+  if (params?.page != null) query.set("page", String(params.page))
+  if (params?.page_size != null) query.set("page_size", String(params.page_size))
+  if (params?.feedback_type) query.set("feedback_type", params.feedback_type)
+  if (params?.source) query.set("source", params.source)
+  if (params?.date_from) query.set("date_from", params.date_from)
+  if (params?.date_to) query.set("date_to", params.date_to)
+  const qs = query.toString()
+  const url = qs ? `${appConfig.apiManagementFeedback}?${qs}` : appConfig.apiManagementFeedback
+  return fetchManageOrEmpty<ManageFeedbackItem>(url)
+}
+
+export async function fetchFeedbackSession(
+  feedbackId: string
+): Promise<FeedbackSessionResponse> {
+  return request<FeedbackSessionResponse>(
+    appConfig.apiManagementFeedbackSession.replace("{id}", encodeURIComponent(feedbackId))
+  )
 }
 
 // ── Provider Model CRUD ──

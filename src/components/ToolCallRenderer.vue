@@ -6,10 +6,13 @@ import { getRegisteredComponent, registryVersion } from "../toolCallRegistry"
 import { ensureComponentsLoaded } from "../toolComponentLoader"
 import { I18N_KEY } from "../toolContext"
 import { useI18nStore } from "../stores/i18n"
+import FeedbackWidget from "./FeedbackWidget.vue"
 import BaseToolCard from "./BaseToolCard.vue"
 import ToolCallCard from "./ToolCallCard.vue"
+import { useChatStore } from "../stores/chat"
 
 const props = defineProps<ToolCallComponentProps>()
+const chatStore = useChatStore()
 
 const i18nStore = useI18nStore()
 provide(I18N_KEY, { locale: computed(() => i18nStore.locale) })
@@ -44,4 +47,10 @@ onErrorCaptured((err) => {
     <component :is="component" :tool="tool" />
   </BaseToolCard>
   <ToolCallCard v-else :tool="tool" />
+  <FeedbackWidget
+    v-if="tool.status !== 'running'"
+    :session-id="chatStore.currentSessionId ?? ''"
+    target-type="tool_call"
+    :target-id="tool.id"
+  />
 </template>
