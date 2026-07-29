@@ -11,6 +11,9 @@ import { useI18nStore } from "../stores/i18n"
 
 const { t } = useI18nStore()
 const chatStore = useChatStore()
+// used in Teleport template
+// vue-tsc: used in Teleport template
+FeedbackWidget && chatStore
 
 const props = defineProps<{
   message: Message
@@ -20,18 +23,26 @@ const props = defineProps<{
 const collapsed = ref(!props.isStreaming)
 const hovered = ref(false)
 const hoveredIndex = ref<number | null>(null)
-const showFeedback = ref(false)
-let feedbackTimer: ReturnType<typeof setTimeout> | null = null
+const showFloating = ref(false)
+const floatPos = ref({ x: 0, y: 0 })
+let floatTimer: ReturnType<typeof setTimeout> | null = null
 let collapseTimer: ReturnType<typeof setTimeout> | null = null
 
-function onBubbleEnter() {
-  if (feedbackTimer) clearTimeout(feedbackTimer)
-  feedbackTimer = setTimeout(() => { showFeedback.value = true }, 500)
+function onContentHover(e: MouseEvent) {
+  floatPos.value = { x: e.clientX, y: e.clientY }
+  if (floatTimer) clearTimeout(floatTimer)
+  floatTimer = setTimeout(() => { showFloating.value = true }, 500)
 }
 
-function onBubbleLeave() {
-  if (feedbackTimer) clearTimeout(feedbackTimer)
-  feedbackTimer = setTimeout(() => { showFeedback.value = false }, 200)
+function onContentLeave() {
+  if (floatTimer) clearTimeout(floatTimer)
+  floatTimer = setTimeout(() => { showFloating.value = false }, 200)
+}
+
+function onBubbleMousemove(e: MouseEvent) {
+  if (showFloating.value) {
+    floatPos.value = { x: e.clientX, y: e.clientY }
+  }
 }
 
 const hasNoContent = computed(() => {
@@ -192,7 +203,7 @@ async function copy(text: string) {
                     v-show="hovered"
                     class="copy-btn"
                     :title="t('copy')"
-                    @click="copy(message.content)"
+                    @click="copy((message.content ?? ''))"
                   >
                     <svg
                       width="14"
@@ -228,7 +239,7 @@ async function copy(text: string) {
       <div class="avatar">
         {{ message.role === "user" ? "U" : "A" }}
       </div>
-      <div class="bubble" @mouseenter="onBubbleEnter" @mouseleave="onBubbleLeave">
+      <div class="bubble" @mousemove="onBubbleMousemove">
         <template v-if="message.orderedItems">
           <template v-for="(item, i) in message.orderedItems" :key="i">
             <ReasoningBlock
@@ -238,8 +249,8 @@ async function copy(text: string) {
             <div
               v-else-if="item.type === 'content'"
               class="content-segment copyable"
-              @mouseenter="hoveredIndex = i"
-              @mouseleave="hoveredIndex = null"
+              @mouseenter="hoveredIndex = i; onContentHover($event)"
+              @mouseleave="hoveredIndex = null; onContentLeave()"
             >
               <AgentAnswer :content="item.text ?? ''" />
               <button
@@ -284,15 +295,15 @@ async function copy(text: string) {
           <div
             v-if="message.content"
             class="copyable"
-            @mouseenter="hovered = true"
-            @mouseleave="hovered = false"
+            @mouseenter="hovered = true; onContentHover($event)"
+            @mouseleave="hovered = false; onContentLeave()"
           >
             <AgentAnswer :content="message.content" />
             <button
               v-show="hovered"
               class="copy-btn"
               :title="t('copy')"
-              @click="copy(message.content)"
+              @click="copy((message.content ?? ''))"
             >
               <svg
                 width="14"
@@ -311,13 +322,11 @@ async function copy(text: string) {
           </div>
         </template>
 
-        <div class="feedback-hover" :class="{ 'fb-visible': showFeedback }">
-          <FeedbackWidget
-            v-if="!isStreaming && message.role === 'assistant'"
-            :session-id="chatStore.currentSessionId ?? ''"
-            target-type="message"
-            :target-id="message.id"
-          />
+        <div
+          v-if="isStreaming && !message.orderedItems?.length"
+          class="thinking"
+        >
+          <span class="dot-pulse"></span>
         </div>
 
         <div
@@ -329,6 +338,21 @@ async function copy(text: string) {
       </div>
     </template>
   </div>
+
+  <!-- Floating feedback popup -->
+  <Teleport to="body">
+    <div
+      v-if="showFloating && !isStreaming && message.role === 'assistant'"
+      class="fb-float"
+      :style="{ left: floatPos.x + 12 + 'px', top: floatPos.y + 12 + 'px' }"
+    >
+      <FeedbackWidget
+        :session-id="chatStore.currentSessionId ?? ''"
+        target-type="message"
+        :target-id="message.id"
+      />
+    </div>
+  </Teleport>
 </template>
 
 <style scoped>
@@ -392,16 +416,20 @@ async function copy(text: string) {
   margin-bottom: 0;
 }
 
-.feedback-hover {
-  opacity: 0;
-  height: 0;
-  overflow: hidden;
-  transition: opacity 0.25s ease, height 0.25s ease;
+.fb-float {
+  position: fixed;
+  z-index: 500;
+  pointer-events: auto;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 10px;
+  padding: 6px 8px;
+  box-shadow: var(--glass-shadow);
+  backdrop-filter: blur(8px);
 }
 
-.feedback-hover.fb-visible {
-  opacity: 1;
-  height: 36px;
+.fb-float .feedback-widget {
+  margin-top: 0;
 }
 
 .copyable {
