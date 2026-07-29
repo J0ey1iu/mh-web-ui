@@ -8,7 +8,6 @@ import { I18N_KEY } from "../toolContext"
 import { useI18nStore } from "../stores/i18n"
 import FeedbackWidget from "./FeedbackWidget.vue"
 import BaseToolCard from "./BaseToolCard.vue"
-import ToolCallCard from "./ToolCallCard.vue"
 import { useChatStore } from "../stores/chat"
 
 const props = defineProps<ToolCallComponentProps>()
@@ -20,60 +19,13 @@ provide(I18N_KEY, { locale: computed(() => i18nStore.locale) })
 const renderError = ref<string | null>(null)
 const component = shallowRef<Component | null>(null)
 
-// used in template
-FeedbackWidget && chatStore
-
-const showFloating = ref(false)
-const floatPos = ref({ x: 0, y: 0 })
-let showTimer: ReturnType<typeof setTimeout> | null = null
-let hideTimer: ReturnType<typeof setTimeout> | null = null
-
-const floatStyle = computed(() => ({
-  left: floatPos.value.x + 12 + "px",
-  top: floatPos.value.y + 12 + "px",
-}))
-
-function onWrapperMouseover(e: MouseEvent) {
-  const target = e.currentTarget as HTMLElement
-  const related = e.relatedTarget as Node | null
-
-  // just entered the wrapper from outside
-  if (!related || !target.contains(related)) {
-    if (hideTimer) { clearTimeout(hideTimer); hideTimer = null }
-    if (!showFloating.value) {
-      floatPos.value = { x: e.clientX, y: e.clientY }
-    }
-    if (showTimer) clearTimeout(showTimer)
-    showTimer = setTimeout(() => { showFloating.value = true }, 500)
+const statusIcon = computed(() => {
+  switch (props.tool.status) {
+    case "running": return "\u2699"
+    case "success": return "\u2713"
+    case "error": return "\u2717"
   }
-  // update position while tracking, freeze once shown
-  if (!showFloating.value) {
-    floatPos.value = { x: e.clientX, y: e.clientY }
-  }
-}
-
-function onWrapperMouseout(e: MouseEvent) {
-  const target = e.currentTarget as HTMLElement
-  const related = e.relatedTarget as Node | null
-
-  // left the wrapper entirely (not just moved to a child)
-  if (!related || !target.contains(related)) {
-    if (showTimer) clearTimeout(showTimer)
-    if (showFloating.value) {
-      if (hideTimer) clearTimeout(hideTimer)
-      hideTimer = setTimeout(() => { showFloating.value = false }, 300)
-    }
-  }
-}
-
-function onPopupMouseenter() {
-  if (hideTimer) { clearTimeout(hideTimer); hideTimer = null }
-}
-
-function onPopupMouseleave() {
-  if (hideTimer) clearTimeout(hideTimer)
-  hideTimer = setTimeout(() => { showFloating.value = false }, 200)
-}
+})
 
 function updateComponent() {
   if (renderError.value) {
@@ -98,45 +50,33 @@ onErrorCaptured((err) => {
 </script>
 
 <template>
-  <div
-    class="tc-wrapper"
-    @mouseover="onWrapperMouseover"
-    @mouseout="onWrapperMouseout"
-  >
-    <BaseToolCard v-if="component" :tool="tool">
-      <component :is="component" :tool="tool" />
-    </BaseToolCard>
-    <ToolCallCard v-else :tool="tool" />
-
-    <div
-      v-if="showFloating && tool.status !== 'running'"
-      class="fb-float"
-      :style="floatStyle"
-      @mouseenter="onPopupMouseenter"
-      @mouseleave="onPopupMouseleave"
-    >
+  <BaseToolCard :tool="tool">
+    <template #header>
+      <span class="tool-icon">{{ statusIcon }}</span>
+      <span class="tool-name">{{ (tool as any).displayName || tool.name }}</span>
+      <span v-if="tool.status === 'running'" class="tool-spinner" />
+      <span class="header-spacer"></span>
       <FeedbackWidget
+        v-if="tool.status !== 'running'"
         :session-id="chatStore.currentSessionId ?? ''"
         target-type="tool_call"
         :target-id="tool.id"
       />
-    </div>
-  </div>
+    </template>
+    <component v-if="component" :is="component" :tool="tool" />
+    <template v-else>
+      <div v-if="tool.progress" class="tool-progress">{{ tool.progress }}</div>
+      <div v-if="tool.result" class="tool-result">{{ tool.result }}</div>
+    </template>
+  </BaseToolCard>
 </template>
 
 <style scoped>
-.fb-float {
-  position: fixed;
-  z-index: 500;
-  pointer-events: auto;
-  background: var(--glass-bg);
-  border: 1px solid var(--glass-border);
-  border-radius: 10px;
-  padding: 6px 8px;
-  box-shadow: var(--glass-shadow);
+.header-spacer {
+  flex: 1;
 }
 
-.fb-float .feedback-widget {
+.tool-header .feedback-widget {
   margin-top: 0;
 }
 </style>

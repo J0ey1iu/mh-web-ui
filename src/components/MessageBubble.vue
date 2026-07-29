@@ -1,19 +1,22 @@
 <script setup lang="ts">
 import { provide, ref, computed, onUnmounted, watch } from "vue"
 import type { Message } from "../types"
+// @ts-ignore used in template
 import FeedbackWidget from "./FeedbackWidget.vue"
+// @ts-ignore used in template
 import ReasoningBlock from "./ReasoningBlock.vue"
+// @ts-ignore used in template
 import ToolCallRenderer from "./ToolCallRenderer.vue"
+// @ts-ignore used in template
 import AgentAnswer from "./AgentAnswer.vue"
 import { FOLDABLE_COLLAPSED_KEY } from "../toolContext"
 import { useChatStore } from "../stores/chat"
 import { useI18nStore } from "../stores/i18n"
 
+// @ts-ignore used in template
 const { t } = useI18nStore()
+// @ts-ignore used in template
 const chatStore = useChatStore()
-// used in Teleport template
-// vue-tsc: used in Teleport template
-FeedbackWidget && chatStore
 
 const props = defineProps<{
   message: Message
@@ -23,46 +26,27 @@ const props = defineProps<{
 const collapsed = ref(!props.isStreaming)
 const hovered = ref(false)
 const hoveredIndex = ref<number | null>(null)
-const showFloating = ref(false)
-const floatPos = ref({ x: 0, y: 0 })
-let floatTimer: ReturnType<typeof setTimeout> | null = null
 let collapseTimer: ReturnType<typeof setTimeout> | null = null
 
-let hideTimer: ReturnType<typeof setTimeout> | null = null
+// @ts-ignore used in template
+const showActions = computed(() => {
+  if (props.isStreaming || props.message.role !== 'assistant') return false
+  if (props.message.orderedItems) return hoveredIndex.value !== null
+  return hovered.value
+})
 
-function onContentHover(e: MouseEvent) {
-  if (hideTimer) { clearTimeout(hideTimer); hideTimer = null }
-  if (!showFloating.value) {
-    floatPos.value = { x: e.clientX, y: e.clientY }
+// @ts-ignore used in template
+const joinText = computed(() => {
+  if (props.message.orderedItems) {
+    return props.message.orderedItems
+      .filter(i => i.type === 'content')
+      .map(i => i.text ?? '')
+      .join('\n')
   }
-  if (floatTimer) clearTimeout(floatTimer)
-  floatTimer = setTimeout(() => { showFloating.value = true }, 500)
-}
+  return props.message.content ?? ''
+})
 
-function onContentLeave() {
-  if (floatTimer) clearTimeout(floatTimer)
-  if (showFloating.value) {
-    if (hideTimer) clearTimeout(hideTimer)
-    hideTimer = setTimeout(() => { showFloating.value = false }, 300)
-  }
-}
-
-function onBubbleMousemove(e: MouseEvent) {
-  // track latest position until popup is shown, then freeze
-  if (!showFloating.value) {
-    floatPos.value = { x: e.clientX, y: e.clientY }
-  }
-}
-
-function onPopupEnter() {
-  if (hideTimer) { clearTimeout(hideTimer); hideTimer = null }
-}
-
-function onPopupLeave() {
-  if (hideTimer) clearTimeout(hideTimer)
-  hideTimer = setTimeout(() => { showFloating.value = false }, 200)
-}
-
+// @ts-ignore used in template
 const hasNoContent = computed(() => {
   if (props.message.orderedItems?.length) return false
   if (props.message.tool_calls?.length) return false
@@ -99,6 +83,7 @@ onUnmounted(() => {
 
 provide(FOLDABLE_COLLAPSED_KEY, collapsed)
 
+// @ts-ignore used in template
 function toggleCompactCollapse() {
   if (!props.message.compactBoundary) return
   collapsed.value = !collapsed.value
@@ -108,6 +93,7 @@ function toggleCompactCollapse() {
   }
 }
 
+// @ts-ignore used in template
 async function copy(text: string) {
   if (!text) return
   try {
@@ -166,7 +152,7 @@ async function copy(text: string) {
                   />
                   <div
                     v-else-if="item.type === 'content'"
-                    class="content-segment copyable"
+                    class="content-segment"
                     @mouseenter="hoveredIndex = i"
                     @mouseleave="hoveredIndex = null"
                   >
@@ -200,6 +186,20 @@ async function copy(text: string) {
                     :tool="message.tool_calls[item.toolCallIndex!]"
                   />
                 </template>
+
+                <div v-show="showActions" class="message-actions">
+                  <FeedbackWidget
+                    :session-id="chatStore.currentSessionId ?? ''"
+                    target-type="message"
+                    :target-id="message.id"
+                  />
+                  <button class="copy-btn" :title="t('copy')" @click="copy(joinText)">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                    </svg>
+                  </button>
+                </div>
               </template>
 
               <template v-else>
@@ -212,7 +212,6 @@ async function copy(text: string) {
                 </div>
                 <div
                   v-if="message.content"
-                  class="copyable"
                   @mouseenter="hovered = true"
                   @mouseleave="hovered = false"
                 >
@@ -238,6 +237,20 @@ async function copy(text: string) {
                     </svg>
                   </button>
                 </div>
+
+                <div v-show="showActions" class="message-actions">
+                  <FeedbackWidget
+                    :session-id="chatStore.currentSessionId ?? ''"
+                    target-type="message"
+                    :target-id="message.id"
+                  />
+                  <button class="copy-btn" :title="t('copy')" @click="copy(joinText)">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                    </svg>
+                  </button>
+                </div>
               </template>
 
               <div
@@ -257,7 +270,7 @@ async function copy(text: string) {
       <div class="avatar">
         {{ message.role === "user" ? "U" : "A" }}
       </div>
-      <div class="bubble" @mousemove="onBubbleMousemove">
+      <div class="bubble">
         <template v-if="message.orderedItems">
           <template v-for="(item, i) in message.orderedItems" :key="i">
             <ReasoningBlock
@@ -266,9 +279,9 @@ async function copy(text: string) {
             />
             <div
               v-else-if="item.type === 'content'"
-              class="content-segment copyable"
-              @mouseenter="hoveredIndex = i; onContentHover($event)"
-              @mouseleave="hoveredIndex = null; onContentLeave()"
+              class="content-segment"
+              @mouseenter="hoveredIndex = i"
+              @mouseleave="hoveredIndex = null"
             >
               <AgentAnswer :content="item.text ?? ''" />
               <button
@@ -300,6 +313,20 @@ async function copy(text: string) {
               :tool="message.tool_calls[item.toolCallIndex!]"
             />
           </template>
+
+          <div v-show="showActions" class="message-actions">
+            <FeedbackWidget
+              :session-id="chatStore.currentSessionId ?? ''"
+              target-type="message"
+              :target-id="message.id"
+            />
+            <button class="copy-btn" :title="t('copy')" @click="copy(joinText)">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+              </svg>
+            </button>
+          </div>
         </template>
 
         <template v-else>
@@ -312,9 +339,8 @@ async function copy(text: string) {
           </div>
           <div
             v-if="message.content"
-            class="copyable"
-            @mouseenter="hovered = true; onContentHover($event)"
-            @mouseleave="hovered = false; onContentLeave()"
+            @mouseenter="hovered = true"
+            @mouseleave="hovered = false"
           >
             <AgentAnswer :content="message.content" />
             <button
@@ -346,33 +372,9 @@ async function copy(text: string) {
         >
           <span class="dot-pulse"></span>
         </div>
-
-        <div
-          v-if="isStreaming && !message.orderedItems?.length"
-          class="thinking"
-        >
-          <span class="dot-pulse"></span>
-        </div>
       </div>
     </template>
   </div>
-
-  <!-- Floating feedback popup -->
-  <Teleport to="body">
-    <div
-      v-if="showFloating && !isStreaming && message.role === 'assistant'"
-      class="fb-float"
-      :style="{ left: floatPos.x + 12 + 'px', top: floatPos.y + 12 + 'px' }"
-      @mouseenter="onPopupEnter"
-      @mouseleave="onPopupLeave"
-    >
-      <FeedbackWidget
-        :session-id="chatStore.currentSessionId ?? ''"
-        target-type="message"
-        :target-id="message.id"
-      />
-    </div>
-  </Teleport>
 </template>
 
 <style scoped>
@@ -436,28 +438,18 @@ async function copy(text: string) {
   margin-bottom: 0;
 }
 
-.fb-float {
-  position: fixed;
-  z-index: 500;
-  pointer-events: auto;
-  background: var(--glass-bg);
-  border: 1px solid var(--glass-border);
-  border-radius: 10px;
-  padding: 6px 8px;
-  box-shadow: var(--glass-shadow);
+.message-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 8px;
 }
 
-.fb-float .feedback-widget {
+.message-actions .feedback-widget {
   margin-top: 0;
 }
 
-.copyable {
-  position: relative;
-}
 .copy-btn {
-  position: absolute;
-  top: 4px;
-  right: 4px;
   padding: 5px;
   background: var(--glass-bg);
   border: 1px solid var(--glass-border);
@@ -465,11 +457,7 @@ async function copy(text: string) {
   color: var(--text-secondary);
   cursor: pointer;
   line-height: 0;
-  opacity: 0;
-  transition: opacity var(--transition-duration), color var(--transition-duration);
-}
-.copyable:hover .copy-btn {
-  opacity: 1;
+  transition: color var(--transition-duration);
 }
 .copy-btn:hover {
   color: var(--accent);
