@@ -242,6 +242,13 @@ async function handleLogout() {
           <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
         </svg>
       </button>
+      <button class="header-btn" @click="setTheme(theme === 'dark' ? 'light' : 'dark')" :title="t('theme')">
+        <span v-if="theme === 'dark'">☀️</span>
+        <span v-else>🌙</span>
+      </button>
+      <button class="header-btn" @click="setLocaleHandler(locale === 'zh' ? 'en' : 'zh')" :title="t('language')" style="font-size:12px;font-weight:600;min-width:28px;justify-content:center">
+        {{ locale === 'zh' ? 'EN' : '中文' }}
+      </button>
       <div class="hamburger-wrap">
         <button class="header-btn" @click="menuOpen = !menuOpen" aria-label="Menu">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -251,27 +258,6 @@ async function handleLogout() {
           </svg>
         </button>
         <div v-if="menuOpen" class="dropdown">
-          <div class="dropdown-label">{{ t("theme") }}</div>
-          <button class="dropdown-item" :class="{ active: theme === 'dark' }" @click="setTheme('dark')">
-            {{ t("theme_dark") }}
-            <span v-if="theme === 'dark'" class="check">✓</span>
-          </button>
-          <button class="dropdown-item" :class="{ active: theme === 'light' }" @click="setTheme('light')">
-            {{ t("theme_light") }}
-            <span v-if="theme === 'light'" class="check">✓</span>
-          </button>
-
-          <div class="dropdown-divider"></div>
-          <div class="dropdown-label">{{ t("language") }}</div>
-          <button class="dropdown-item" :class="{ active: locale === 'zh' }" @click="setLocaleHandler('zh')">
-            中文
-            <span v-if="locale === 'zh'" class="check">✓</span>
-          </button>
-          <button class="dropdown-item" :class="{ active: locale === 'en' }" @click="setLocaleHandler('en')">
-            English
-            <span v-if="locale === 'en'" class="check">✓</span>
-          </button>
-          <div class="dropdown-divider"></div>
           <div class="dropdown-user">
             <template v-if="authUser">
               <span class="user-name">{{ authUser.username }}</span>
