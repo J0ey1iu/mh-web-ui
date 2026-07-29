@@ -58,13 +58,17 @@ onErrorCaptured((err) => {
         <span class="tool-icon">{{ statusIcon }}</span>
         <span class="tool-name">{{ (tool as any).displayName || tool.name }}</span>
         <span v-if="tool.status === 'running'" class="tool-spinner" />
-        <span class="header-spacer"></span>
-        <FeedbackWidget
-          v-if="tool.status !== 'running'"
-          :session-id="chatStore.currentSessionId ?? ''"
-          target-type="tool_call"
-          :target-id="tool.id"
-        />
+        <div
+          v-show="toolHovered && tool.status !== 'running'"
+          class="fb-header-wrap"
+          style="margin-left: auto"
+        >
+          <FeedbackWidget
+            :session-id="chatStore.currentSessionId ?? ''"
+            target-type="tool_call"
+            :target-id="tool.id"
+          />
+        </div>
       </template>
       <component v-if="component" :is="component" :tool="tool" />
       <template v-else>
@@ -75,24 +79,8 @@ onErrorCaptured((err) => {
   </div>
 </template>
 
-<style>
-.tc-wrapper .tool-header .feedback-widget {
-  opacity: 0;
-  margin-left: auto;
-  transition: opacity 0.25s ease;
-  transition-delay: 0.5s;
-}
-.tc-wrapper:hover .tool-header .feedback-widget {
-  opacity: 1;
-  transition-delay: 0.1s;
-}
-</style>
-
 <style scoped>
-.tc-wrapper .feedback-widget {
+.fb-header-wrap .feedback-widget {
   margin-top: 0;
-}
-.header-spacer {
-  flex: 1;
 }
 </style>
