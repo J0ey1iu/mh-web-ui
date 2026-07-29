@@ -544,12 +544,36 @@ onMounted(load)
   font-weight: 500;
 }
 
-/* ── Toolbar button height alignment ── */
+/* ── Toolbar button height & visual alignment with btn-search ── */
 .mgmt-toolbar .btn-action {
   padding: 9px 16px;
   border-radius: 8px;
   font-size: 13px;
   font-weight: 600;
+  line-height: 1.4;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  margin-right: 0;
+  transition: opacity 0.2s, box-shadow 0.2s, transform 0.1s;
+}
+.mgmt-toolbar .btn-action:hover {
+  opacity: 0.9;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+}
+.mgmt-toolbar .btn-action:active {
+  transform: translateY(0);
+  opacity: 0.85;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
+}
+.mgmt-toolbar .btn-action:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.mgmt-toolbar .btn-action.btn-danger {
+  background: #ef4444;
+  color: #fff;
 }
 
 </style>
