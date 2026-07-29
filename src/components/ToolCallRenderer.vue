@@ -19,6 +19,8 @@ provide(I18N_KEY, { locale: computed(() => i18nStore.locale) })
 const renderError = ref<string | null>(null)
 const component = shallowRef<Component | null>(null)
 
+const toolHovered = ref(false)
+
 const statusIcon = computed(() => {
   switch (props.tool.status) {
     case "running": return "\u2699"
@@ -50,33 +52,46 @@ onErrorCaptured((err) => {
 </script>
 
 <template>
-  <BaseToolCard :tool="tool">
-    <template #header>
-      <span class="tool-icon">{{ statusIcon }}</span>
-      <span class="tool-name">{{ (tool as any).displayName || tool.name }}</span>
-      <span v-if="tool.status === 'running'" class="tool-spinner" />
-      <span class="header-spacer"></span>
-      <FeedbackWidget
-        v-if="tool.status !== 'running'"
-        :session-id="chatStore.currentSessionId ?? ''"
-        target-type="tool_call"
-        :target-id="tool.id"
-      />
-    </template>
-    <component v-if="component" :is="component" :tool="tool" />
-    <template v-else>
-      <div v-if="tool.progress" class="tool-progress">{{ tool.progress }}</div>
-      <div v-if="tool.result" class="tool-result">{{ tool.result }}</div>
-    </template>
-  </BaseToolCard>
+  <div class="tc-wrapper" @mouseenter="toolHovered = true" @mouseleave="toolHovered = false">
+    <BaseToolCard :tool="tool">
+      <template #header>
+        <span class="tool-icon">{{ statusIcon }}</span>
+        <span class="tool-name">{{ (tool as any).displayName || tool.name }}</span>
+        <span v-if="tool.status === 'running'" class="tool-spinner" />
+        <span class="header-spacer"></span>
+        <FeedbackWidget
+          v-if="tool.status !== 'running'"
+          :session-id="chatStore.currentSessionId ?? ''"
+          target-type="tool_call"
+          :target-id="tool.id"
+        />
+      </template>
+      <component v-if="component" :is="component" :tool="tool" />
+      <template v-else>
+        <div v-if="tool.progress" class="tool-progress">{{ tool.progress }}</div>
+        <div v-if="tool.result" class="tool-result">{{ tool.result }}</div>
+      </template>
+    </BaseToolCard>
+  </div>
 </template>
 
+<style>
+.tc-wrapper .tool-header .feedback-widget {
+  opacity: 0;
+  transition: opacity 0.25s ease;
+  transition-delay: 0.5s;
+}
+.tc-wrapper:hover .tool-header .feedback-widget {
+  opacity: 1;
+  transition-delay: 0.1s;
+}
+</style>
+
 <style scoped>
+.tc-wrapper .feedback-widget {
+  margin-top: 0;
+}
 .header-spacer {
   flex: 1;
-}
-
-.tool-header .feedback-widget {
-  margin-top: 0;
 }
 </style>
