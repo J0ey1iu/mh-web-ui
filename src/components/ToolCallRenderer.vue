@@ -84,6 +84,7 @@ onErrorCaptured((err) => {
 .tc-wrapper .tool-header {
   justify-content: space-between;
   flex: 1;
+  position: relative;
 }
 </style>
 
@@ -93,6 +94,14 @@ onErrorCaptured((err) => {
   align-items: center;
   gap: 6px;
   min-width: 0;
+}
+
+.fb-header-wrap {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 1;
 }
 
 .fb-header-wrap .feedback-widget {
