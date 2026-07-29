@@ -312,6 +312,13 @@ async function handleLogout() {
           >
             Providers
           </button>
+          <button
+            v-if="authUser"
+            class="dropdown-item"
+            @click="router.push('/manage/feedback'); menuOpen = false"
+          >
+            Feedback
+          </button>
           <div class="dropdown-divider"></div>
           <button
             v-if="authUser"
