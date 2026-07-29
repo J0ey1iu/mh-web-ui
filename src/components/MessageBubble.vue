@@ -20,7 +20,19 @@ const props = defineProps<{
 const collapsed = ref(!props.isStreaming)
 const hovered = ref(false)
 const hoveredIndex = ref<number | null>(null)
+const showFeedback = ref(false)
+let feedbackTimer: ReturnType<typeof setTimeout> | null = null
 let collapseTimer: ReturnType<typeof setTimeout> | null = null
+
+function onBubbleEnter() {
+  if (feedbackTimer) clearTimeout(feedbackTimer)
+  feedbackTimer = setTimeout(() => { showFeedback.value = true }, 500)
+}
+
+function onBubbleLeave() {
+  if (feedbackTimer) clearTimeout(feedbackTimer)
+  feedbackTimer = setTimeout(() => { showFeedback.value = false }, 200)
+}
 
 const hasNoContent = computed(() => {
   if (props.message.orderedItems?.length) return false
@@ -216,7 +228,7 @@ async function copy(text: string) {
       <div class="avatar">
         {{ message.role === "user" ? "U" : "A" }}
       </div>
-      <div class="bubble">
+      <div class="bubble" @mouseenter="onBubbleEnter" @mouseleave="onBubbleLeave">
         <template v-if="message.orderedItems">
           <template v-for="(item, i) in message.orderedItems" :key="i">
             <ReasoningBlock
@@ -299,12 +311,14 @@ async function copy(text: string) {
           </div>
         </template>
 
-        <FeedbackWidget
-          v-if="!isStreaming && message.role === 'assistant'"
-          :session-id="chatStore.currentSessionId ?? ''"
-          target-type="message"
-          :target-id="message.id"
-        />
+        <div class="feedback-hover" :class="{ 'fb-visible': showFeedback }">
+          <FeedbackWidget
+            v-if="!isStreaming && message.role === 'assistant'"
+            :session-id="chatStore.currentSessionId ?? ''"
+            target-type="message"
+            :target-id="message.id"
+          />
+        </div>
 
         <div
           v-if="isStreaming && !message.orderedItems?.length"
@@ -383,13 +397,11 @@ async function copy(text: string) {
   height: 0;
   overflow: hidden;
   transition: opacity 0.25s ease, height 0.25s ease;
-  transition-delay: 0.6s;
 }
 
-.bubble:hover .feedback-hover {
+.feedback-hover.fb-visible {
   opacity: 1;
   height: 36px;
-  transition-delay: 0.1s;
 }
 
 .copyable {
