@@ -20,6 +20,38 @@ provide(I18N_KEY, { locale: computed(() => i18nStore.locale) })
 const renderError = ref<string | null>(null)
 const component = shallowRef<Component | null>(null)
 
+// used in Teleport template
+FeedbackWidget && chatStore
+
+const showFloating = ref(false)
+const floatPos = ref({ x: 0, y: 0 })
+let floatTimer: ReturnType<typeof setTimeout> | null = null
+let hideTimer: ReturnType<typeof setTimeout> | null = null
+
+function onWrapperEnter(e: MouseEvent) {
+  if (hideTimer) { clearTimeout(hideTimer); hideTimer = null }
+  floatPos.value = { x: e.clientX, y: e.clientY }
+  if (floatTimer) clearTimeout(floatTimer)
+  floatTimer = setTimeout(() => { showFloating.value = true }, 500)
+}
+
+function onWrapperLeave() {
+  if (floatTimer) clearTimeout(floatTimer)
+  if (showFloating.value) {
+    if (hideTimer) clearTimeout(hideTimer)
+    hideTimer = setTimeout(() => { showFloating.value = false }, 300)
+  }
+}
+
+function onPopupEnter() {
+  if (hideTimer) { clearTimeout(hideTimer); hideTimer = null }
+}
+
+function onPopupLeave() {
+  if (hideTimer) clearTimeout(hideTimer)
+  hideTimer = setTimeout(() => { showFloating.value = false }, 200)
+}
+
 function updateComponent() {
   if (renderError.value) {
     component.value = null
@@ -43,34 +75,30 @@ onErrorCaptured((err) => {
 </script>
 
 <template>
-  <div class="tc-wrapper">
+  <div class="tc-wrapper" @mouseenter="onWrapperEnter" @mouseleave="onWrapperLeave">
     <BaseToolCard v-if="component" :tool="tool">
       <component :is="component" :tool="tool" />
     </BaseToolCard>
     <ToolCallCard v-else :tool="tool" />
-    <div class="feedback-hover">
+  </div>
+
+  <Teleport to="body">
+    <div
+      v-if="showFloating && tool.status !== 'running'"
+      class="fb-float"
+      :style="{ left: floatPos.x + 12 + 'px', top: floatPos.y + 12 + 'px' }"
+      @mouseenter="onPopupEnter"
+      @mouseleave="onPopupLeave"
+    >
       <FeedbackWidget
-        v-if="tool.status !== 'running'"
         :session-id="chatStore.currentSessionId ?? ''"
         target-type="tool_call"
         :target-id="tool.id"
       />
     </div>
-  </div>
+  </Teleport>
 </template>
 
 <style scoped>
-.tc-wrapper .feedback-hover {
-  opacity: 0;
-  height: 0;
-  overflow: hidden;
-  transition: opacity 0.25s ease, height 0.25s ease;
-  transition-delay: 0.6s;
-}
-
-.tc-wrapper:hover .feedback-hover {
-  opacity: 1;
-  height: 36px;
-  transition-delay: 0.1s;
-}
+/* feedback uses Teleport floating popup */
 </style>

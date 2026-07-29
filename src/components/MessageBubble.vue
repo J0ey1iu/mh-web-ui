@@ -28,7 +28,10 @@ const floatPos = ref({ x: 0, y: 0 })
 let floatTimer: ReturnType<typeof setTimeout> | null = null
 let collapseTimer: ReturnType<typeof setTimeout> | null = null
 
+let hideTimer: ReturnType<typeof setTimeout> | null = null
+
 function onContentHover(e: MouseEvent) {
+  if (hideTimer) { clearTimeout(hideTimer); hideTimer = null }
   floatPos.value = { x: e.clientX, y: e.clientY }
   if (floatTimer) clearTimeout(floatTimer)
   floatTimer = setTimeout(() => { showFloating.value = true }, 500)
@@ -36,13 +39,19 @@ function onContentHover(e: MouseEvent) {
 
 function onContentLeave() {
   if (floatTimer) clearTimeout(floatTimer)
-  floatTimer = setTimeout(() => { showFloating.value = false }, 200)
+  if (showFloating.value) {
+    if (hideTimer) clearTimeout(hideTimer)
+    hideTimer = setTimeout(() => { showFloating.value = false }, 300)
+  }
 }
 
-function onBubbleMousemove(e: MouseEvent) {
-  if (showFloating.value) {
-    floatPos.value = { x: e.clientX, y: e.clientY }
-  }
+function onPopupEnter() {
+  if (hideTimer) { clearTimeout(hideTimer); hideTimer = null }
+}
+
+function onPopupLeave() {
+  if (hideTimer) clearTimeout(hideTimer)
+  hideTimer = setTimeout(() => { showFloating.value = false }, 200)
 }
 
 const hasNoContent = computed(() => {
@@ -239,7 +248,7 @@ async function copy(text: string) {
       <div class="avatar">
         {{ message.role === "user" ? "U" : "A" }}
       </div>
-      <div class="bubble" @mousemove="onBubbleMousemove">
+      <div class="bubble">
         <template v-if="message.orderedItems">
           <template v-for="(item, i) in message.orderedItems" :key="i">
             <ReasoningBlock
@@ -345,6 +354,8 @@ async function copy(text: string) {
       v-if="showFloating && !isStreaming && message.role === 'assistant'"
       class="fb-float"
       :style="{ left: floatPos.x + 12 + 'px', top: floatPos.y + 12 + 'px' }"
+      @mouseenter="onPopupEnter"
+      @mouseleave="onPopupLeave"
     >
       <FeedbackWidget
         :session-id="chatStore.currentSessionId ?? ''"
