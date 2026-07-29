@@ -20,41 +20,55 @@ provide(I18N_KEY, { locale: computed(() => i18nStore.locale) })
 const renderError = ref<string | null>(null)
 const component = shallowRef<Component | null>(null)
 
-// used in Teleport template
+// used in template
 FeedbackWidget && chatStore
 
 const showFloating = ref(false)
 const floatPos = ref({ x: 0, y: 0 })
-let floatTimer: ReturnType<typeof setTimeout> | null = null
+let showTimer: ReturnType<typeof setTimeout> | null = null
 let hideTimer: ReturnType<typeof setTimeout> | null = null
 
-function onWrapperEnter(e: MouseEvent) {
-  if (hideTimer) { clearTimeout(hideTimer); hideTimer = null }
-  floatPos.value = { x: e.clientX, y: e.clientY }
-  if (floatTimer) clearTimeout(floatTimer)
-  floatTimer = setTimeout(() => { showFloating.value = true }, 500)
-}
+const floatStyle = computed(() => ({
+  left: floatPos.value.x + 12 + "px",
+  top: floatPos.value.y + 12 + "px",
+}))
 
-function onWrapperMousemove(e: MouseEvent) {
-  // track latest position until popup is shown, then freeze
+function onWrapperMouseover(e: MouseEvent) {
+  const target = e.currentTarget as HTMLElement
+  const related = e.relatedTarget as Node | null
+
+  // just entered the wrapper from outside
+  if (!related || !target.contains(related)) {
+    if (hideTimer) { clearTimeout(hideTimer); hideTimer = null }
+    floatPos.value = { x: e.clientX, y: e.clientY }
+    if (showTimer) clearTimeout(showTimer)
+    showTimer = setTimeout(() => { showFloating.value = true }, 500)
+  }
+  // update position while tracking, freeze once shown
   if (!showFloating.value) {
     floatPos.value = { x: e.clientX, y: e.clientY }
   }
 }
 
-function onWrapperLeave() {
-  if (floatTimer) clearTimeout(floatTimer)
-  if (showFloating.value) {
-    if (hideTimer) clearTimeout(hideTimer)
-    hideTimer = setTimeout(() => { showFloating.value = false }, 300)
+function onWrapperMouseout(e: MouseEvent) {
+  const target = e.currentTarget as HTMLElement
+  const related = e.relatedTarget as Node | null
+
+  // left the wrapper entirely (not just moved to a child)
+  if (!related || !target.contains(related)) {
+    if (showTimer) clearTimeout(showTimer)
+    if (showFloating.value) {
+      if (hideTimer) clearTimeout(hideTimer)
+      hideTimer = setTimeout(() => { showFloating.value = false }, 300)
+    }
   }
 }
 
-function onPopupEnter() {
+function onPopupMouseenter() {
   if (hideTimer) { clearTimeout(hideTimer); hideTimer = null }
 }
 
-function onPopupLeave() {
+function onPopupMouseleave() {
   if (hideTimer) clearTimeout(hideTimer)
   hideTimer = setTimeout(() => { showFloating.value = false }, 200)
 }
@@ -82,20 +96,22 @@ onErrorCaptured((err) => {
 </script>
 
 <template>
-  <div class="tc-wrapper" @mouseenter="onWrapperEnter" @mousemove="onWrapperMousemove" @mouseleave="onWrapperLeave">
+  <div
+    class="tc-wrapper"
+    @mouseover="onWrapperMouseover"
+    @mouseout="onWrapperMouseout"
+  >
     <BaseToolCard v-if="component" :tool="tool">
       <component :is="component" :tool="tool" />
     </BaseToolCard>
     <ToolCallCard v-else :tool="tool" />
-  </div>
 
-  <Teleport to="body">
     <div
       v-if="showFloating && tool.status !== 'running'"
       class="fb-float"
-      :style="{ left: floatPos.x + 12 + 'px', top: floatPos.y + 12 + 'px' }"
-      @mouseenter="onPopupEnter"
-      @mouseleave="onPopupLeave"
+      :style="floatStyle"
+      @mouseenter="onPopupMouseenter"
+      @mouseleave="onPopupMouseleave"
     >
       <FeedbackWidget
         :session-id="chatStore.currentSessionId ?? ''"
@@ -103,9 +119,23 @@ onErrorCaptured((err) => {
         :target-id="tool.id"
       />
     </div>
-  </Teleport>
+  </div>
 </template>
 
 <style scoped>
-/* feedback uses Teleport floating popup */
+.fb-float {
+  position: fixed;
+  z-index: 500;
+  pointer-events: auto;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 10px;
+  padding: 6px 8px;
+  box-shadow: var(--glass-shadow);
+  backdrop-filter: blur(8px);
+}
+
+.fb-float .feedback-widget {
+  margin-top: 0;
+}
 </style>
