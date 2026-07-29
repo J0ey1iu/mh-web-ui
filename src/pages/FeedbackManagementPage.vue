@@ -544,15 +544,4 @@ onMounted(load)
   font-weight: 500;
 }
 
-.btn-danger {
-  color: var(--danger);
-  border-color: color-mix(in srgb, var(--danger) 30%, var(--glass-border));
-}
-.btn-danger:hover:not(:disabled) {
-  background: color-mix(in srgb, var(--danger) 12%, transparent);
-}
-.btn-danger:disabled {
-  opacity: 0.4;
-  cursor: default;
-}
 </style>
