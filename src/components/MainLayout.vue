@@ -289,35 +289,35 @@ async function handleLogout() {
             class="dropdown-item"
             @click="router.push('/manage/scenes'); menuOpen = false"
           >
-            Scenes
+            {{ t("mgmt_scenes") }}
           </button>
           <button
             v-if="authUser && hasAgentPermission"
             class="dropdown-item"
             @click="router.push('/manage/agents'); menuOpen = false"
           >
-            Agents
+            {{ t("mgmt_agents") }}
           </button>
           <button
             v-if="authUser && hasToolPermission"
             class="dropdown-item"
             @click="router.push('/manage/tools'); menuOpen = false"
           >
-            Tools
+            {{ t("mgmt_tools") }}
           </button>
           <button
             v-if="authUser && hasProviderPermission"
             class="dropdown-item"
             @click="router.push('/manage/providers'); menuOpen = false"
           >
-            Providers
+            {{ t("mgmt_providers") }}
           </button>
           <button
             v-if="authUser"
             class="dropdown-item"
             @click="router.push('/manage/feedback'); menuOpen = false"
           >
-            Feedback
+            {{ t("feedback_management") }}
           </button>
           <div class="dropdown-divider"></div>
           <button
