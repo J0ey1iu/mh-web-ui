@@ -40,7 +40,9 @@ function onWrapperMouseover(e: MouseEvent) {
   // just entered the wrapper from outside
   if (!related || !target.contains(related)) {
     if (hideTimer) { clearTimeout(hideTimer); hideTimer = null }
-    floatPos.value = { x: e.clientX, y: e.clientY }
+    if (!showFloating.value) {
+      floatPos.value = { x: e.clientX, y: e.clientY }
+    }
     if (showTimer) clearTimeout(showTimer)
     showTimer = setTimeout(() => { showFloating.value = true }, 500)
   }
@@ -132,7 +134,6 @@ onErrorCaptured((err) => {
   border-radius: 10px;
   padding: 6px 8px;
   box-shadow: var(--glass-shadow);
-  backdrop-filter: blur(8px);
 }
 
 .fb-float .feedback-widget {
