@@ -78,6 +78,7 @@ onErrorCaptured((err) => {
 <style>
 .tc-wrapper .tool-header .feedback-widget {
   opacity: 0;
+  margin-left: auto;
   transition: opacity 0.25s ease;
   transition-delay: 0.5s;
 }

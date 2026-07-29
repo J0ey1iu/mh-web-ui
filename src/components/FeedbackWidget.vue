@@ -179,17 +179,16 @@ function reset() {
   height: 28px;
   border: 1px solid var(--glass-border);
   border-radius: 6px;
-  background: var(--glass-highlight);
-  color: var(--text-tertiary);
+  background: var(--glass-bg);
+  color: var(--text-secondary);
   cursor: pointer;
-  transition: all var(--transition-duration);
+  transition: color var(--transition-duration);
   padding: 0;
+  line-height: 0;
 }
 
 .fb-btn:hover:not(:disabled) {
   color: var(--accent);
-  border-color: var(--accent);
-  background: var(--accent-dim);
 }
 
 .fb-btn.active {
