@@ -657,7 +657,7 @@ export const useChatStore = defineStore("chat", () => {
         continue
       }
       if (msg.role === "tool") { i++; continue }
-      const assistantId = msg.id
+      let assistantId = msg.id
       let content = ""
       let hasCompactBoundary = !!msg.compact_boundary
       const orderedItems: ResponseItem[] = []
@@ -671,6 +671,8 @@ export const useChatStore = defineStore("chat", () => {
           if (m.compact_boundary) hasCompactBoundary = true
           i++
         } else if (m.role === "assistant") {
+          // track the last assistant message's ID for feedback targeting
+          assistantId = m.id
           if (m.reasoning) {
             orderedItems.push({ type: "reasoning", text: m.reasoning })
           }
