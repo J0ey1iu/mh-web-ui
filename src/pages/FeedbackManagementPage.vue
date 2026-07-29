@@ -544,4 +544,12 @@ onMounted(load)
   font-weight: 500;
 }
 
+/* ── Toolbar button height alignment ── */
+.mgmt-toolbar .btn-action,
+.mgmt-toolbar .btn-search {
+  padding: 7px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+}
+
 </style>
