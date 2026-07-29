@@ -38,6 +38,25 @@ async function load() {
   }
 }
 
+function feedbackTypeLabel(fbType: string): string {
+  return fbType === "thumbs_up" ? "表扬" : "批评"
+}
+
+function sourceLabel(source: string): string {
+  return source === "agent_tool" ? t("feedback_source_tool") : t("feedback_source_ui")
+}
+
+function ratingStars(rating: number | null): string {
+  if (rating == null) return "—"
+  return "★".repeat(rating) + "☆".repeat(5 - rating)
+}
+
+function formatTime(ts: string): string {
+  if (!ts) return ""
+  const d = new Date(ts)
+  return d.toLocaleString()
+}
+
 async function openReplay(fb: ManageFeedbackItem) {
   replayFeedback.value = fb
   replayMessages.value = []
@@ -64,25 +83,6 @@ function closeReplay() {
   replayHighlightMsgId.value = ""
 }
 
-function feedbackTypeLabel(fbType: string): string {
-  return fbType === "thumbs_up" ? "表扬" : "批评"
-}
-
-function sourceLabel(source: string): string {
-  return source === "agent_tool" ? t("feedback_source_tool") : t("feedback_source_ui")
-}
-
-function ratingStars(rating: number | null): string {
-  if (rating == null) return "—"
-  return "★".repeat(rating) + "☆".repeat(5 - rating)
-}
-
-function formatTime(ts: string): string {
-  if (!ts) return ""
-  const d = new Date(ts)
-  return d.toLocaleString()
-}
-
 function isHighlight(msg: MessageItem): boolean {
   return msg.id === replayHighlightMsgId.value
 }
@@ -100,6 +100,11 @@ function msgLabel(role: string): string {
   return role
 }
 
+function onSearch() {
+  page.value = 1
+  load()
+}
+
 const totalPages = computed(() => Math.max(1, Math.ceil(total.value / pageSize.value)))
 
 function goPrev() {
@@ -114,74 +119,78 @@ onMounted(load)
 </script>
 
 <template>
-  <ManagementNav />
-  <div class="fb-page">
-    <div class="fb-header">
-      <h2>{{ t("feedback_management") }}</h2>
-    </div>
+  <div class="mgmt-page">
+    <ManagementNav />
+    <div class="mgmt-page-content">
+      <header class="mgmt-header">
+        <h1>{{ t("feedback_management") }}</h1>
+      </header>
 
-    <div class="fb-filters">
-      <input v-model="q" class="fb-search" :placeholder="t('mgmt_search_placeholder')" @input="load" />
-      <select v-model="feedbackTypeFilter" class="fb-select" @change="load">
-        <option value="">{{ t("feedback_type_all") }}</option>
-        <option value="thumbs_up">👍 {{ t("feedback_thumbs_up") }}</option>
-        <option value="thumbs_down">👎 {{ t("feedback_thumbs_down") }}</option>
-      </select>
-      <select v-model="sourceFilter" class="fb-select" @change="load">
-        <option value="">{{ t("feedback_source_all") }}</option>
-        <option value="ui_button">{{ t("feedback_source_ui") }}</option>
-        <option value="agent_tool">{{ t("feedback_source_tool") }}</option>
-      </select>
-    </div>
+      <div class="mgmt-toolbar">
+        <input v-model="q" class="mgmt-search" :placeholder="t('mgmt_search_placeholder')" @keyup.enter="onSearch" />
+        <button class="btn-search" @click="onSearch">{{ t("mgmt_search") }}</button>
+        <select v-model="feedbackTypeFilter" class="mgmt-search" style="max-width:180px" @change="onSearch">
+          <option value="">{{ t("feedback_type_all") }}</option>
+          <option value="thumbs_up">👍 {{ t("feedback_thumbs_up") }}</option>
+          <option value="thumbs_down">👎 {{ t("feedback_thumbs_down") }}</option>
+        </select>
+        <select v-model="sourceFilter" class="mgmt-search" style="max-width:180px" @change="onSearch">
+          <option value="">{{ t("feedback_source_all") }}</option>
+          <option value="ui_button">{{ t("feedback_source_ui") }}</option>
+          <option value="agent_tool">{{ t("feedback_source_tool") }}</option>
+        </select>
+      </div>
 
-    <div v-if="loading" class="fb-loading">{{ t("mgmt_loading") }}</div>
+      <div v-if="loading" class="mgmt-loading">{{ t("mgmt_loading") }}</div>
 
-    <table v-else class="fb-table">
-      <thead>
-        <tr>
-          <th>{{ t("feedback_type_col") }}</th>
-          <th>{{ t("feedback_source") }}</th>
-          <th>{{ t("mgmt_name") }}</th>
-          <th>{{ t("feedback_rating") }}</th>
-          <th>{{ t("feedback_comment") }}</th>
-          <th>{{ t("mgmt_created_at") }}</th>
-          <th>{{ t("mgmt_actions") }}</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr v-for="fb in items" :key="fb.feedback_id">
-          <td>
-            <span class="fb-type-tag" :class="fb.feedback_type">
-              {{ fb.feedback_type === 'thumbs_up' ? '👍' : '👎' }}
-              {{ feedbackTypeLabel(fb.feedback_type) }}
-            </span>
-          </td>
-          <td>
-            <span class="fb-source-tag" :class="fb.source">{{ sourceLabel(fb.source) }}</span>
-          </td>
-          <td>{{ fb.user_id }}</td>
-          <td>{{ ratingStars(fb.rating) }}</td>
-          <td class="fb-comment-cell">{{ truncate(fb.comment ?? "", 60) }}</td>
-          <td>{{ formatTime(fb.created_at) }}</td>
-          <td>
-            <button class="fb-view-btn" @click="openReplay(fb)">{{ t("feedback_view_session") }}</button>
-          </td>
-        </tr>
-        <tr v-if="items.length === 0">
-          <td colspan="7" class="fb-empty">{{ t("mgmt_no_results") }}</td>
-        </tr>
-      </tbody>
-    </table>
+      <div v-else-if="items.length === 0" class="mgmt-empty">{{ t("mgmt_no_results") }}</div>
 
-    <div class="fb-pagination" v-if="totalPages > 1">
-      <button :disabled="page <= 1" @click="goPrev">{{ t("mgmt_prev_page") }}</button>
-      <span>{{ page }} / {{ totalPages }}</span>
-      <button :disabled="page >= totalPages" @click="goNext">{{ t("mgmt_next_page") }}</button>
+      <div v-else class="table-wrap">
+        <table class="mgmt-table">
+          <thead>
+            <tr>
+              <th>{{ t("feedback_type_col") }}</th>
+              <th>{{ t("feedback_source") }}</th>
+              <th>{{ t("mgmt_name") }}</th>
+              <th>{{ t("feedback_rating") }}</th>
+              <th>{{ t("feedback_comment") }}</th>
+              <th>{{ t("mgmt_created_at") }}</th>
+              <th>{{ t("mgmt_actions") }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="fb in items" :key="fb.feedback_id">
+              <td>
+                <span class="fb-type-tag" :class="fb.feedback_type">
+                  {{ fb.feedback_type === 'thumbs_up' ? '👍' : '👎' }}
+                  {{ feedbackTypeLabel(fb.feedback_type) }}
+                </span>
+              </td>
+              <td>
+                <span class="badge" :class="fb.source === 'agent_tool' ? 'badge-accent' : 'badge-neutral'">{{ sourceLabel(fb.source) }}</span>
+              </td>
+              <td><code>{{ fb.user_id }}</code></td>
+              <td>{{ ratingStars(fb.rating) }}</td>
+              <td class="cell-desc">{{ truncate(fb.comment ?? "", 60) }}</td>
+              <td class="cell-audit">{{ formatTime(fb.created_at) }}</td>
+              <td class="cell-actions">
+                <button class="btn-action" @click="openReplay(fb)">{{ t("feedback_view_session") }}</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="mgmt-pagination" v-if="totalPages > 1">
+        <button class="btn-page" :disabled="page <= 1" @click="goPrev">{{ t("mgmt_prev_page") }}</button>
+        <span class="mgmt-page-info">{{ page }} / {{ totalPages }}</span>
+        <button class="btn-page" :disabled="page >= totalPages" @click="goNext">{{ t("mgmt_next_page") }}</button>
+      </div>
     </div>
 
     <!-- Session replay dialog -->
-    <div v-if="showReplay" class="fb-overlay" @click.self="closeReplay">
-      <div class="fb-replay-dialog">
+    <div v-if="showReplay" class="dialog-overlay" @mousedown.self="closeReplay">
+      <div class="dialog dialog-lg">
         <div class="fb-replay-header">
           <div class="fb-replay-header-left">
             <span class="fb-replay-badge" :class="replayFeedback?.feedback_type">
@@ -189,13 +198,15 @@ onMounted(load)
             </span>
             <h3>{{ t("feedback_replay_title") }}</h3>
           </div>
-          <button class="fb-close-btn" @click="closeReplay">✕</button>
+          <button class="btn-close" @click="closeReplay">✕</button>
         </div>
 
         <div class="fb-replay-info" v-if="replayFeedback">
-          <span class="fb-info-tag">{{ replayFeedback.feedback_type === 'thumbs_up' ? '👍' : '👎' }} {{ feedbackTypeLabel(replayFeedback.feedback_type) }}</span>
-          <span class="fb-info-tag" v-if="replayFeedback.rating">{{ ratingStars(replayFeedback.rating) }}</span>
-          <span class="fb-info-tag src">{{ sourceLabel(replayFeedback.source) }}</span>
+          <span class="badge" :class="replayFeedback.feedback_type === 'thumbs_up' ? 'badge-success' : 'badge-error'">
+            {{ replayFeedback.feedback_type === 'thumbs_up' ? '👍' : '👎' }} {{ feedbackTypeLabel(replayFeedback.feedback_type) }}
+          </span>
+          <span class="badge badge-accent" v-if="replayFeedback.rating">{{ ratingStars(replayFeedback.rating) }}</span>
+          <span class="badge badge-neutral">{{ sourceLabel(replayFeedback.source) }}</span>
           <span class="fb-info-comment" v-if="replayFeedback.comment">"{{ replayFeedback.comment }}"</span>
         </div>
 
@@ -223,7 +234,7 @@ onMounted(load)
             <div class="hl-indicator" v-if="isHighlight(msg)">← 被评价</div>
             <div class="compact-badge" v-if="msg.compact_boundary">📋 以上内容已被总结压缩</div>
           </div>
-          <div v-if="replayMessages.length === 0" class="fb-empty">{{ t("mgmt_loading") }}</div>
+          <div v-if="replayMessages.length === 0" class="mgmt-loading">{{ t("mgmt_loading") }}</div>
         </div>
       </div>
     </div>
@@ -231,74 +242,7 @@ onMounted(load)
 </template>
 
 <style scoped>
-.fb-page {
-  max-width: 1160px;
-  margin: 0 auto;
-  padding: 24px 16px;
-}
-
-.fb-header h2 {
-  margin: 0 0 16px;
-  font-size: 20px;
-  color: var(--text-primary);
-}
-
-.fb-filters {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 16px;
-  flex-wrap: wrap;
-}
-
-.fb-search {
-  flex: 1;
-  min-width: 200px;
-  padding: 8px 12px;
-  border: 1px solid var(--glass-border);
-  border-radius: 8px;
-  background: var(--surface-bg);
-  color: var(--text-primary);
-  font-size: 13px;
-  font-family: inherit;
-}
-
-.fb-select {
-  padding: 8px 12px;
-  border: 1px solid var(--glass-border);
-  border-radius: 8px;
-  background: var(--surface-bg);
-  color: var(--text-primary);
-  font-size: 13px;
-  font-family: inherit;
-  cursor: pointer;
-}
-
-.fb-loading {
-  text-align: center;
-  padding: 40px;
-  color: var(--text-secondary);
-}
-
-.fb-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 13px;
-}
-
-.fb-table th {
-  text-align: left;
-  padding: 10px 8px;
-  border-bottom: 1px solid var(--glass-border);
-  color: var(--text-secondary);
-  font-weight: 600;
-  white-space: nowrap;
-}
-
-.fb-table td {
-  padding: 10px 8px;
-  border-bottom: 1px solid var(--glass-border);
-  color: var(--text-primary);
-}
+/* ── Feedback-specific tags (not in global management.css) ── */
 
 .fb-type-tag {
   display: inline-flex;
@@ -323,124 +267,25 @@ onMounted(load)
   border: 1px solid color-mix(in srgb, var(--danger) 25%, transparent);
 }
 
-.fb-source-tag {
-  display: inline-flex;
-  padding: 2px 10px;
-  border-radius: 20px;
-  font-size: 11px;
-  font-weight: 500;
-  white-space: nowrap;
-}
-
-.fb-source-tag.ui_button {
-  background: var(--glass-highlight);
-  color: var(--accent);
-  border: 1px solid var(--glass-border);
-}
-
-.fb-source-tag.agent_tool {
-  background: color-mix(in srgb, var(--info) 12%, transparent);
-  color: var(--info);
-  border: 1px solid color-mix(in srgb, var(--info) 25%, transparent);
-}
-
-.fb-comment-cell {
-  max-width: 200px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  color: var(--text-secondary);
-}
-
-.fb-empty {
-  text-align: center;
-  color: var(--text-tertiary);
-  padding: 24px;
-}
-
-.fb-pagination {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  margin-top: 16px;
-  padding: 8px;
-}
-
-.fb-pagination button {
-  padding: 6px 14px;
-  border: 1px solid var(--glass-border);
-  border-radius: 6px;
-  background: var(--surface-bg);
-  color: var(--text-primary);
-  cursor: pointer;
-  font-size: 13px;
-  font-family: inherit;
-}
-
-.fb-pagination button:disabled {
-  opacity: 0.4;
-  cursor: default;
-}
-
-.fb-view-btn {
-  padding: 4px 10px;
-  border: 1px solid var(--glass-border);
-  border-radius: 6px;
-  background: var(--accent-dim);
-  color: var(--accent);
-  cursor: pointer;
-  font-size: 12px;
-  font-family: inherit;
-  white-space: nowrap;
-  transition: all 0.2s;
-}
-
-.fb-view-btn:hover {
-  background: var(--accent);
-  color: #fff;
-}
-
-/* ── Replay dialog ── */
-
-.fb-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.45);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-  backdrop-filter: blur(2px);
-}
-
-.fb-replay-dialog {
-  width: 92%;
-  max-width: 760px;
-  max-height: 85vh;
-  background: var(--surface-bg);
-  border: 1px solid var(--glass-border);
-  border-radius: 16px;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-}
+/* ── Replay dialog custom parts (not in global styles) ── */
 
 .fb-replay-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 14px 20px;
-  border-bottom: 1px solid var(--glass-border);
-  background: var(--surface-alt);
-  flex-shrink: 0;
+  margin-bottom: 16px;
 }
 
 .fb-replay-header-left {
   display: flex;
   align-items: center;
   gap: 10px;
+}
+
+.fb-replay-header h3 {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 700;
 }
 
 .fb-replay-badge {
@@ -461,57 +306,14 @@ onMounted(load)
   background: color-mix(in srgb, var(--danger) 18%, transparent);
 }
 
-.fb-replay-header h3 {
-  margin: 0;
-  font-size: 16px;
-  font-weight: 600;
-}
-
-.fb-close-btn {
-  background: none;
-  border: none;
-  color: var(--text-secondary);
-  font-size: 20px;
-  cursor: pointer;
-  padding: 4px 10px;
-  border-radius: 8px;
-  transition: all 0.2s;
-  line-height: 1;
-}
-
-.fb-close-btn:hover {
-  background: var(--glass-highlight);
-  color: var(--text-primary);
-}
-
-/* feedback info bar */
 .fb-replay-info {
   display: flex;
   gap: 6px;
   align-items: center;
   flex-wrap: wrap;
-  padding: 10px 20px;
-  background: var(--glass-highlight);
+  padding: 12px 0;
+  margin-bottom: 12px;
   border-bottom: 1px solid var(--glass-border);
-  flex-shrink: 0;
-}
-
-.fb-info-tag {
-  display: inline-flex;
-  align-items: center;
-  padding: 2px 10px;
-  border-radius: 20px;
-  font-size: 12px;
-  font-weight: 500;
-  background: color-mix(in srgb, var(--accent-dim) 60%, transparent);
-  border: 1px solid color-mix(in srgb, var(--accent) 20%, transparent);
-  color: var(--accent);
-}
-
-.fb-info-tag.src {
-  background: var(--glass-highlight);
-  border-color: var(--glass-border);
-  color: var(--text-secondary);
 }
 
 .fb-info-comment {
@@ -522,15 +324,14 @@ onMounted(load)
 
 /* message list */
 .fb-replay-msgs {
-  flex: 1;
+  max-height: 55vh;
   overflow-y: auto;
-  padding: 0;
 }
 
 .msg-row {
   display: flex;
   gap: 10px;
-  padding: 10px 20px;
+  padding: 10px 0;
   border-bottom: 1px solid var(--glass-border);
   font-size: 13px;
   line-height: 1.5;
@@ -539,6 +340,9 @@ onMounted(load)
 
 .msg-row:hover {
   background: var(--glass-highlight);
+  margin: 0 -4px;
+  padding: 10px 4px;
+  border-radius: 6px;
 }
 
 .msg-role {
@@ -615,6 +419,9 @@ onMounted(load)
   border-top: 2px solid var(--accent);
   border-bottom: 2px solid var(--accent);
   position: relative;
+  margin: 0 -4px;
+  padding: 10px 4px;
+  border-radius: 6px;
 }
 
 .hl-row .msg-role {
@@ -634,6 +441,9 @@ onMounted(load)
   background: color-mix(in srgb, var(--info) 8%, var(--glass-highlight));
   border-top: 2px dashed var(--info);
   border-bottom: 2px dashed var(--info);
+  margin: 0 -4px;
+  padding: 10px 4px;
+  border-radius: 6px;
 }
 
 .compact-badge {
