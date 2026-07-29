@@ -551,6 +551,7 @@ onMounted(load)
   font-size: 13px;
   font-weight: 600;
   line-height: 1.4;
+  white-space: nowrap;
   background: var(--accent);
   color: #fff;
   border: none;
