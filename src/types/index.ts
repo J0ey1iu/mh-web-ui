@@ -291,7 +291,18 @@ export interface ManageFeedbackItem {
   comment: string | null
   category: string | null
   source: string
+  status: string
   metadata: Record<string, any>
+  created_at: string
+}
+
+export interface FeedbackStateItem {
+  feedback_id: string
+  target_type: string
+  target_id: string
+  feedback_type: string
+  comment: string | null
+  rating: number | null
   created_at: string
 }
 

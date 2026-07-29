@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, computed, nextTick } from "vue"
 import type { ManageFeedbackItem, MessageItem } from "../types"
-import { fetchManageFeedback, fetchFeedbackSession } from "../api/client"
+import { fetchManageFeedback, fetchFeedbackSession, deleteManageFeedback, deleteManageFeedbackBatch, updateFeedbackStatus, getFeedbackExportUrl } from "../api/client"
 import { useI18nStore } from "../stores/i18n"
 import ManagementNav from "../components/ManagementNav.vue"
 
@@ -15,11 +15,27 @@ const loading = ref(false)
 const q = ref("")
 const feedbackTypeFilter = ref("")
 const sourceFilter = ref("")
+const statusFilter = ref("")
+const selected = ref<Set<string>>(new Set())
 const showReplay = ref(false)
 const replayFeedback = ref<ManageFeedbackItem | null>(null)
 const replayMessages = ref<MessageItem[]>([])
 const replayHighlightMsgId = ref("")
 const replayContainer = ref<HTMLElement | null>(null)
+
+const statusLabels: Record<string, string> = {
+  new: "待处理",
+  analyzing: "分析中",
+  optimized: "已优化",
+  deployed: "已上线",
+}
+
+const statusColors: Record<string, string> = {
+  new: "badge-neutral",
+  analyzing: "badge-warning",
+  optimized: "badge-success",
+  deployed: "badge-accent",
+}
 
 async function load() {
   loading.value = true
@@ -30,9 +46,11 @@ async function load() {
       q: q.value || undefined,
       feedback_type: feedbackTypeFilter.value || undefined,
       source: sourceFilter.value || undefined,
+      status: statusFilter.value || undefined,
     })
     items.value = resp.items
     total.value = resp.total
+    selected.value = new Set()
   } catch { /* */ } finally {
     loading.value = false
   }
@@ -115,6 +133,61 @@ function goNext() {
   if (page.value < totalPages.value) { page.value++; load() }
 }
 
+function toggleAll() {
+  if (selected.value.size === items.value.length) {
+    selected.value = new Set()
+  } else {
+    selected.value = new Set(items.value.map(i => i.feedback_id))
+  }
+}
+
+function toggleOne(id: string) {
+  const s = new Set(selected.value)
+  if (s.has(id)) s.delete(id)
+  else s.add(id)
+  selected.value = s
+}
+
+async function doDelete(feedbackId: string) {
+  try {
+    await deleteManageFeedback(feedbackId)
+    load()
+  } catch { /* */ }
+}
+
+async function doBatchDelete() {
+  const ids = Array.from(selected.value)
+  if (!ids.length) return
+  try {
+    await deleteManageFeedbackBatch(ids)
+    load()
+  } catch { /* */ }
+}
+
+async function doStatusChange(feedbackId: string) {
+  const fb = items.value.find(i => i.feedback_id === feedbackId)
+  if (!fb) return
+  const next = fb.status === "new" ? "analyzing" : fb.status === "analyzing" ? "optimized" : fb.status === "optimized" ? "deployed" : "new"
+  try {
+    await updateFeedbackStatus(feedbackId, next)
+    load()
+  } catch { /* */ }
+}
+
+function doExport() {
+  window.open(
+    getFeedbackExportUrl({
+      q: q.value || undefined,
+      feedback_type: feedbackTypeFilter.value || undefined,
+      source: sourceFilter.value || undefined,
+      status: statusFilter.value || undefined,
+    }),
+    "_blank"
+  )
+}
+
+const hasSelected = computed(() => selected.value.size > 0)
+
 onMounted(load)
 </script>
 
@@ -139,6 +212,15 @@ onMounted(load)
           <option value="ui_button">{{ t("feedback_source_ui") }}</option>
           <option value="agent_tool">{{ t("feedback_source_tool") }}</option>
         </select>
+        <select v-model="statusFilter" class="mgmt-search" style="max-width:160px" @change="onSearch">
+          <option value="">{{ t("feedback_status_all") }}</option>
+          <option value="new">待处理</option>
+          <option value="analyzing">分析中</option>
+          <option value="optimized">已优化</option>
+          <option value="deployed">已上线</option>
+        </select>
+        <button class="btn-action" @click="doExport">📤 导出 CSV</button>
+        <button class="btn-action btn-danger" :disabled="!hasSelected" @click="doBatchDelete">🗑 批量删除</button>
       </div>
 
       <div v-if="loading" class="mgmt-loading">{{ t("mgmt_loading") }}</div>
@@ -149,9 +231,11 @@ onMounted(load)
         <table class="mgmt-table">
           <thead>
             <tr>
+              <th class="cell-check"><input type="checkbox" :checked="selected.size === items.length && items.length > 0" @change="toggleAll" /></th>
               <th>{{ t("feedback_type_col") }}</th>
               <th>{{ t("feedback_source") }}</th>
               <th>{{ t("mgmt_name") }}</th>
+              <th>{{ t("feedback_status") }}</th>
               <th>{{ t("feedback_rating") }}</th>
               <th>{{ t("feedback_comment") }}</th>
               <th>{{ t("mgmt_created_at") }}</th>
@@ -159,7 +243,8 @@ onMounted(load)
             </tr>
           </thead>
           <tbody>
-            <tr v-for="fb in items" :key="fb.feedback_id">
+            <tr v-for="fb in items" :key="fb.feedback_id" :class="{ 'row-selected': selected.has(fb.feedback_id) }">
+              <td class="cell-check"><input type="checkbox" :checked="selected.has(fb.feedback_id)" @change="toggleOne(fb.feedback_id)" /></td>
               <td>
                 <span class="fb-type-tag" :class="fb.feedback_type">
                   {{ fb.feedback_type === 'thumbs_up' ? '👍' : '👎' }}
@@ -170,11 +255,17 @@ onMounted(load)
                 <span class="badge" :class="fb.source === 'agent_tool' ? 'badge-accent' : 'badge-neutral'">{{ sourceLabel(fb.source) }}</span>
               </td>
               <td><code>{{ fb.user_id }}</code></td>
+              <td>
+                <span class="badge" :class="statusColors[fb.status] || 'badge-neutral'" style="cursor:pointer" :title="t('feedback_status_change')" @click="doStatusChange(fb.feedback_id)">
+                  {{ statusLabels[fb.status] || fb.status }}
+                </span>
+              </td>
               <td>{{ ratingStars(fb.rating) }}</td>
               <td class="cell-desc">{{ truncate(fb.comment ?? "", 60) }}</td>
               <td class="cell-audit">{{ formatTime(fb.created_at) }}</td>
               <td class="cell-actions">
                 <button class="btn-action" @click="openReplay(fb)">{{ t("feedback_view_session") }}</button>
+                <button class="btn-action btn-danger" @click="doDelete(fb.feedback_id)">🗑</button>
               </td>
             </tr>
           </tbody>
@@ -207,6 +298,7 @@ onMounted(load)
           </span>
           <span class="badge badge-accent" v-if="replayFeedback.rating">{{ ratingStars(replayFeedback.rating) }}</span>
           <span class="badge badge-neutral">{{ sourceLabel(replayFeedback.source) }}</span>
+          <span class="badge" :class="statusColors[replayFeedback.status] || 'badge-neutral'">{{ statusLabels[replayFeedback.status] || replayFeedback.status }}</span>
           <span class="fb-info-comment" v-if="replayFeedback.comment">"{{ replayFeedback.comment }}"</span>
         </div>
 
@@ -242,7 +334,10 @@ onMounted(load)
 </template>
 
 <style scoped>
-/* ── Feedback-specific tags (not in global management.css) ── */
+.cell-check { width: 36px; text-align: center; }
+.cell-check input { cursor: pointer; }
+
+.row-selected { background: color-mix(in srgb, var(--accent) 8%, transparent); }
 
 .fb-type-tag {
   display: inline-flex;
@@ -266,8 +361,6 @@ onMounted(load)
   color: var(--danger);
   border: 1px solid color-mix(in srgb, var(--danger) 25%, transparent);
 }
-
-/* ── Replay dialog custom parts (not in global styles) ── */
 
 .fb-replay-header {
   display: flex;
@@ -322,7 +415,6 @@ onMounted(load)
   font-style: italic;
 }
 
-/* message list */
 .fb-replay-msgs {
   max-height: 55vh;
   overflow-y: auto;
@@ -378,7 +470,6 @@ onMounted(load)
   word-break: break-word;
 }
 
-/* tool calls */
 .msg-tc {
   display: flex;
   flex-wrap: wrap;
@@ -413,7 +504,6 @@ onMounted(load)
   max-width: 200px;
 }
 
-/* highlight row */
 .hl-row {
   background: color-mix(in srgb, var(--accent-dim) 35%, transparent) !important;
   border-top: 2px solid var(--accent);
@@ -452,5 +542,17 @@ onMounted(load)
   white-space: nowrap;
   flex-shrink: 0;
   font-weight: 500;
+}
+
+.btn-danger {
+  color: var(--danger);
+  border-color: color-mix(in srgb, var(--danger) 30%, var(--glass-border));
+}
+.btn-danger:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--danger) 12%, transparent);
+}
+.btn-danger:disabled {
+  opacity: 0.4;
+  cursor: default;
 }
 </style>

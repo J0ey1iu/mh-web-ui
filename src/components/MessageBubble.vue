@@ -28,6 +28,12 @@ const hovered = ref(false)
 const hoveredIndex = ref<number | null>(null)
 let collapseTimer: ReturnType<typeof setTimeout> | null = null
 
+function getFeedback(key: string): { feedback_type: "thumbs_up" | "thumbs_down"; feedback_id: string } | null {
+  const fb = chatStore.feedbackState[key]
+  if (!fb) return null
+  return { feedback_type: fb.feedback_type as "thumbs_up" | "thumbs_down", feedback_id: fb.feedback_id }
+}
+
 // @ts-ignore used in template
 const hasNoContent = computed(() => {
   if (props.message.orderedItems?.length) return false
@@ -141,9 +147,12 @@ async function copy(text: string) {
                     <AgentAnswer :content="item.text ?? ''" />
                     <div v-show="hoveredIndex === i" class="segment-actions">
                       <FeedbackWidget
+                        v-if="message.role === 'assistant'"
                         :session-id="chatStore.currentSessionId ?? ''"
                         target-type="message"
                         :target-id="message.id"
+                        :existing-feedback-type="getFeedback(`message:${message.id}`)?.feedback_type"
+                        :existing-feedback-id="getFeedback(`message:${message.id}`)?.feedback_id"
                       />
                       <button class="copy-btn" :title="t('copy')" @click="copy(item.text ?? '')">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -180,9 +189,12 @@ async function copy(text: string) {
                   <AgentAnswer :content="message.content" />
                   <div v-show="hovered" class="segment-actions">
                     <FeedbackWidget
+                      v-if="message.role === 'assistant'"
                       :session-id="chatStore.currentSessionId ?? ''"
                       target-type="message"
                       :target-id="message.id"
+                      :existing-feedback-type="getFeedback(`message:${message.id}`)?.feedback_type"
+                      :existing-feedback-id="getFeedback(`message:${message.id}`)?.feedback_id"
                     />
                     <button class="copy-btn" :title="t('copy')" @click="copy((message.content ?? ''))">
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -231,6 +243,8 @@ async function copy(text: string) {
                   :session-id="chatStore.currentSessionId ?? ''"
                   target-type="message"
                   :target-id="message.id"
+                  :existing-feedback-type="getFeedback(`message:${message.id}`)?.feedback_type"
+                  :existing-feedback-id="getFeedback(`message:${message.id}`)?.feedback_id"
                 />
                 <button class="copy-btn" :title="t('copy')" @click="copy(item.text ?? '')">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -271,6 +285,8 @@ async function copy(text: string) {
                 :session-id="chatStore.currentSessionId ?? ''"
                 target-type="message"
                 :target-id="message.id"
+                :existing-feedback-type="getFeedback(`message:${message.id}`)?.feedback_type"
+                :existing-feedback-id="getFeedback(`message:${message.id}`)?.feedback_id"
               />
               <button class="copy-btn" :title="t('copy')" @click="copy((message.content ?? ''))">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">

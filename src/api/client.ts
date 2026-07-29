@@ -1,4 +1,4 @@
-import type { AgentInfo, FetchListParams, FeedbackSubmitRequest, FeedbackResponse, ManageAgent, ManageFeedbackItem, FeedbackSessionResponse, ManageProvider, ManageScenario, ManageTool, MessagesResponse, PaginatedResponse, ProviderModel, ScenarioDetail, ScenarioInfo, SessionInfo, UserInfo, SSEEventName } from "../types"
+import type { AgentInfo, FetchListParams, FeedbackSubmitRequest, FeedbackResponse, ManageAgent, ManageFeedbackItem, FeedbackSessionResponse, FeedbackStateItem, ManageProvider, ManageScenario, ManageTool, MessagesResponse, PaginatedResponse, ProviderModel, ScenarioDetail, ScenarioInfo, SessionInfo, UserInfo, SSEEventName } from "../types"
 import { appConfig } from "../config"
 
 function fillUrl(template: string, params?: Record<string, string>): string {
@@ -349,10 +349,16 @@ export async function submitFeedback(
   })
 }
 
+export async function fetchSessionFeedback(sessionId: string): Promise<FeedbackStateItem[]> {
+  const url = `${appConfig.apiFeedback}?session_id=${encodeURIComponent(sessionId)}`
+  return request<FeedbackStateItem[]>(url)
+}
+
 export async function fetchManageFeedback(
   params?: FetchListParams & {
     feedback_type?: string
     source?: string
+    status?: string
     date_from?: string
     date_to?: string
   }
@@ -363,6 +369,7 @@ export async function fetchManageFeedback(
   if (params?.page_size != null) query.set("page_size", String(params.page_size))
   if (params?.feedback_type) query.set("feedback_type", params.feedback_type)
   if (params?.source) query.set("source", params.source)
+  if (params?.status) query.set("status", params.status)
   if (params?.date_from) query.set("date_from", params.date_from)
   if (params?.date_to) query.set("date_to", params.date_to)
   const qs = query.toString()
@@ -376,6 +383,54 @@ export async function fetchFeedbackSession(
   return request<FeedbackSessionResponse>(
     appConfig.apiManagementFeedbackSession.replace("{id}", encodeURIComponent(feedbackId))
   )
+}
+
+export async function deleteManageFeedback(feedbackId: string): Promise<void> {
+  await request(
+    `${appConfig.apiManagementFeedback}/${encodeURIComponent(feedbackId)}`,
+    { method: "DELETE" }
+  )
+}
+
+export async function deleteManageFeedbackBatch(ids: string[]): Promise<{ deleted: number }> {
+  return request<{ deleted: number }>(
+    appConfig.apiManagementFeedbackBatchDelete,
+    {
+      method: "POST",
+      body: JSON.stringify({ ids }),
+    }
+  )
+}
+
+export async function updateFeedbackStatus(feedbackId: string, status: string): Promise<ManageFeedbackItem> {
+  return request<ManageFeedbackItem>(
+    `${appConfig.apiManagementFeedback}/${encodeURIComponent(feedbackId)}/status`,
+    {
+      method: "PATCH",
+      body: JSON.stringify({ status }),
+    }
+  )
+}
+
+export function getFeedbackExportUrl(
+  params?: {
+    q?: string
+    feedback_type?: string
+    source?: string
+    status?: string
+    date_from?: string
+    date_to?: string
+  }
+): string {
+  const query = new URLSearchParams()
+  if (params?.q) query.set("q", params.q)
+  if (params?.feedback_type) query.set("feedback_type", params.feedback_type)
+  if (params?.source) query.set("source", params.source)
+  if (params?.status) query.set("status", params.status)
+  if (params?.date_from) query.set("date_from", params.date_from)
+  if (params?.date_to) query.set("date_to", params.date_to)
+  const qs = query.toString()
+  return qs ? `${appConfig.apiManagementFeedbackExport}?${qs}` : appConfig.apiManagementFeedbackExport
 }
 
 // ── Provider Model CRUD ──

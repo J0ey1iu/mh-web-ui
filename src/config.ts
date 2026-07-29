@@ -20,6 +20,8 @@ export interface AppConfig {
   apiManagementTool: string
   apiManagementFeedback: string
   apiManagementFeedbackSession: string
+  apiManagementFeedbackExport: string
+  apiManagementFeedbackBatchDelete: string
   apiManagementProviders: string
   apiManagementProviderConfigs: string
   apiManagementProviderConfig: string

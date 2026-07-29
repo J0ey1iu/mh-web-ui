@@ -10,10 +10,12 @@ const props = defineProps<{
   sessionId: string
   targetType: "message" | "tool_call"
   targetId: string
+  existingFeedbackType?: "thumbs_up" | "thumbs_down"
+  existingFeedbackId?: string
 }>()
 
-const status = ref<FeedbackStatus>("none")
-const selectedType = ref<"thumbs_up" | "thumbs_down" | null>(null)
+const status = ref<FeedbackStatus>(props.existingFeedbackType ? "submitted" : "none")
+const selectedType = ref<"thumbs_up" | "thumbs_down" | null>(props.existingFeedbackType ?? null)
 const showForm = ref(false)
 const comment = ref("")
 const submitting = ref(false)

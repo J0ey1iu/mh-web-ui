@@ -1,10 +1,10 @@
 import { defineStore } from "pinia"
 import { ref, computed, watch } from "vue"
 import router from "../router"
-import type { MessageItem, SessionInfo, Message, ToolCallDisplay, ResponseItem, ScenarioInfo, AgentInfo, StreamingState, CompactionEnd } from "../types"
+import type { MessageItem, SessionInfo, Message, ToolCallDisplay, ResponseItem, ScenarioInfo, AgentInfo, StreamingState, CompactionEnd, FeedbackStateItem } from "../types"
 import { SSE_EVENTS } from "../types"
 import { useI18nStore } from "./i18n"
-import { fetchMessages, fetchSessions, createSession, deleteSession, fetchScenarios, fetchScenarioDetail, streamChat, compactSession } from "../api/client"
+import { fetchMessages, fetchSessions, createSession, deleteSession, fetchScenarios, fetchScenarioDetail, fetchSessionFeedback, streamChat, compactSession } from "../api/client"
 
 const FLUSH_INTERVAL = 100
 
@@ -42,6 +42,9 @@ export const useChatStore = defineStore("chat", () => {
   const currentScenario = ref<ScenarioInfo | null>(null)
   const availableAgents = ref<AgentInfo[]>([])
   const toolDisplayNames = ref<Record<string, string>>({})
+
+  // feedback state keyed by "targetType:targetId"
+  const feedbackState = ref<Record<string, FeedbackStateItem>>({})
 
   const streaming = ref<StreamingState>(freshState())
   const compacting = ref(false)
@@ -405,6 +408,17 @@ export const useChatStore = defineStore("chat", () => {
         messagesLoading.value = false
       }
     }
+    // load feedback state for this session
+    try {
+      const fbItems = await fetchSessionFeedback(memoryId)
+      const map: Record<string, FeedbackStateItem> = {}
+      for (const fb of fbItems) {
+        map[`${fb.target_type}:${fb.target_id}`] = fb
+      }
+      feedbackState.value = map
+    } catch {
+      feedbackState.value = {}
+    }
     await router.replace({ query: { ...router.currentRoute.value.query, session: memoryId, agent: undefined } })
   }
 
@@ -747,6 +761,7 @@ export const useChatStore = defineStore("chat", () => {
   return {
     sessions, currentSessionId, currentSession, pendingAgent, messages, streaming, compacting, error,
     contextUsage, backendOnline, availableScenarios, currentScenario, availableAgents, toolDisplayNames,
+    feedbackState,
     sessionsLoading, messagesLoading,
     saveCurrentSession,
     loadSessions, newSession, removeSession, selectSession, sendMessage, cancelStream, triggerCompact,

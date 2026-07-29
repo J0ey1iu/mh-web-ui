@@ -226,6 +226,9 @@ const messages: Record<Locale, Record<string, string>> = {
     feedback_type_col: "评价",
     feedback_view_session: "查看对话",
     feedback_replay_title: "用户反馈 — 对话回放",
+    feedback_status: "处理进度",
+    feedback_status_all: "全部状态",
+    feedback_status_change: "点击切换状态",
   },
   en: {
     sessions: "Sessions",
@@ -446,6 +449,9 @@ const messages: Record<Locale, Record<string, string>> = {
     feedback_type_col: "Rating",
     feedback_view_session: "View Session",
     feedback_replay_title: "Feedback — Session Replay",
+    feedback_status: "Status",
+    feedback_status_all: "All Status",
+    feedback_status_change: "Click to change status",
   },
 }
 

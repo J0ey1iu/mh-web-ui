@@ -68,6 +68,8 @@ onErrorCaptured((err) => {
             :session-id="chatStore.currentSessionId ?? ''"
             target-type="tool_call"
             :target-id="tool.id"
+            :existing-feedback-type="(chatStore.feedbackState[`tool_call:${props.tool.id}`]?.feedback_type as 'thumbs_up' | 'thumbs_down' | undefined)"
+            :existing-feedback-id="chatStore.feedbackState[`tool_call:${props.tool.id}`]?.feedback_id"
           />
         </div>
       </template>
