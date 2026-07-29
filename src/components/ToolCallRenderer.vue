@@ -55,13 +55,14 @@ onErrorCaptured((err) => {
   <div class="tc-wrapper" @mouseenter="toolHovered = true" @mouseleave="toolHovered = false">
     <BaseToolCard :tool="tool">
       <template #header>
-        <span class="tool-icon">{{ statusIcon }}</span>
-        <span class="tool-name">{{ (tool as any).displayName || tool.name }}</span>
-        <span v-if="tool.status === 'running'" class="tool-spinner" />
+        <div class="tool-header-left">
+          <span class="tool-icon">{{ statusIcon }}</span>
+          <span class="tool-name">{{ (tool as any).displayName || tool.name }}</span>
+          <span v-if="tool.status === 'running'" class="tool-spinner" />
+        </div>
         <div
           v-show="toolHovered && tool.status !== 'running'"
           class="fb-header-wrap"
-          style="margin-left: auto"
         >
           <FeedbackWidget
             :session-id="chatStore.currentSessionId ?? ''"
@@ -79,7 +80,21 @@ onErrorCaptured((err) => {
   </div>
 </template>
 
+<style>
+.tc-wrapper .tool-header {
+  justify-content: space-between;
+  flex: 1;
+}
+</style>
+
 <style scoped>
+.tool-header-left {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
 .fb-header-wrap .feedback-widget {
   margin-top: 0;
 }

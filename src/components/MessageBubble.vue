@@ -227,6 +227,7 @@ async function copy(text: string) {
               <AgentAnswer :content="item.text ?? ''" />
               <div v-show="hoveredIndex === i" class="segment-actions">
                 <FeedbackWidget
+                  v-if="message.role === 'assistant'"
                   :session-id="chatStore.currentSessionId ?? ''"
                   target-type="message"
                   :target-id="message.id"
@@ -266,6 +267,7 @@ async function copy(text: string) {
             <AgentAnswer :content="message.content" />
             <div v-show="hovered" class="segment-actions">
               <FeedbackWidget
+                v-if="message.role === 'assistant'"
                 :session-id="chatStore.currentSessionId ?? ''"
                 target-type="message"
                 :target-id="message.id"
