@@ -35,6 +35,13 @@ function onWrapperEnter(e: MouseEvent) {
   floatTimer = setTimeout(() => { showFloating.value = true }, 500)
 }
 
+function onWrapperMousemove(e: MouseEvent) {
+  // track latest position until popup is shown, then freeze
+  if (!showFloating.value) {
+    floatPos.value = { x: e.clientX, y: e.clientY }
+  }
+}
+
 function onWrapperLeave() {
   if (floatTimer) clearTimeout(floatTimer)
   if (showFloating.value) {
@@ -75,7 +82,7 @@ onErrorCaptured((err) => {
 </script>
 
 <template>
-  <div class="tc-wrapper" @mouseenter="onWrapperEnter" @mouseleave="onWrapperLeave">
+  <div class="tc-wrapper" @mouseenter="onWrapperEnter" @mousemove="onWrapperMousemove" @mouseleave="onWrapperLeave">
     <BaseToolCard v-if="component" :tool="tool">
       <component :is="component" :tool="tool" />
     </BaseToolCard>

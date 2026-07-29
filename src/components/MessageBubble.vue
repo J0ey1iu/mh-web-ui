@@ -45,6 +45,13 @@ function onContentLeave() {
   }
 }
 
+function onBubbleMousemove(e: MouseEvent) {
+  // track latest position until popup is shown, then freeze
+  if (!showFloating.value) {
+    floatPos.value = { x: e.clientX, y: e.clientY }
+  }
+}
+
 function onPopupEnter() {
   if (hideTimer) { clearTimeout(hideTimer); hideTimer = null }
 }
@@ -248,7 +255,7 @@ async function copy(text: string) {
       <div class="avatar">
         {{ message.role === "user" ? "U" : "A" }}
       </div>
-      <div class="bubble">
+      <div class="bubble" @mousemove="onBubbleMousemove">
         <template v-if="message.orderedItems">
           <template v-for="(item, i) in message.orderedItems" :key="i">
             <ReasoningBlock
