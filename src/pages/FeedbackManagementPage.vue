@@ -18,7 +18,7 @@ const sourceFilter = ref("")
 const showReplay = ref(false)
 const replayFeedback = ref<ManageFeedbackItem | null>(null)
 const replayMessages = ref<MessageItem[]>([])
-const replayHighlightIdx = ref(-1)
+const replayHighlightMsgId = ref("")
 const replayContainer = ref<HTMLElement | null>(null)
 
 async function load() {
@@ -41,11 +41,11 @@ async function load() {
 async function openReplay(fb: ManageFeedbackItem) {
   replayFeedback.value = fb
   replayMessages.value = []
-  replayHighlightIdx.value = -1
+  replayHighlightMsgId.value = ""
   try {
     const resp = await fetchFeedbackSession(fb.feedback_id)
     replayMessages.value = resp.messages
-    replayHighlightIdx.value = resp.highlight_item_index ?? -1
+    replayHighlightMsgId.value = resp.highlight_message_id ?? ""
     await nextTick()
     setTimeout(() => {
       const el = replayContainer.value?.querySelector(".hl-row")
@@ -61,7 +61,7 @@ function closeReplay() {
   showReplay.value = false
   replayFeedback.value = null
   replayMessages.value = []
-  replayHighlightIdx.value = -1
+  replayHighlightMsgId.value = ""
 }
 
 function sourceLabel(source: string): string {
@@ -83,8 +83,8 @@ function formatTime(ts: string): string {
   return d.toLocaleString()
 }
 
-function isHighlight(idx: number): boolean {
-  return idx === replayHighlightIdx.value
+function isHighlight(msg: MessageItem): boolean {
+  return msg.id === replayHighlightMsgId.value
 }
 
 function truncate(s: string, n: number): string {
@@ -199,9 +199,12 @@ onMounted(load)
             v-for="(msg, idx) in replayMessages"
             :key="msg.id || idx"
             class="msg-row"
-            :class="{ 'hl-row': isHighlight(idx) }"
+            :class="{ 'hl-row': isHighlight(msg), 'compact-row': msg.compact_boundary }"
           >
-            <div class="msg-role">{{ msgLabel(msg.role) }}</div>
+            <div class="msg-role">
+            <template v-if="msg.compact_boundary">📋 摘要</template>
+            <template v-else>{{ msgLabel(msg.role) }}</template>
+          </div>
             <div class="msg-body">
               <div class="msg-text" v-if="msg.content && msg.role !== 'tool'">{{ msg.content }}</div>
               <pre class="msg-json" v-if="msg.role === 'tool'">{{ truncate(msg.content || '{}', 500) }}</pre>
@@ -212,7 +215,8 @@ onMounted(load)
                 </div>
               </div>
             </div>
-            <div class="hl-indicator" v-if="isHighlight(idx)">← 被评价</div>
+            <div class="hl-indicator" v-if="isHighlight(msg)">← 被评价</div>
+            <div class="compact-badge" v-if="msg.compact_boundary">📋 以上内容已被总结压缩</div>
           </div>
           <div v-if="replayMessages.length === 0" class="fb-empty">{{ t("mgmt_loading") }}</div>
         </div>
@@ -580,5 +584,19 @@ onMounted(load)
   color: var(--accent);
   white-space: nowrap;
   flex-shrink: 0;
+}
+
+.compact-row {
+  background: color-mix(in srgb, var(--info) 8%, var(--glass-highlight));
+  border-top: 2px dashed var(--info);
+  border-bottom: 2px dashed var(--info);
+}
+
+.compact-badge {
+  font-size: 11px;
+  color: var(--info);
+  white-space: nowrap;
+  flex-shrink: 0;
+  font-weight: 500;
 }
 </style>
