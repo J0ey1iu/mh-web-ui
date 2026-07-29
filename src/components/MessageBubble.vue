@@ -377,6 +377,21 @@ async function copy(text: string) {
 .content-segment:last-child {
   margin-bottom: 0;
 }
+
+.feedback-hover {
+  opacity: 0;
+  height: 0;
+  overflow: hidden;
+  transition: opacity 0.25s ease, height 0.25s ease;
+  transition-delay: 0.6s;
+}
+
+.bubble:hover .feedback-hover {
+  opacity: 1;
+  height: 36px;
+  transition-delay: 0.1s;
+}
+
 .copyable {
   position: relative;
 }

@@ -264,14 +264,7 @@ function reset() {
 .fb-form-type {
   font-size: 14px;
   font-weight: 600;
-}
-
-.fb-form-type.thumbs_up {
-  color: var(--success);
-}
-
-.fb-form-type.thumbs_down {
-  color: var(--danger);
+  color: var(--text-primary);
 }
 
 .fb-close-btn {
