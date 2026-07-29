@@ -3,6 +3,7 @@ import { ref, onMounted, computed } from "vue"
 import type { ManageFeedbackItem, MessageItem } from "../types"
 import { fetchManageFeedback, fetchFeedbackSession } from "../api/client"
 import { useI18nStore } from "../stores/i18n"
+import ManagementNav from "../components/ManagementNav.vue"
 
 const { t } = useI18nStore()
 
@@ -88,6 +89,7 @@ onMounted(load)
 </script>
 
 <template>
+  <ManagementNav />
   <div class="fb-page">
     <div class="fb-header">
       <h2>{{ t("feedback_management") }}</h2>
