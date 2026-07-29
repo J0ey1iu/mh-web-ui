@@ -544,4 +544,12 @@ onMounted(load)
   font-weight: 500;
 }
 
+/* ── Toolbar button height alignment ── */
+.mgmt-toolbar .btn-action {
+  padding: 9px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
 </style>
