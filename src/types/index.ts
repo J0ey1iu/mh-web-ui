@@ -300,5 +300,6 @@ export interface FeedbackSessionResponse {
   messages: Array<MessageItem>
   highlight_target_type: string
   highlight_target_id: string
+  highlight_item_index: number
   feedback: ManageFeedbackItem
 }
