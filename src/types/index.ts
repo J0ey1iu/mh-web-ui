@@ -268,7 +268,6 @@ export interface FeedbackSubmitRequest {
   target_type: "message" | "tool_call"
   target_id: string
   feedback_type: "thumbs_up" | "thumbs_down"
-  rating?: number
   comment?: string
   category?: string
 }
@@ -287,11 +286,11 @@ export interface ManageFeedbackItem {
   target_id: string
   user_id: string
   feedback_type: string
-  rating: number | null
   comment: string | null
   category: string | null
   source: string
   status: string
+  agent_name: string
   metadata: Record<string, any>
   created_at: string
 }
@@ -302,7 +301,6 @@ export interface FeedbackStateItem {
   target_id: string
   feedback_type: string
   comment: string | null
-  rating: number | null
   created_at: string
 }
 

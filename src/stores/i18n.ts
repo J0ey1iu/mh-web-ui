@@ -218,7 +218,6 @@ const messages: Record<Locale, Record<string, string>> = {
     feedback_source_tool: "工具采集",
     feedback_source_all: "全部来源",
     feedback_target: "目标",
-    feedback_rating: "评分",
     feedback_comment: "评语",
     feedback_comment_placeholder: "选填，输入评语…",
     mgmt_optional: "可选",
@@ -229,6 +228,8 @@ const messages: Record<Locale, Record<string, string>> = {
     feedback_status: "处理进度",
     feedback_status_all: "全部状态",
     feedback_status_change: "点击切换状态",
+    feedback_agent: "Agent",
+    feedback_user: "用户",
   },
   en: {
     sessions: "Sessions",
@@ -441,7 +442,6 @@ const messages: Record<Locale, Record<string, string>> = {
     feedback_source_tool: "Agent Tool",
     feedback_source_all: "All Sources",
     feedback_target: "Target",
-    feedback_rating: "Rating",
     feedback_comment: "Comment",
     feedback_comment_placeholder: "Optional, enter a comment…",
     mgmt_optional: "Optional",
@@ -452,6 +452,8 @@ const messages: Record<Locale, Record<string, string>> = {
     feedback_status: "Status",
     feedback_status_all: "All Status",
     feedback_status_change: "Click to change status",
+    feedback_agent: "Agent",
+    feedback_user: "User",
   },
 }
 

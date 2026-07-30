@@ -64,11 +64,6 @@ function sourceLabel(source: string): string {
   return source === "agent_tool" ? t("feedback_source_tool") : t("feedback_source_ui")
 }
 
-function ratingStars(rating: number | null): string {
-  if (rating == null) return "—"
-  return "★".repeat(rating) + "☆".repeat(5 - rating)
-}
-
 function formatTime(ts: string): string {
   if (!ts) return ""
   const d = new Date(ts)
@@ -164,12 +159,9 @@ async function doBatchDelete() {
   } catch { /* */ }
 }
 
-async function doStatusChange(feedbackId: string) {
-  const fb = items.value.find(i => i.feedback_id === feedbackId)
-  if (!fb) return
-  const next = fb.status === "new" ? "analyzing" : fb.status === "analyzing" ? "optimized" : fb.status === "optimized" ? "deployed" : "new"
+async function doStatusChange(feedbackId: string, newStatus: string) {
   try {
-    await updateFeedbackStatus(feedbackId, next)
+    await updateFeedbackStatus(feedbackId, newStatus)
     load()
   } catch { /* */ }
 }
@@ -234,9 +226,9 @@ onMounted(load)
               <th class="cell-check"><input type="checkbox" :checked="selected.size === items.length && items.length > 0" @change="toggleAll" /></th>
               <th>{{ t("feedback_type_col") }}</th>
               <th>{{ t("feedback_source") }}</th>
-              <th>{{ t("mgmt_name") }}</th>
+              <th>{{ t("feedback_agent") }}</th>
+              <th>{{ t("feedback_user") }}</th>
               <th>{{ t("feedback_status") }}</th>
-              <th>{{ t("feedback_rating") }}</th>
               <th>{{ t("feedback_comment") }}</th>
               <th>{{ t("mgmt_created_at") }}</th>
               <th>{{ t("mgmt_actions") }}</th>
@@ -254,13 +246,13 @@ onMounted(load)
               <td>
                 <span class="badge" :class="fb.source === 'agent_tool' ? 'badge-accent' : 'badge-neutral'">{{ sourceLabel(fb.source) }}</span>
               </td>
+              <td><code>{{ fb.agent_name || '—' }}</code></td>
               <td><code>{{ fb.user_id }}</code></td>
               <td>
-                <span class="badge" :class="statusColors[fb.status] || 'badge-neutral'" style="cursor:pointer" :title="t('feedback_status_change')" @click="doStatusChange(fb.feedback_id)">
-                  {{ statusLabels[fb.status] || fb.status }}
-                </span>
+                <select class="status-select" :class="statusColors[fb.status] || 'badge-neutral'" :value="fb.status" @change="doStatusChange(fb.feedback_id, ($event.target as HTMLSelectElement).value)">
+                  <option v-for="s in ['new','analyzing','optimized','deployed']" :key="s" :value="s" :selected="fb.status === s">{{ statusLabels[s] || s }}</option>
+                </select>
               </td>
-              <td>{{ ratingStars(fb.rating) }}</td>
               <td class="cell-desc">{{ truncate(fb.comment ?? "", 60) }}</td>
               <td class="cell-audit">{{ formatTime(fb.created_at) }}</td>
               <td class="cell-actions">
@@ -296,8 +288,8 @@ onMounted(load)
           <span class="badge" :class="replayFeedback.feedback_type === 'thumbs_up' ? 'badge-success' : 'badge-error'">
             {{ replayFeedback.feedback_type === 'thumbs_up' ? '👍' : '👎' }} {{ feedbackTypeLabel(replayFeedback.feedback_type) }}
           </span>
-          <span class="badge badge-accent" v-if="replayFeedback.rating">{{ ratingStars(replayFeedback.rating) }}</span>
           <span class="badge badge-neutral">{{ sourceLabel(replayFeedback.source) }}</span>
+          <span class="badge badge-info">{{ replayFeedback.agent_name || '—' }}</span>
           <span class="badge" :class="statusColors[replayFeedback.status] || 'badge-neutral'">{{ statusLabels[replayFeedback.status] || replayFeedback.status }}</span>
           <span class="fb-info-comment" v-if="replayFeedback.comment">"{{ replayFeedback.comment }}"</span>
         </div>
@@ -575,6 +567,33 @@ onMounted(load)
 .mgmt-toolbar .btn-action.btn-danger {
   background: #ef4444;
   color: #fff;
+}
+
+/* ── Status dropdown ── */
+.status-select {
+  appearance: none;
+  -webkit-appearance: none;
+  padding: 2px 20px 2px 8px;
+  border-radius: 20px;
+  border: none;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23666'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 6px center;
+  background-size: 8px;
+  color: inherit;
+  font-family: inherit;
+  line-height: 1.4;
+}
+.status-select:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--accent-dim);
+}
+.status-select option {
+  background: var(--bg-primary, #fff);
+  color: var(--text-primary, #000);
 }
 
 </style>
