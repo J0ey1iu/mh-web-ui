@@ -1296,9 +1296,3 @@
   }
 }
 
-@media (max-width: 600px) {
-  .mgmt-page-content {
-    padding: 108px 14px 20px;
-    max-width: none;
-  }
-}

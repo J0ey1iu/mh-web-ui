@@ -450,10 +450,4 @@ function formatMs(ms: number): string {
   }
 }
 
-@media (max-width: 600px) {
-  .metrics-main {
-    padding: 108px 14px 48px;
-    max-width: none;
-  }
-}
 </style>

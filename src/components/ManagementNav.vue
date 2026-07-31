@@ -99,29 +99,41 @@ function isActive(path: string) {
 
     <div class="sidebar-controls">
       <button
-        class="nav-switch"
-        role="switch"
-        :aria-checked="currentTheme === 'dark'"
+        class="nav-icon-btn"
+        :aria-pressed="currentTheme === 'dark'"
         :title="currentTheme === 'dark' ? t('theme_light') : t('theme_dark')"
         @click="toggleTheme"
       >
-        <span class="switch-track" :class="{ on: currentTheme === 'dark' }">
-          <span class="switch-icon left" aria-hidden="true">☀</span>
-          <span class="switch-icon right" aria-hidden="true">☾</span>
-          <span class="switch-thumb"></span>
-        </span>
+        <svg
+          v-if="currentTheme === 'dark'"
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+        </svg>
+        <svg
+          v-else
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <circle cx="12" cy="12" r="4"/>
+          <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/>
+        </svg>
       </button>
-      <button
-        class="nav-switch"
-        role="switch"
-        :aria-checked="locale === 'en'"
-        @click="toggleLang"
-      >
-        <span class="switch-track" :class="{ on: locale === 'en' }">
-          <span class="switch-icon left" aria-hidden="true">中</span>
-          <span class="switch-icon right" aria-hidden="true">EN</span>
-          <span class="switch-thumb"></span>
-        </span>
+      <button class="nav-icon-btn lang" :aria-pressed="locale === 'en'" @click="toggleLang">
+        <span class="lang-label">{{ locale === "zh" ? "EN" : "中" }}</span>
       </button>
     </div>
   </nav>
@@ -185,70 +197,47 @@ function isActive(path: string) {
   flex-shrink: 0;
 }
 
-/* ── 底部 switch 控件 ── */
+/* ── 底部图标按钮控件 ── */
 .sidebar-controls {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 12px;
+  gap: 10px;
   padding: 14px 16px;
   border-top: 1px solid var(--glass-border);
 }
 
-.nav-switch {
-  background: none;
-  border: none;
-  padding: 0;
-  cursor: pointer;
-  font-family: inherit;
-  line-height: 0;
-}
-
-.switch-track {
-  position: relative;
-  display: inline-block;
-  width: 52px;
-  height: 28px;
-  border-radius: 999px;
+.nav-icon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
   background: var(--glass-highlight);
   border: 1px solid var(--glass-border);
-  transition: background 0.2s ease, border-color 0.2s ease;
+  border-radius: 10px;
+  color: var(--text-primary);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all var(--transition-duration);
 }
-.switch-track.on {
+.nav-icon-btn:hover {
+  background: var(--accent-dim);
+  border-color: var(--accent);
+  color: var(--accent);
+  transform: scale(1.05);
+}
+.nav-icon-btn:active { transform: scale(0.95); }
+.nav-icon-btn[aria-pressed="true"] {
   background: var(--accent);
   border-color: var(--accent);
-}
-
-.switch-thumb {
-  position: absolute;
-  top: 2px;
-  left: 2px;
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  background: #fff;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
-  transition: transform 0.2s ease;
-  z-index: 2;
-}
-.switch-track.on .switch-thumb {
-  transform: translateX(24px);
-}
-
-.switch-icon {
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  font-size: 11px;
-  line-height: 1;
-  color: var(--text-secondary);
-  z-index: 1;
-  pointer-events: none;
-}
-.switch-icon.left { left: 8px; }
-.switch-icon.right { right: 8px; }
-.switch-track.on .switch-icon {
   color: #fff;
+}
+.nav-icon-btn .lang-label {
+  font-size: 12px;
+  font-weight: 600;
+  font-family: inherit;
+  line-height: 1;
 }
 
 /* 中屏：收窄为纯图标列，控件纵向排列 */
@@ -275,60 +264,12 @@ function isActive(path: string) {
   }
   .sidebar-controls {
     flex-direction: column;
-    gap: 12px;
+    gap: 10px;
     padding: 14px 0;
   }
-  .switch-track {
-    width: 44px;
-    height: 24px;
-  }
-  .switch-thumb {
-    width: 18px;
-    height: 18px;
-  }
-  .switch-track.on .switch-thumb {
-    transform: translateX(20px);
-  }
-  .switch-icon {
-    font-size: 9px;
-  }
-}
-
-/* 窄屏：折叠为顶部横条（品牌 + 横排药丸 tab） */
-@media (max-width: 600px) {
-  .mgmt-nav {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: auto;
-    width: auto;
-    height: auto;
-    border-right: none;
-    border-bottom: 1px solid var(--glass-border);
-  }
-  .sidebar-top {
-    padding: 10px 12px;
-  }
-  .sidebar-tabs {
-    flex-direction: row;
-    gap: 4px;
-    padding: 0 12px 10px;
-    overflow-x: auto;
-    scrollbar-width: none;
-  }
-  .mgmt-nav ::-webkit-scrollbar {
-    display: none;
-  }
-  .sidebar-tab {
-    padding: 8px 14px;
-    gap: 6px;
-  }
-  .sidebar-tab span {
-    display: inline;
-  }
-  .sidebar-controls {
-    display: none;
+  .nav-icon-btn {
+    width: 32px;
+    height: 32px;
   }
 }
 </style>
