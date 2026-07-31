@@ -69,6 +69,13 @@ function toggleLang() {
         </svg>
       </button>
 
+      <div class="nav-controls">
+        <SearchSelect v-model="currentTheme" :options="themeOptions" :searchable="false" />
+        <button class="nav-lang-btn" @click="toggleLang">{{ locale === "zh" ? "EN" : "中" }}</button>
+      </div>
+    </div>
+
+    <div class="nav-tabs-row">
       <div class="nav-tabs">
         <router-link v-if="hasMetricsPermission" to="/manage/metrics" class="nav-tab" :class="{ active: isActive('/manage/metrics') }">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -106,11 +113,6 @@ function toggleLang() {
           </svg>
           <span>{{ t("mgmt_providers") }}</span>
         </router-link>
-      </div>
-
-      <div class="nav-controls">
-        <SearchSelect v-model="currentTheme" :options="themeOptions" :searchable="false" />
-        <button class="nav-lang-btn" @click="toggleLang">{{ locale === "zh" ? "EN" : "中" }}</button>
       </div>
     </div>
   </nav>
@@ -158,14 +160,24 @@ function toggleLang() {
 }
 .nav-back:active { transform: scale(0.95); }
 
+.nav-tabs-row {
+  max-width: 1160px;
+  margin: 0 auto;
+  padding: 0 16px 12px;
+}
+
 .nav-tabs {
   display: flex;
   gap: 2px;
-  flex: 1;
   background: var(--glass-highlight);
   border-radius: 12px;
   padding: 4px;
   border: 1px solid var(--glass-border);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.nav-tabs::-webkit-scrollbar {
+  display: none;
 }
 
 .nav-tab {
@@ -180,6 +192,8 @@ function toggleLang() {
   text-decoration: none;
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 .nav-tab:hover {
   background: var(--surface-bg);
@@ -268,9 +282,6 @@ function toggleLang() {
     width: 16px;
     height: 16px;
     margin: 0 auto;
-  }
-  .nav-tabs {
-    justify-content: center;
   }
 }
 </style>
