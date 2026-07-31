@@ -242,6 +242,25 @@ async function handleLogout() {
           <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
         </svg>
       </button>
+      <button class="header-btn" @click="setTheme(theme === 'dark' ? 'light' : 'dark')" :title="t('theme')">
+        <svg v-if="theme === 'dark'" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="5"/>
+          <line x1="12" y1="1" x2="12" y2="3"/>
+          <line x1="12" y1="21" x2="12" y2="23"/>
+          <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+          <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+          <line x1="1" y1="12" x2="3" y2="12"/>
+          <line x1="21" y1="12" x2="23" y2="12"/>
+          <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+          <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+        </svg>
+        <svg v-else width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+        </svg>
+      </button>
+      <button class="header-btn" @click="setLocaleHandler(locale === 'zh' ? 'en' : 'zh')" :title="t('language')" style="font-size:12px;font-weight:600;min-width:28px;justify-content:center">
+        {{ locale === 'zh' ? 'EN' : '中文' }}
+      </button>
       <div class="hamburger-wrap">
         <button class="header-btn" @click="menuOpen = !menuOpen" aria-label="Menu">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -251,27 +270,6 @@ async function handleLogout() {
           </svg>
         </button>
         <div v-if="menuOpen" class="dropdown">
-          <div class="dropdown-label">{{ t("theme") }}</div>
-          <button class="dropdown-item" :class="{ active: theme === 'dark' }" @click="setTheme('dark')">
-            {{ t("theme_dark") }}
-            <span v-if="theme === 'dark'" class="check">✓</span>
-          </button>
-          <button class="dropdown-item" :class="{ active: theme === 'light' }" @click="setTheme('light')">
-            {{ t("theme_light") }}
-            <span v-if="theme === 'light'" class="check">✓</span>
-          </button>
-
-          <div class="dropdown-divider"></div>
-          <div class="dropdown-label">{{ t("language") }}</div>
-          <button class="dropdown-item" :class="{ active: locale === 'zh' }" @click="setLocaleHandler('zh')">
-            中文
-            <span v-if="locale === 'zh'" class="check">✓</span>
-          </button>
-          <button class="dropdown-item" :class="{ active: locale === 'en' }" @click="setLocaleHandler('en')">
-            English
-            <span v-if="locale === 'en'" class="check">✓</span>
-          </button>
-          <div class="dropdown-divider"></div>
           <div class="dropdown-user">
             <template v-if="authUser">
               <span class="user-name">{{ authUser.username }}</span>
@@ -289,28 +287,35 @@ async function handleLogout() {
             class="dropdown-item"
             @click="router.push('/manage/scenes'); menuOpen = false"
           >
-            Scenes
+            {{ t("mgmt_scenes") }}
           </button>
           <button
             v-if="authUser && hasAgentPermission"
             class="dropdown-item"
             @click="router.push('/manage/agents'); menuOpen = false"
           >
-            Agents
+            {{ t("mgmt_agents") }}
           </button>
           <button
             v-if="authUser && hasToolPermission"
             class="dropdown-item"
             @click="router.push('/manage/tools'); menuOpen = false"
           >
-            Tools
+            {{ t("mgmt_tools") }}
           </button>
           <button
             v-if="authUser && hasProviderPermission"
             class="dropdown-item"
             @click="router.push('/manage/providers'); menuOpen = false"
           >
-            Providers
+            {{ t("mgmt_providers") }}
+          </button>
+          <button
+            v-if="authUser"
+            class="dropdown-item"
+            @click="router.push('/manage/feedback'); menuOpen = false"
+          >
+            {{ t("feedback_management") }}
           </button>
           <div class="dropdown-divider"></div>
           <button

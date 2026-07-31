@@ -1,13 +1,22 @@
 <script setup lang="ts">
 import { provide, ref, computed, onUnmounted, watch } from "vue"
 import type { Message } from "../types"
+// @ts-ignore used in template
+import FeedbackWidget from "./FeedbackWidget.vue"
+// @ts-ignore used in template
 import ReasoningBlock from "./ReasoningBlock.vue"
+// @ts-ignore used in template
 import ToolCallRenderer from "./ToolCallRenderer.vue"
+// @ts-ignore used in template
 import AgentAnswer from "./AgentAnswer.vue"
 import { FOLDABLE_COLLAPSED_KEY } from "../toolContext"
+import { useChatStore } from "../stores/chat"
 import { useI18nStore } from "../stores/i18n"
 
+// @ts-ignore used in template
 const { t } = useI18nStore()
+// @ts-ignore used in template
+const chatStore = useChatStore()
 
 const props = defineProps<{
   message: Message
@@ -19,6 +28,13 @@ const hovered = ref(false)
 const hoveredIndex = ref<number | null>(null)
 let collapseTimer: ReturnType<typeof setTimeout> | null = null
 
+function getFeedback(key: string): { feedback_type: "thumbs_up" | "thumbs_down"; feedback_id: string } | null {
+  const fb = chatStore.feedbackState[key]
+  if (!fb) return null
+  return { feedback_type: fb.feedback_type as "thumbs_up" | "thumbs_down", feedback_id: fb.feedback_id }
+}
+
+// @ts-ignore used in template
 const hasNoContent = computed(() => {
   if (props.message.orderedItems?.length) return false
   if (props.message.tool_calls?.length) return false
@@ -55,6 +71,7 @@ onUnmounted(() => {
 
 provide(FOLDABLE_COLLAPSED_KEY, collapsed)
 
+// @ts-ignore used in template
 function toggleCompactCollapse() {
   if (!props.message.compactBoundary) return
   collapsed.value = !collapsed.value
@@ -64,6 +81,7 @@ function toggleCompactCollapse() {
   }
 }
 
+// @ts-ignore used in template
 async function copy(text: string) {
   if (!text) return
   try {
@@ -122,31 +140,27 @@ async function copy(text: string) {
                   />
                   <div
                     v-else-if="item.type === 'content'"
-                    class="content-segment copyable"
+                    class="content-segment"
                     @mouseenter="hoveredIndex = i"
                     @mouseleave="hoveredIndex = null"
                   >
                     <AgentAnswer :content="item.text ?? ''" />
-                    <button
-                      v-show="hoveredIndex === i"
-                      class="copy-btn"
-                      :title="t('copy')"
-                      @click="copy(item.text ?? '')"
-                    >
-                      <svg
-                        width="14"
-                        height="14"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="2"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                      >
-                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
-                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-                      </svg>
-                    </button>
+                    <div v-show="hoveredIndex === i" class="segment-actions">
+                      <FeedbackWidget
+                        v-if="message.role === 'assistant'"
+                        :session-id="chatStore.currentSessionId ?? ''"
+                        target-type="message"
+                        :target-id="message.id"
+                        :existing-feedback-type="getFeedback(`message:${message.id}`)?.feedback_type"
+                        :existing-feedback-id="getFeedback(`message:${message.id}`)?.feedback_id"
+                      />
+                      <button class="copy-btn" :title="t('copy')" @click="copy(item.text ?? '')">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                        </svg>
+                      </button>
+                    </div>
                   </div>
                   <ToolCallRenderer
                     v-else-if="
@@ -168,31 +182,27 @@ async function copy(text: string) {
                 </div>
                 <div
                   v-if="message.content"
-                  class="copyable"
+                  class="content-segment"
                   @mouseenter="hovered = true"
                   @mouseleave="hovered = false"
                 >
                   <AgentAnswer :content="message.content" />
-                  <button
-                    v-show="hovered"
-                    class="copy-btn"
-                    :title="t('copy')"
-                    @click="copy(message.content)"
-                  >
-                    <svg
-                      width="14"
-                      height="14"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="2"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                    >
-                      <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
-                      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-                    </svg>
-                  </button>
+                  <div v-show="hovered" class="segment-actions">
+                    <FeedbackWidget
+                      v-if="message.role === 'assistant'"
+                      :session-id="chatStore.currentSessionId ?? ''"
+                      target-type="message"
+                      :target-id="message.id"
+                      :existing-feedback-type="getFeedback(`message:${message.id}`)?.feedback_type"
+                      :existing-feedback-id="getFeedback(`message:${message.id}`)?.feedback_id"
+                    />
+                    <button class="copy-btn" :title="t('copy')" @click="copy((message.content ?? ''))">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                      </svg>
+                    </button>
+                  </div>
                 </div>
               </template>
 
@@ -222,31 +232,27 @@ async function copy(text: string) {
             />
             <div
               v-else-if="item.type === 'content'"
-              class="content-segment copyable"
+              class="content-segment"
               @mouseenter="hoveredIndex = i"
               @mouseleave="hoveredIndex = null"
             >
               <AgentAnswer :content="item.text ?? ''" />
-              <button
-                v-show="hoveredIndex === i"
-                class="copy-btn"
-                :title="t('copy')"
-                @click="copy(item.text ?? '')"
-              >
-                <svg
-                  width="14"
-                  height="14"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                >
-                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
-                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-                </svg>
-              </button>
+              <div v-show="hoveredIndex === i" class="segment-actions">
+                <FeedbackWidget
+                  v-if="message.role === 'assistant'"
+                  :session-id="chatStore.currentSessionId ?? ''"
+                  target-type="message"
+                  :target-id="message.id"
+                  :existing-feedback-type="getFeedback(`message:${message.id}`)?.feedback_type"
+                  :existing-feedback-id="getFeedback(`message:${message.id}`)?.feedback_id"
+                />
+                <button class="copy-btn" :title="t('copy')" @click="copy(item.text ?? '')">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                  </svg>
+                </button>
+              </div>
             </div>
             <ToolCallRenderer
               v-else-if="
@@ -268,31 +274,27 @@ async function copy(text: string) {
           </div>
           <div
             v-if="message.content"
-            class="copyable"
+            class="content-segment"
             @mouseenter="hovered = true"
             @mouseleave="hovered = false"
           >
             <AgentAnswer :content="message.content" />
-            <button
-              v-show="hovered"
-              class="copy-btn"
-              :title="t('copy')"
-              @click="copy(message.content)"
-            >
-              <svg
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              >
-                <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
-                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-              </svg>
-            </button>
+            <div v-show="hovered" class="segment-actions">
+              <FeedbackWidget
+                v-if="message.role === 'assistant'"
+                :session-id="chatStore.currentSessionId ?? ''"
+                target-type="message"
+                :target-id="message.id"
+                :existing-feedback-type="getFeedback(`message:${message.id}`)?.feedback_type"
+                :existing-feedback-id="getFeedback(`message:${message.id}`)?.feedback_id"
+              />
+              <button class="copy-btn" :title="t('copy')" @click="copy((message.content ?? ''))">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                </svg>
+              </button>
+            </div>
           </div>
         </template>
 
@@ -367,25 +369,38 @@ async function copy(text: string) {
 .content-segment:last-child {
   margin-bottom: 0;
 }
-.copyable {
+
+.content-segment {
   position: relative;
 }
-.copy-btn {
+
+.segment-actions {
   position: absolute;
   top: 4px;
   right: 4px;
-  padding: 5px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.segment-actions .feedback-widget {
+  margin-top: 0;
+}
+
+.copy-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
   background: var(--glass-bg);
   border: 1px solid var(--glass-border);
   border-radius: 6px;
   color: var(--text-secondary);
   cursor: pointer;
   line-height: 0;
-  opacity: 0;
-  transition: opacity var(--transition-duration), color var(--transition-duration);
-}
-.copyable:hover .copy-btn {
-  opacity: 1;
+  transition: color var(--transition-duration);
 }
 .copy-btn:hover {
   color: var(--accent);

@@ -32,6 +32,11 @@ export default defineConfig(({ mode }) => {
         apiManagementProviders: isProd ? "{wcm_api_management_providers}" : `${apiPrefix}/api/v1/management/providers`,
         apiManagementProviderConfigs: isProd ? "{wcm_api_management_provider_configs}" : `${apiPrefix}/api/v1/management/provider-configs`,
         apiManagementProviderConfig: isProd ? "{wcm_api_management_provider_config}" : `${apiPrefix}/api/v1/management/provider-configs/{name}`,
+        apiFeedback: isProd ? "{wcm_api_feedback}" : `${apiPrefix}/api/v1/feedback`,
+        apiManagementFeedback: isProd ? "{wcm_api_management_feedback}" : `${apiPrefix}/api/v1/management/feedback`,
+        apiManagementFeedbackSession: isProd ? "{wcm_api_management_feedback_session}" : `${apiPrefix}/api/v1/management/feedback/{id}/session`,
+        apiManagementFeedbackExport: isProd ? "{wcm_api_management_feedback_export}" : `${apiPrefix}/api/v1/management/feedback/export`,
+        apiManagementFeedbackBatchDelete: isProd ? "{wcm_api_management_feedback_batch_delete}" : `${apiPrefix}/api/v1/management/feedback/batch-delete`,
       }),
     },
   }

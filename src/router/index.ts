@@ -29,6 +29,11 @@ const routes: RouteRecordRaw[] = [
     component: () => import("../pages/ProviderManagementPage.vue"),
   },
   {
+    path: "/manage/feedback",
+    name: "feedback",
+    component: () => import("../pages/FeedbackManagementPage.vue"),
+  },
+  {
     path: "/",
     name: "chat",
     component: MainLayout,

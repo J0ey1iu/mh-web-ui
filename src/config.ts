@@ -8,6 +8,7 @@ export interface AppConfig {
   apiAgents: string
   apiChat: string
   apiSessionCompact: string
+  apiFeedback: string
   apiComponentSources: string
   loginUrl: string
   apiAuthLogout: string
@@ -17,6 +18,10 @@ export interface AppConfig {
   apiManagementAgent: string
   apiManagementTools: string
   apiManagementTool: string
+  apiManagementFeedback: string
+  apiManagementFeedbackSession: string
+  apiManagementFeedbackExport: string
+  apiManagementFeedbackBatchDelete: string
   apiManagementProviders: string
   apiManagementProviderConfigs: string
   apiManagementProviderConfig: string
