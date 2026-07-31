@@ -161,18 +161,15 @@ function toggleLang() {
 .nav-back:active { transform: scale(0.95); }
 
 .nav-tabs-row {
-  max-width: 1160px;
-  margin: 0 auto;
-  padding: 0 16px 12px;
+  border-bottom: 1px solid var(--glass-border);
 }
 
 .nav-tabs {
+  max-width: 1160px;
+  margin: 0 auto;
   display: flex;
-  gap: 2px;
-  background: var(--glass-highlight);
-  border-radius: 12px;
-  padding: 4px;
-  border: 1px solid var(--glass-border);
+  gap: 4px;
+  padding: 0 16px;
   overflow-x: auto;
   scrollbar-width: none;
 }
@@ -183,29 +180,35 @@ function toggleLang() {
 .nav-tab {
   display: flex;
   align-items: center;
-  gap: 7px;
-  padding: 7px 16px;
-  border-radius: 10px;
-  font-size: 13px;
-  font-weight: 600;
+  gap: 8px;
+  padding: 14px 18px;
+  font-size: 14px;
+  font-weight: 500;
   color: var(--text-secondary);
   text-decoration: none;
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-  position: relative;
   white-space: nowrap;
   flex-shrink: 0;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  transition: color 0.2s ease, border-color 0.2s ease, background 0.2s ease;
 }
 .nav-tab:hover {
-  background: var(--surface-bg);
   color: var(--text-primary);
+  background: var(--glass-highlight);
+  border-radius: 10px 10px 0 0;
 }
 .nav-tab.active {
-  background: var(--accent);
-  color: #fff;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+  background: transparent;
+  box-shadow: none;
 }
 .nav-tab svg {
   flex-shrink: 0;
+  opacity: 0.85;
+}
+.nav-tab.active svg {
+  opacity: 1;
 }
 
 .nav-controls {
@@ -259,14 +262,17 @@ function toggleLang() {
     padding: 0 12px;
     gap: 8px;
   }
+  .nav-tabs {
+    padding: 0 12px;
+  }
   .nav-tab {
-    padding: 7px 10px;
-    font-size: 12px;
-    gap: 4px;
+    padding: 12px 14px;
+    font-size: 13px;
+    gap: 6px;
   }
   .nav-tab svg {
-    width: 13px;
-    height: 13px;
+    width: 14px;
+    height: 14px;
   }
 }
 
@@ -275,12 +281,12 @@ function toggleLang() {
     display: none;
   }
   .nav-tab {
-    padding: 7px 12px;
+    padding: 12px;
     gap: 0;
   }
   .nav-tab svg {
-    width: 16px;
-    height: 16px;
+    width: 18px;
+    height: 18px;
     margin: 0 auto;
   }
 }
