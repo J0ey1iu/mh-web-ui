@@ -323,10 +323,6 @@ export const useChatStore = defineStore("chat", () => {
           role: "user",
           content: data.next_prompt,
           auto: true,
-          controllerMeta: {
-            controller_type: data.controller_type,
-            ...(data.meta || {}),
-          },
           orderedItems: [{ type: "content", text: data.next_prompt }],
         }
         sessionMessagesMap[sid].push(autoMsg)

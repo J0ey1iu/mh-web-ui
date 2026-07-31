@@ -52,7 +52,6 @@ export interface Message {
   compactStats?: CompactStats
   /** Controller 自动生成的下一轮 prompt（ControllerContinue 事件） */
   auto?: boolean
-  controllerMeta?: Record<string, any>
 }
 
 export interface ToolCallDisplay {
