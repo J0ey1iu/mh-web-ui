@@ -34,6 +34,11 @@ const routes: RouteRecordRaw[] = [
     component: () => import("../pages/FeedbackManagementPage.vue"),
   },
   {
+    path: "/manage/metrics",
+    name: "metrics",
+    component: () => import("../pages/MetricsDashboardPage.vue"),
+  },
+  {
     path: "/",
     name: "chat",
     component: MainLayout,

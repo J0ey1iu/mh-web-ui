@@ -1,4 +1,4 @@
-import type { AgentInfo, FetchListParams, FeedbackSubmitRequest, FeedbackResponse, ManageAgent, ManageFeedbackItem, FeedbackSessionResponse, FeedbackStateItem, ManageProvider, ManageScenario, ManageTool, MessagesResponse, PaginatedResponse, ProviderModel, ScenarioDetail, ScenarioInfo, SessionInfo, UserInfo, SSEEventName } from "../types"
+import type { AgentInfo, FetchListParams, FeedbackSubmitRequest, FeedbackResponse, ManageAgent, ManageFeedbackItem, FeedbackSessionResponse, FeedbackStateItem, ManageProvider, ManageScenario, ManageTool, MessagesResponse, MetricsQuery, MetricsSummary, PaginatedResponse, ProviderModel, ScenarioDetail, ScenarioInfo, SessionInfo, UserInfo, SSEEventName } from "../types"
 import { appConfig } from "../config"
 
 function fillUrl(template: string, params?: Record<string, string>): string {
@@ -491,4 +491,15 @@ export async function removeAgentTool(scenarioId: string, agentName: string, too
   return request<ManageScenario>(fillUrl(`${appConfig.apiManagementScenarios}/{id}/agents/{a}/tools/{t}`, { id: scenarioId, a: agentName, t: toolName }), {
     method: "DELETE",
   })
+}
+
+// ── Metrics ──
+
+export async function fetchMetrics(params?: MetricsQuery): Promise<MetricsSummary> {
+  const query = new URLSearchParams()
+  if (params?.date_from) query.set("date_from", params.date_from)
+  if (params?.date_to) query.set("date_to", params.date_to)
+  const qs = query.toString()
+  const url = qs ? `${appConfig.apiManagementMetrics}?${qs}` : appConfig.apiManagementMetrics
+  return request<MetricsSummary>(url)
 }

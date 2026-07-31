@@ -25,8 +25,7 @@ const alertStore = useAlertStore()
 const router = useRouter()
 
 function goToChat(sceneId: string) {
-  const url = router.resolve({ path: "/", query: { scene: sceneId } }).href
-  window.open(url, "_blank")
+  router.push({ path: "/", query: { scene: sceneId } })
 }
 const scenarios = ref<ManageScenario[]>([])
 const allAgents = ref<ManageAgent[]>([])

@@ -1,14 +1,12 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from "vue"
-import { useRoute, useRouter } from "vue-router"
+import { useRoute } from "vue-router"
 import { useAuthStore } from "../stores/auth"
 import { useI18nStore } from "../stores/i18n"
-import SearchSelect from "./SearchSelect.vue"
 import BrandingHeader from "./BrandingHeader.vue"
 import { storeToRefs } from "pinia"
 
 const route = useRoute()
-const router = useRouter()
 const authStore = useAuthStore()
 const { user: authUser } = storeToRefs(authStore)
 const i18nStore = useI18nStore()
@@ -25,15 +23,7 @@ const hasScenePermission = computed(() => hasAnyPermission("manage:scene:"))
 const hasAgentPermission = computed(() => hasAnyPermission("manage:agent:"))
 const hasToolPermission = computed(() => hasAnyPermission("manage:tool:"))
 const hasFeedbackPermission = computed(() => hasAnyPermission("manage:feedback:"))
-
-const themes = [
-  { value: "light", labelKey: "theme_light" },
-  { value: "dark", labelKey: "theme_dark" },
-]
-
-const themeOptions = computed(() =>
-  themes.map(th => ({ value: th.value, label: t(th.labelKey) }))
-)
+const hasMetricsPermission = computed(() => hasAnyPermission("manage:metrics:"))
 
 const currentTheme = ref(localStorage.getItem("theme") || "light")
 
@@ -49,87 +39,175 @@ onMounted(async () => {
   setTheme(currentTheme.value)
 })
 
-function isActive(path: string) {
-  return route.path.startsWith(path)
+function toggleTheme() {
+  setTheme(currentTheme.value === "dark" ? "light" : "dark")
 }
 
 function toggleLang() {
   setLocale(locale.value === "zh" ? "en" : "zh")
 }
+
+function isActive(path: string) {
+  return route.path.startsWith(path)
+}
 </script>
 
 <template>
   <nav class="mgmt-nav">
-    <div class="mgmt-nav-inner">
+    <div class="sidebar-top">
       <BrandingHeader />
-      <button class="nav-back" @click="router.back()" :title="t('mgmt_back')">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M19 12H5M12 19l-7-7 7-7"/>
+    </div>
+
+    <div class="sidebar-tabs">
+      <router-link v-if="hasMetricsPermission" to="/manage/metrics" class="sidebar-tab" :class="{ active: isActive('/manage/metrics') }">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/>
+        </svg>
+        <span>{{ t("mgmt_metrics") }}</span>
+      </router-link>
+      <router-link v-if="hasScenePermission" to="/manage/scenes" class="sidebar-tab" :class="{ active: isActive('/manage/scenes') }">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>
+        </svg>
+        <span>{{ t("mgmt_scenes") }}</span>
+      </router-link>
+      <router-link v-if="hasAgentPermission" to="/manage/agents" class="sidebar-tab" :class="{ active: isActive('/manage/agents') }">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+        </svg>
+        <span>{{ t("mgmt_agents") }}</span>
+      </router-link>
+      <router-link v-if="hasToolPermission" to="/manage/tools" class="sidebar-tab" :class="{ active: isActive('/manage/tools') }">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
+        </svg>
+        <span>{{ t("mgmt_tools") }}</span>
+      </router-link>
+      <router-link v-if="hasFeedbackPermission" to="/manage/feedback" class="sidebar-tab" :class="{ active: isActive('/manage/feedback') }">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+        </svg>
+        <span>{{ t("feedback_management") }}</span>
+      </router-link>
+      <router-link v-if="hasAgentPermission" to="/manage/providers" class="sidebar-tab" :class="{ active: isActive('/manage/providers') }">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>
+        </svg>
+        <span>{{ t("mgmt_providers") }}</span>
+      </router-link>
+    </div>
+
+    <div class="sidebar-controls">
+      <button
+        class="nav-icon-btn"
+        :aria-pressed="currentTheme === 'dark'"
+        :title="currentTheme === 'dark' ? t('theme_light') : t('theme_dark')"
+        @click="toggleTheme"
+      >
+        <svg
+          v-if="currentTheme === 'dark'"
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+        </svg>
+        <svg
+          v-else
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <circle cx="12" cy="12" r="4"/>
+          <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/>
         </svg>
       </button>
-
-      <div class="nav-tabs">
-        <router-link v-if="hasScenePermission" to="/manage/scenes" class="nav-tab" :class="{ active: isActive('/manage/scenes') }">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>
-          </svg>
-          <span>{{ t("mgmt_scenes") }}</span>
-        </router-link>
-        <router-link v-if="hasAgentPermission" to="/manage/agents" class="nav-tab" :class="{ active: isActive('/manage/agents') }">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
-          </svg>
-          <span>{{ t("mgmt_agents") }}</span>
-        </router-link>
-        <router-link v-if="hasToolPermission" to="/manage/tools" class="nav-tab" :class="{ active: isActive('/manage/tools') }">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
-          </svg>
-          <span>{{ t("mgmt_tools") }}</span>
-        </router-link>
-        <router-link v-if="hasFeedbackPermission" to="/manage/feedback" class="nav-tab" :class="{ active: isActive('/manage/feedback') }">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-          </svg>
-          <span>{{ t("feedback_management") }}</span>
-        </router-link>
-        <router-link v-if="hasAgentPermission" to="/manage/providers" class="nav-tab" :class="{ active: isActive('/manage/providers') }">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>
-          </svg>
-          <span>{{ t("mgmt_providers") }}</span>
-        </router-link>
-      </div>
-
-      <div class="nav-controls">
-        <SearchSelect v-model="currentTheme" :options="themeOptions" :searchable="false" />
-        <button class="nav-lang-btn" @click="toggleLang">{{ locale === "zh" ? "EN" : "中" }}</button>
-      </div>
+      <button class="nav-icon-btn lang" :aria-pressed="locale === 'en'" @click="toggleLang">
+        <span class="lang-label">{{ locale === "zh" ? "EN" : "中" }}</span>
+      </button>
     </div>
   </nav>
 </template>
 
 <style scoped>
 .mgmt-nav {
-  position: sticky;
+  position: fixed;
   top: 0;
+  left: 0;
+  bottom: 0;
+  width: 220px;
+  display: flex;
+  flex-direction: column;
+  background: var(--page-bg);
+  border-right: 1px solid var(--glass-border);
   z-index: 200;
-  background: var(--glass-bg);
+}
+
+.sidebar-top {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px 16px 14px;
   border-bottom: 1px solid var(--glass-border);
+}
+
+.sidebar-tabs {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 16px 12px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+.sidebar-tab {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-decoration: none;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+}
+.sidebar-tab:hover {
+  background: var(--glass-highlight);
+  color: var(--text-primary);
+}
+.sidebar-tab.active {
+  background: var(--accent);
+  color: #fff;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+}
+.sidebar-tab svg {
   flex-shrink: 0;
 }
 
-.mgmt-nav-inner {
-  max-width: 1160px;
-  margin: 0 auto;
+/* ── 底部图标按钮控件 ── */
+.sidebar-controls {
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 10px 16px;
-  height: 56px;
+  justify-content: center;
+  gap: 10px;
+  padding: 14px 16px;
+  border-top: 1px solid var(--glass-border);
 }
 
-.nav-back {
+.nav-icon-btn {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -138,132 +216,60 @@ function toggleLang() {
   background: var(--glass-highlight);
   border: 1px solid var(--glass-border);
   border-radius: 10px;
-  color: var(--text-secondary);
+  color: var(--text-primary);
   cursor: pointer;
   flex-shrink: 0;
   transition: all var(--transition-duration);
 }
-.nav-back:hover {
+.nav-icon-btn:hover {
   background: var(--accent-dim);
   border-color: var(--accent);
   color: var(--accent);
   transform: scale(1.05);
 }
-.nav-back:active { transform: scale(0.95); }
-
-.nav-tabs {
-  display: flex;
-  gap: 2px;
-  flex: 1;
-  background: var(--glass-highlight);
-  border-radius: 12px;
-  padding: 4px;
-  border: 1px solid var(--glass-border);
-}
-
-.nav-tab {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  padding: 7px 16px;
-  border-radius: 10px;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-secondary);
-  text-decoration: none;
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-  position: relative;
-}
-.nav-tab:hover {
-  background: var(--surface-bg);
-  color: var(--text-primary);
-}
-.nav-tab.active {
+.nav-icon-btn:active { transform: scale(0.95); }
+.nav-icon-btn[aria-pressed="true"] {
   background: var(--accent);
-  color: #fff;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
-}
-.nav-tab svg {
-  flex-shrink: 0;
-}
-
-.nav-controls {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.nav-select {
-  padding: 6px 10px;
-  border: 1px solid var(--glass-border);
-  border-radius: 8px;
-  background: var(--glass-highlight);
-  color: var(--text-primary);
-  font-size: 12px;
-  cursor: pointer;
-  font-family: inherit;
-  font-weight: 500;
-  transition: border-color var(--transition-duration), box-shadow var(--transition-duration);
-}
-.nav-select:focus {
-  outline: none;
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px var(--accent-dim);
+  color: #fff;
 }
-
-.nav-lang-btn {
-  background: var(--glass-highlight);
-  border: 1px solid var(--glass-border);
-  color: var(--text-primary);
-  padding: 6px 12px;
-  border-radius: 8px;
-  cursor: pointer;
+.nav-icon-btn .lang-label {
   font-size: 12px;
   font-weight: 600;
   font-family: inherit;
-  min-width: 36px;
-  text-align: center;
-  transition: all var(--transition-duration);
-}
-.nav-lang-btn:hover {
-  background: var(--accent-dim);
-  border-color: var(--accent);
-  color: var(--accent);
-  transform: scale(1.05);
-}
-.nav-lang-btn:active { transform: scale(0.95); }
-
-@media (max-width: 768px) {
-  .mgmt-nav-inner {
-    padding: 0 12px;
-    gap: 8px;
-  }
-  .nav-tab {
-    padding: 7px 10px;
-    font-size: 12px;
-    gap: 4px;
-  }
-  .nav-tab svg {
-    width: 13px;
-    height: 13px;
-  }
+  line-height: 1;
 }
 
-@media (max-width: 480px) {
-  .nav-tab span {
+/* 中屏：收窄为纯图标列，控件纵向排列 */
+@media (max-width: 900px) {
+  .mgmt-nav {
+    width: 64px;
+  }
+  .sidebar-top {
+    padding: 14px 0;
+  }
+  .sidebar-top :deep(.branding-title) {
     display: none;
   }
-  .nav-tab {
-    padding: 7px 12px;
+  .sidebar-tabs {
+    padding: 12px 8px;
+  }
+  .sidebar-tab {
+    justify-content: center;
+    padding: 12px 0;
     gap: 0;
   }
-  .nav-tab svg {
-    width: 16px;
-    height: 16px;
-    margin: 0 auto;
+  .sidebar-tab span {
+    display: none;
   }
-  .nav-tabs {
-    justify-content: center;
+  .sidebar-controls {
+    flex-direction: column;
+    gap: 10px;
+    padding: 14px 0;
+  }
+  .nav-icon-btn {
+    width: 32px;
+    height: 32px;
   }
 }
 </style>
