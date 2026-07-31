@@ -1,10 +1,12 @@
 <script setup lang="ts">
-import { ref, watch, nextTick, computed } from "vue"
-import type { Message, StreamingState, SlashCommand } from "../types"
+import { ref, watch, nextTick, computed, onMounted } from "vue"
+import type { Message, StreamingState, SlashCommand, ControllerInfo } from "../types"
 import MessageBubble from "./MessageBubble.vue"
 import SkeletonBlock from "./SkeletonBlock.vue"
 import SlashCommandPanel from "./SlashCommandPanel.vue"
 import { useI18nStore } from "../stores/i18n"
+import { useChatStore } from "../stores/chat"
+import { getLocale } from "../api/client"
 import { filterSlashCommands } from "../slashCommandRegistry"
 
 const props = defineProps<{
@@ -56,6 +58,53 @@ const showSlashPanel = ref(false)
 const slashFilter = ref("")
 const selectedIndex = ref(0)
 const filteredCommands = computed(() => filterSlashCommands(slashFilter.value))
+
+// Controller 选择：加载目录，切换时写回 chat store（随消息发送）
+const chatStore = useChatStore()
+const controllerCatalog = ref<ControllerInfo[]>([])
+const controllerType = ref(chatStore.controllerType || "default")
+const controllerConfig = ref<Record<string, unknown>>({ ...chatStore.controllerConfig })
+const timerDuration = ref<string>(
+  String(controllerConfig.value.duration ?? "30m"),
+)
+
+const selectedController = computed<ControllerInfo | undefined>(
+  () => controllerCatalog.value.find((c) => c.value === controllerType.value),
+)
+
+function applyController() {
+  const cfg: Record<string, unknown> = {}
+  const entry = selectedController.value
+  if (entry?.settings) {
+    for (const s of entry.settings) {
+      if (s.key === "duration" && controllerType.value === "timer") {
+        cfg[s.key] = timerDuration.value.trim() || String(s.default)
+      } else {
+        cfg[s.key] = s.default
+      }
+    }
+  }
+  controllerConfig.value = cfg
+  chatStore.setController(controllerType.value, cfg)
+}
+
+function onControllerChange() {
+  const entry = selectedController.value
+  if (entry?.settings?.some((s) => s.key === "duration")) {
+    timerDuration.value = String(entry.settings.find((s) => s.key === "duration")!.default)
+  }
+  applyController()
+}
+
+function onDurationInput() {
+  if (controllerType.value === "timer") applyController()
+}
+
+onMounted(async () => {
+  await chatStore.loadControllers()
+  controllerCatalog.value = chatStore.controllerCatalog
+  applyController()
+})
 
 const showScrollBtn = computed(
   () => !isAtBottom.value && props.streaming.isStreaming
@@ -234,6 +283,31 @@ watch(input, (val) => {
         >
           +
         </button>
+        <select
+          v-if="controllerCatalog.length > 0"
+          class="controller-select"
+          v-model="controllerType"
+          :disabled="streaming.isStreaming || disabled"
+          :title="selectedController?.description"
+          @change="onControllerChange"
+        >
+          <option
+            v-for="c in controllerCatalog"
+            :key="c.value"
+            :value="c.value"
+          >
+            {{ (getLocale() === "zh" ? c.display_name_zh || c.display_name : c.display_name) }}
+          </option>
+        </select>
+        <input
+          v-if="controllerType === 'timer' && selectedController?.settings?.some(s => s.key === 'duration')"
+          class="controller-duration"
+          v-model="timerDuration"
+          :placeholder="selectedController.settings.find(s => s.key === 'duration')!.placeholder"
+          :disabled="streaming.isStreaming || disabled"
+          :title="t('controller_timer_duration')"
+          @input="onDurationInput"
+        />
         <textarea
           v-model="input"
           :placeholder="t('type_message')"
@@ -315,6 +389,25 @@ watch(input, (val) => {
 .input-bar textarea:focus {
   border-color: var(--accent);
   box-shadow: 0 0 0 3px var(--accent-dim);
+}
+.controller-select,
+.controller-duration {
+  padding: 8px 10px;
+  border: 1px solid var(--glass-border);
+  border-radius: 10px;
+  background: var(--glass-highlight);
+  color: var(--text-primary);
+  font-size: 13px;
+  outline: none;
+  max-width: 130px;
+}
+.controller-duration {
+  max-width: 110px;
+}
+.controller-select:disabled,
+.controller-duration:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 .input-bar textarea::placeholder {
   color: var(--text-muted);

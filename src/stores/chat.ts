@@ -1,10 +1,10 @@
 import { defineStore } from "pinia"
 import { ref, computed, watch } from "vue"
 import router from "../router"
-import type { MessageItem, SessionInfo, Message, ToolCallDisplay, ResponseItem, ScenarioInfo, AgentInfo, StreamingState, CompactionEnd, FeedbackStateItem } from "../types"
+import type { MessageItem, SessionInfo, Message, ToolCallDisplay, ResponseItem, ScenarioInfo, AgentInfo, StreamingState, CompactionEnd, FeedbackStateItem, ControllerInfo } from "../types"
 import { SSE_EVENTS } from "../types"
 import { useI18nStore } from "./i18n"
-import { fetchMessages, fetchSessions, createSession, deleteSession, fetchScenarios, fetchScenarioDetail, fetchSessionFeedback, streamChat, compactSession } from "../api/client"
+import { fetchMessages, fetchSessions, createSession, deleteSession, fetchScenarios, fetchScenarioDetail, fetchSessionFeedback, streamChat, compactSession, fetchControllers } from "../api/client"
 
 const FLUSH_INTERVAL = 100
 
@@ -49,6 +49,24 @@ export const useChatStore = defineStore("chat", () => {
   const streaming = ref<StreamingState>(freshState())
   const compacting = ref(false)
   const contextUsage = ref<{ totalTokens: number; maxContext: number }>({ totalTokens: 0, maxContext: 0 })
+
+  // Controller 选择（per-request，随每条消息发送）
+  const controllerType = ref<string>("default")
+  const controllerConfig = ref<Record<string, unknown>>({})
+  const controllerCatalog = ref<ControllerInfo[]>([])
+
+  async function loadControllers() {
+    try {
+      controllerCatalog.value = await fetchControllers()
+    } catch {
+      controllerCatalog.value = []
+    }
+  }
+
+  function setController(type: string, config: Record<string, unknown>) {
+    controllerType.value = type
+    controllerConfig.value = config
+  }
 
   let errorTimer: ReturnType<typeof setTimeout> | null = null
 
@@ -295,6 +313,38 @@ export const useChatStore = defineStore("chat", () => {
         flushImmediately(sid)
         finalizeStream(sid)
         break
+
+      case SSE_EVENTS.CONTROLLER_START:
+        // 多轮编排开始——外层已有 ControllerStart，AgentStart 不再透传
+        break
+
+      case SSE_EVENTS.CONTROLLER_CONTINUE:
+        // Controller 自动生成的下一轮 prompt：以灰显 user 消息呈现
+        if (!sessionMessagesMap[sid]) sessionMessagesMap[sid] = []
+        const autoMsg: Message = {
+          id: `msg-auto-${Date.now()}-${sessionMessagesMap[sid].length}`,
+          role: "user",
+          content: data.next_prompt,
+          auto: true,
+          controllerMeta: {
+            controller_type: data.controller_type,
+            ...(data.meta || {}),
+          },
+          orderedItems: [{ type: "content", text: data.next_prompt }],
+        }
+        sessionMessagesMap[sid].push(autoMsg)
+        if (sid === currentSessionId.value) {
+          messages.value = [...sessionMessagesMap[sid]]
+        }
+        break
+
+      case SSE_EVENTS.CONTROLLER_END:
+        if (data.error) {
+          error.value = data.error
+        }
+        flushImmediately(sid)
+        finalizeStream(sid)
+        break
     }
   }
 
@@ -467,6 +517,7 @@ export const useChatStore = defineStore("chat", () => {
       (event, data) => handleSSEEvent(sid, event, data),
       () => handleSSEDone(sid),
       (err) => handleSSEError(sid, err),
+      { type: controllerType.value, config: controllerConfig.value },
     )
   }
 
@@ -763,6 +814,8 @@ export const useChatStore = defineStore("chat", () => {
     contextUsage, backendOnline, availableScenarios, currentScenario, availableAgents, toolDisplayNames,
     feedbackState,
     sessionsLoading, messagesLoading,
+    controllerType, controllerConfig, controllerCatalog,
+    loadControllers, setController,
     saveCurrentSession,
     loadSessions, newSession, removeSession, selectSession, sendMessage, cancelStream, triggerCompact,
     loadScenarios, selectScenario, createSessionWithAgent, refreshLocaleData, clearError,
