@@ -59,6 +59,17 @@ const hasScenePermission = computed(() => hasAnyPermission("manage:scene:"))
 const hasAgentPermission = computed(() => hasAnyPermission("manage:agent:"))
 const hasToolPermission = computed(() => hasAnyPermission("manage:tool:"))
 const hasProviderPermission = computed(() => hasAnyPermission("manage:provider:"))
+const hasFeedbackPermission = computed(() => hasAnyPermission("manage:feedback:"))
+const hasMetricsPermission = computed(() => hasAnyPermission("manage:metrics:"))
+const hasAnyManagePermission = computed(
+  () =>
+    hasScenePermission.value ||
+    hasAgentPermission.value ||
+    hasToolPermission.value ||
+    hasProviderPermission.value ||
+    hasFeedbackPermission.value ||
+    hasMetricsPermission.value
+)
 
 provide(TOOL_CONTEXT_KEY, { streaming, currentSessionId })
 
@@ -281,41 +292,12 @@ async function handleLogout() {
             </template>
           </div>
           <div class="dropdown-divider"></div>
-          <div class="dropdown-label">{{ t("management") }}</div>
           <button
-            v-if="authUser && hasScenePermission"
+            v-if="authUser && hasAnyManagePermission"
             class="dropdown-item"
-            @click="router.push('/manage/scenes'); menuOpen = false"
+            @click="router.push('/manage/metrics'); menuOpen = false"
           >
-            {{ t("mgmt_scenes") }}
-          </button>
-          <button
-            v-if="authUser && hasAgentPermission"
-            class="dropdown-item"
-            @click="router.push('/manage/agents'); menuOpen = false"
-          >
-            {{ t("mgmt_agents") }}
-          </button>
-          <button
-            v-if="authUser && hasToolPermission"
-            class="dropdown-item"
-            @click="router.push('/manage/tools'); menuOpen = false"
-          >
-            {{ t("mgmt_tools") }}
-          </button>
-          <button
-            v-if="authUser && hasProviderPermission"
-            class="dropdown-item"
-            @click="router.push('/manage/providers'); menuOpen = false"
-          >
-            {{ t("mgmt_providers") }}
-          </button>
-          <button
-            v-if="authUser"
-            class="dropdown-item"
-            @click="router.push('/manage/feedback'); menuOpen = false"
-          >
-            {{ t("feedback_management") }}
+            {{ t("settings") }}
           </button>
           <div class="dropdown-divider"></div>
           <button
