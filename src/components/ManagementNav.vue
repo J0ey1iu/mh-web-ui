@@ -25,6 +25,7 @@ const hasScenePermission = computed(() => hasAnyPermission("manage:scene:"))
 const hasAgentPermission = computed(() => hasAnyPermission("manage:agent:"))
 const hasToolPermission = computed(() => hasAnyPermission("manage:tool:"))
 const hasFeedbackPermission = computed(() => hasAnyPermission("manage:feedback:"))
+const hasMetricsPermission = computed(() => hasAnyPermission("manage:metrics:"))
 
 const themes = [
   { value: "light", labelKey: "theme_light" },
@@ -69,6 +70,12 @@ function toggleLang() {
       </button>
 
       <div class="nav-tabs">
+        <router-link v-if="hasMetricsPermission" to="/manage/metrics" class="nav-tab" :class="{ active: isActive('/manage/metrics') }">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/>
+          </svg>
+          <span>{{ t("mgmt_metrics") }}</span>
+        </router-link>
         <router-link v-if="hasScenePermission" to="/manage/scenes" class="nav-tab" :class="{ active: isActive('/manage/scenes') }">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>

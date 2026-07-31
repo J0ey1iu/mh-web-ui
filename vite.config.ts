@@ -37,6 +37,7 @@ export default defineConfig(({ mode }) => {
         apiManagementFeedbackSession: isProd ? "{wcm_api_management_feedback_session}" : `${apiPrefix}/api/v1/management/feedback/{id}/session`,
         apiManagementFeedbackExport: isProd ? "{wcm_api_management_feedback_export}" : `${apiPrefix}/api/v1/management/feedback/export`,
         apiManagementFeedbackBatchDelete: isProd ? "{wcm_api_management_feedback_batch_delete}" : `${apiPrefix}/api/v1/management/feedback/batch-delete`,
+        apiManagementMetrics: isProd ? "{wcm_api_management_metrics}" : `${apiPrefix}/api/v1/management/metrics`,
       }),
     },
   }

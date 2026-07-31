@@ -312,3 +312,46 @@ export interface FeedbackSessionResponse {
   highlight_message_id: string
   feedback: ManageFeedbackItem
 }
+
+// ── Metrics ──
+
+export interface MetricsTopItem {
+  name: string
+  count: number
+}
+
+export interface ModelPerfItem {
+  provider: string
+  model: string
+  call_count: number
+  avg_duration_ms: number
+  p50_ms: number
+  p95_ms: number
+}
+
+export interface MetricsSummary {
+  generated_at: string
+  date_from: string | null
+  date_to: string | null
+  entity_counts: {
+    scenes: number
+    agents: number
+    tools: number
+  }
+  llm_call_count: number
+  error_count: number
+  prompt_tokens: number
+  completion_tokens: number
+  total_tokens: number
+  avg_duration_ms: number
+  top_scenes: MetricsTopItem[]
+  top_agents: MetricsTopItem[]
+  top_tools: MetricsTopItem[]
+  top_users: MetricsTopItem[]
+  model_perf: ModelPerfItem[]
+}
+
+export interface MetricsQuery {
+  date_from?: string
+  date_to?: string
+}
