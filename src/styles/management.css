@@ -9,7 +9,7 @@
 
 .mgmt-page-content {
   max-width: 1160px;
-  margin: 0 auto;
+  margin: 0 auto 0 220px;
   padding: 28px 32px;
 }
 
@@ -934,6 +934,12 @@
   }
 }
 
+@media (max-width: 900px) {
+  .mgmt-page-content {
+    margin-left: 64px;
+  }
+}
+
 /* ── Responsive ── */
 @media (max-width: 768px) {
   .mgmt-page-content {
@@ -1286,5 +1292,12 @@
   }
   .tc-panel {
     min-height: auto;
+  }
+}
+
+@media (max-width: 600px) {
+  .mgmt-page-content {
+    margin-left: 0;
+    padding: 72px 14px 20px;
   }
 }

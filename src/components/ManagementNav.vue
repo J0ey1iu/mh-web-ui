@@ -75,46 +75,46 @@ function toggleLang() {
       </div>
     </div>
 
-    <div class="nav-tabs-row">
-      <div class="nav-tabs">
-        <router-link v-if="hasMetricsPermission" to="/manage/metrics" class="nav-tab" :class="{ active: isActive('/manage/metrics') }">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <aside class="mgmt-sidebar">
+      <div class="sidebar-tabs">
+        <router-link v-if="hasMetricsPermission" to="/manage/metrics" class="sidebar-tab" :class="{ active: isActive('/manage/metrics') }">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/>
           </svg>
           <span>{{ t("mgmt_metrics") }}</span>
         </router-link>
-        <router-link v-if="hasScenePermission" to="/manage/scenes" class="nav-tab" :class="{ active: isActive('/manage/scenes') }">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <router-link v-if="hasScenePermission" to="/manage/scenes" class="sidebar-tab" :class="{ active: isActive('/manage/scenes') }">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>
           </svg>
           <span>{{ t("mgmt_scenes") }}</span>
         </router-link>
-        <router-link v-if="hasAgentPermission" to="/manage/agents" class="nav-tab" :class="{ active: isActive('/manage/agents') }">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <router-link v-if="hasAgentPermission" to="/manage/agents" class="sidebar-tab" :class="{ active: isActive('/manage/agents') }">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
           </svg>
           <span>{{ t("mgmt_agents") }}</span>
         </router-link>
-        <router-link v-if="hasToolPermission" to="/manage/tools" class="nav-tab" :class="{ active: isActive('/manage/tools') }">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <router-link v-if="hasToolPermission" to="/manage/tools" class="sidebar-tab" :class="{ active: isActive('/manage/tools') }">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
           </svg>
           <span>{{ t("mgmt_tools") }}</span>
         </router-link>
-        <router-link v-if="hasFeedbackPermission" to="/manage/feedback" class="nav-tab" :class="{ active: isActive('/manage/feedback') }">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <router-link v-if="hasFeedbackPermission" to="/manage/feedback" class="sidebar-tab" :class="{ active: isActive('/manage/feedback') }">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
           </svg>
           <span>{{ t("feedback_management") }}</span>
         </router-link>
-        <router-link v-if="hasAgentPermission" to="/manage/providers" class="nav-tab" :class="{ active: isActive('/manage/providers') }">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <router-link v-if="hasAgentPermission" to="/manage/providers" class="sidebar-tab" :class="{ active: isActive('/manage/providers') }">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>
           </svg>
           <span>{{ t("mgmt_providers") }}</span>
         </router-link>
       </div>
-    </div>
+    </aside>
   </nav>
 </template>
 
@@ -160,61 +160,58 @@ function toggleLang() {
 }
 .nav-back:active { transform: scale(0.95); }
 
-.nav-tabs-row {
-  border-bottom: 1px solid var(--glass-border);
+/* ── Sidebar ── */
+.mgmt-sidebar {
+  position: fixed;
+  top: 56px;
+  left: 0;
+  bottom: 0;
+  width: 220px;
+  background: var(--page-bg);
+  border-right: 1px solid var(--glass-border);
+  padding: 16px 12px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  z-index: 150;
 }
 
-.nav-tabs {
-  max-width: 1160px;
-  margin: 0 auto;
+.sidebar-tabs {
   display: flex;
+  flex-direction: column;
   gap: 4px;
-  padding: 0 16px;
-  overflow-x: auto;
-  scrollbar-width: none;
-}
-.nav-tabs::-webkit-scrollbar {
-  display: none;
 }
 
-.nav-tab {
+.sidebar-tab {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 14px 18px;
-  font-size: 14px;
-  font-weight: 500;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  font-size: 13.5px;
+  font-weight: 600;
   color: var(--text-secondary);
   text-decoration: none;
   white-space: nowrap;
-  flex-shrink: 0;
-  border-bottom: 2px solid transparent;
-  margin-bottom: -1px;
-  transition: color 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+  transition: all 0.2s ease;
 }
-.nav-tab:hover {
-  color: var(--text-primary);
+.sidebar-tab:hover {
   background: var(--glass-highlight);
-  border-radius: 10px 10px 0 0;
+  color: var(--text-primary);
 }
-.nav-tab.active {
-  color: var(--accent);
-  border-bottom-color: var(--accent);
-  background: transparent;
-  box-shadow: none;
+.sidebar-tab.active {
+  background: var(--accent);
+  color: #fff;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
 }
-.nav-tab svg {
+.sidebar-tab svg {
   flex-shrink: 0;
-  opacity: 0.85;
-}
-.nav-tab.active svg {
-  opacity: 1;
 }
 
 .nav-controls {
   display: flex;
   align-items: center;
   gap: 8px;
+  margin-left: auto;
 }
 
 .nav-select {
@@ -257,37 +254,52 @@ function toggleLang() {
 }
 .nav-lang-btn:active { transform: scale(0.95); }
 
-@media (max-width: 768px) {
-  .mgmt-nav-inner {
-    padding: 0 12px;
-    gap: 8px;
+/* 中屏：收窄为图标列 */
+@media (max-width: 900px) {
+  .mgmt-sidebar {
+    width: 64px;
+    padding: 16px 8px;
   }
-  .nav-tabs {
-    padding: 0 12px;
+  .sidebar-tab {
+    justify-content: center;
+    padding: 12px 0;
+    gap: 0;
   }
-  .nav-tab {
-    padding: 12px 14px;
-    font-size: 13px;
-    gap: 6px;
-  }
-  .nav-tab svg {
-    width: 14px;
-    height: 14px;
+  .sidebar-tab span {
+    display: none;
   }
 }
 
-@media (max-width: 480px) {
-  .nav-tab span {
+/* 窄屏：侧栏折叠为顶部横排药丸 */
+@media (max-width: 600px) {
+  .mgmt-sidebar {
+    position: fixed;
+    top: 56px;
+    left: 0;
+    right: 0;
+    bottom: auto;
+    width: auto;
+    height: auto;
+    display: flex;
+    padding: 8px 12px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    border-right: none;
+    border-bottom: 1px solid var(--glass-border);
+  }
+  .mgmt-sidebar::-webkit-scrollbar {
     display: none;
   }
-  .nav-tab {
-    padding: 12px;
-    gap: 0;
+  .sidebar-tabs {
+    flex-direction: row;
+    gap: 4px;
   }
-  .nav-tab svg {
-    width: 18px;
-    height: 18px;
-    margin: 0 auto;
+  .sidebar-tab {
+    padding: 8px 14px;
+    gap: 6px;
+  }
+  .sidebar-tab span {
+    display: inline;
   }
 }
 </style>
