@@ -21,7 +21,9 @@ const showReplay = ref(false)
 const replayFeedback = ref<ManageFeedbackItem | null>(null)
 const replayMessages = ref<MessageItem[]>([])
 const replayHighlightMsgId = ref("")
+const replayLoading = ref(false)
 const replayContainer = ref<HTMLElement | null>(null)
+const copiedId = ref("")
 
 const statusLabels: Record<string, string> = {
   new: "待处理",
@@ -74,6 +76,8 @@ async function openReplay(fb: ManageFeedbackItem) {
   replayFeedback.value = fb
   replayMessages.value = []
   replayHighlightMsgId.value = ""
+  showReplay.value = true
+  replayLoading.value = true
   try {
     const resp = await fetchFeedbackSession(fb.feedback_id)
     replayMessages.value = resp.messages
@@ -85,8 +89,21 @@ async function openReplay(fb: ManageFeedbackItem) {
     }, 100)
   } catch {
     replayMessages.value = []
+  } finally {
+    replayLoading.value = false
   }
-  showReplay.value = true
+}
+
+function copyMsg(msg: MessageItem) {
+  const text =
+    msg.content ||
+    msg.tool_calls
+      ?.map((tc) => `${tc.function?.name}: ${tc.function?.arguments}`)
+      .join("\n") ||
+    ""
+  navigator.clipboard?.writeText(text)
+  copiedId.value = msg.id || `m-${Date.now()}`
+  setTimeout(() => { copiedId.value = "" }, 1200)
 }
 
 function closeReplay() {
@@ -295,30 +312,41 @@ onMounted(load)
         </div>
 
         <div class="fb-replay-msgs" ref="replayContainer">
-          <div
-            v-for="(msg, idx) in replayMessages"
-            :key="msg.id || idx"
-            class="msg-row"
-            :class="{ 'hl-row': isHighlight(msg), 'compact-row': msg.compact_boundary }"
-          >
-            <div class="msg-role">
-            <template v-if="msg.compact_boundary">📋 摘要</template>
-            <template v-else>{{ msgLabel(msg.role) }}</template>
+          <div v-if="replayLoading" class="replay-loading">
+            <span class="spinner"></span>{{ t("mgmt_loading") }}
           </div>
-            <div class="msg-body">
-              <div class="msg-text" v-if="msg.content && msg.role !== 'tool'">{{ msg.content }}</div>
-              <pre class="msg-json" v-if="msg.role === 'tool'">{{ truncate(msg.content || '{}', 500) }}</pre>
-              <div class="msg-tc" v-if="msg.tool_calls?.length">
-                <div v-for="tc in msg.tool_calls" :key="tc.id" class="tc-mini">
-                  <span class="tc-name">{{ tc.function?.name || "?" }}</span>
-                  <pre class="tc-args">{{ truncate(tc.function?.arguments || "{}", 200) }}</pre>
+          <template v-else>
+            <div
+              v-for="(msg, idx) in replayMessages"
+              :key="msg.id || idx"
+              class="msg-row"
+              :class="{ 'hl-row': isHighlight(msg), 'compact-row': msg.compact_boundary }"
+            >
+              <div class="msg-role">
+                <template v-if="msg.compact_boundary">📋 摘要</template>
+                <template v-else>{{ msgLabel(msg.role) }}</template>
+              </div>
+              <div class="msg-body">
+                <div class="msg-text" v-if="msg.content && msg.role !== 'tool'">{{ msg.content }}</div>
+                <pre class="msg-json" v-if="msg.role === 'tool'">{{ msg.content || '{}' }}</pre>
+                <div class="msg-tc" v-if="msg.tool_calls?.length">
+                  <div v-for="tc in msg.tool_calls" :key="tc.id" class="tc-mini">
+                    <span class="tc-name">{{ tc.function?.name || "?" }}</span>
+                    <pre class="tc-args">{{ tc.function?.arguments || "{}" }}</pre>
+                  </div>
                 </div>
               </div>
+              <div class="msg-actions">
+                <button class="msg-copy" :title="t('feedback_copy_msg')" @click="copyMsg(msg)">
+                  {{ copiedId === msg.id ? "✓" : "⧉" }}
+                </button>
+                <span class="copied-tip" v-if="copiedId === msg.id">已复制</span>
+              </div>
+              <div class="hl-indicator" v-if="isHighlight(msg)">← 被评价</div>
+              <div class="compact-badge" v-if="msg.compact_boundary">📋 以上内容已被总结压缩</div>
             </div>
-            <div class="hl-indicator" v-if="isHighlight(msg)">← 被评价</div>
-            <div class="compact-badge" v-if="msg.compact_boundary">📋 以上内容已被总结压缩</div>
-          </div>
-          <div v-if="replayMessages.length === 0" class="mgmt-loading">{{ t("mgmt_loading") }}</div>
+            <div v-if="replayMessages.length === 0" class="mgmt-empty">{{ t("mgmt_no_results") }}</div>
+          </template>
         </div>
       </div>
     </div>
@@ -349,9 +377,9 @@ onMounted(load)
 }
 
 .fb-type-tag.thumbs_down {
-  background: color-mix(in srgb, var(--danger) 15%, transparent);
-  color: var(--danger);
-  border: 1px solid color-mix(in srgb, var(--danger) 25%, transparent);
+  background: color-mix(in srgb, var(--error) 15%, transparent);
+  color: var(--error);
+  border: 1px solid color-mix(in srgb, var(--error) 25%, transparent);
 }
 
 .fb-replay-header {
@@ -490,10 +518,67 @@ onMounted(load)
   color: var(--text-tertiary);
   font-family: ui-monospace, monospace;
   font-size: 10px;
-  white-space: pre;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 200px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.msg-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  align-self: center;
+}
+
+.msg-copy {
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid var(--glass-border);
+  background: transparent;
+  color: var(--text-tertiary);
+  font-size: 12px;
+  line-height: 1.4;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s, color 0.15s;
+}
+
+.msg-row:hover .msg-copy {
+  opacity: 1;
+}
+
+.msg-copy:hover {
+  color: var(--accent);
+  border-color: var(--accent-dim);
+}
+
+.copied-tip {
+  font-size: 11px;
+  color: var(--success);
+  white-space: nowrap;
+}
+
+.replay-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 40px 0;
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--glass-border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: replay-spin 0.8s linear infinite;
+}
+
+@keyframes replay-spin {
+  to { transform: rotate(360deg); }
 }
 
 .hl-row {
