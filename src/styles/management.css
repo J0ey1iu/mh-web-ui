@@ -8,9 +8,9 @@
 }
 
 .mgmt-page-content {
-  max-width: 1160px;
-  margin: 0 auto 0 220px;
-  padding: 28px 32px;
+  max-width: 1380px; /* 1160 + 220 sidebar */
+  margin: 0 auto;
+  padding: 28px 32px 28px 252px; /* 220 sidebar + 32 gap */
 }
 
 .mgmt-header {
@@ -936,14 +936,15 @@
 
 @media (max-width: 900px) {
   .mgmt-page-content {
-    margin-left: 64px;
+    max-width: 1256px; /* 1160 + 64 sidebar */
+    padding-left: 96px; /* 64 sidebar + 32 gap */
   }
 }
 
 /* ── Responsive ── */
 @media (max-width: 768px) {
   .mgmt-page-content {
-    padding: 20px 14px;
+    padding: 20px 14px 20px 96px;
   }
   .mgmt-header {
     flex-direction: column;
@@ -1297,7 +1298,7 @@
 
 @media (max-width: 600px) {
   .mgmt-page-content {
-    margin-left: 0;
     padding: 108px 14px 20px;
+    max-width: none;
   }
 }

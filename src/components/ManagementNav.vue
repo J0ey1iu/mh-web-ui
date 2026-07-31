@@ -1,14 +1,12 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from "vue"
-import { useRoute, useRouter } from "vue-router"
+import { useRoute } from "vue-router"
 import { useAuthStore } from "../stores/auth"
 import { useI18nStore } from "../stores/i18n"
-import SearchSelect from "./SearchSelect.vue"
 import BrandingHeader from "./BrandingHeader.vue"
 import { storeToRefs } from "pinia"
 
 const route = useRoute()
-const router = useRouter()
 const authStore = useAuthStore()
 const { user: authUser } = storeToRefs(authStore)
 const i18nStore = useI18nStore()
@@ -27,15 +25,6 @@ const hasToolPermission = computed(() => hasAnyPermission("manage:tool:"))
 const hasFeedbackPermission = computed(() => hasAnyPermission("manage:feedback:"))
 const hasMetricsPermission = computed(() => hasAnyPermission("manage:metrics:"))
 
-const themes = [
-  { value: "light", labelKey: "theme_light" },
-  { value: "dark", labelKey: "theme_dark" },
-]
-
-const themeOptions = computed(() =>
-  themes.map(th => ({ value: th.value, label: t(th.labelKey) }))
-)
-
 const currentTheme = ref(localStorage.getItem("theme") || "light")
 
 function setTheme(v: string) {
@@ -50,12 +39,16 @@ onMounted(async () => {
   setTheme(currentTheme.value)
 })
 
-function isActive(path: string) {
-  return route.path.startsWith(path)
+function toggleTheme() {
+  setTheme(currentTheme.value === "dark" ? "light" : "dark")
 }
 
 function toggleLang() {
   setLocale(locale.value === "zh" ? "en" : "zh")
+}
+
+function isActive(path: string) {
+  return route.path.startsWith(path)
 }
 </script>
 
@@ -63,11 +56,6 @@ function toggleLang() {
   <nav class="mgmt-nav">
     <div class="sidebar-top">
       <BrandingHeader />
-      <button class="nav-back" @click="router.back()" :title="t('mgmt_back')">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M19 12H5M12 19l-7-7 7-7"/>
-        </svg>
-      </button>
     </div>
 
     <div class="sidebar-tabs">
@@ -110,8 +98,31 @@ function toggleLang() {
     </div>
 
     <div class="sidebar-controls">
-      <SearchSelect v-model="currentTheme" :options="themeOptions" :searchable="false" />
-      <button class="nav-lang-btn" @click="toggleLang">{{ locale === "zh" ? "EN" : "中" }}</button>
+      <button
+        class="nav-switch"
+        role="switch"
+        :aria-checked="currentTheme === 'dark'"
+        :title="currentTheme === 'dark' ? t('theme_light') : t('theme_dark')"
+        @click="toggleTheme"
+      >
+        <span class="switch-track" :class="{ on: currentTheme === 'dark' }">
+          <span class="switch-icon left" aria-hidden="true">☀</span>
+          <span class="switch-icon right" aria-hidden="true">☾</span>
+          <span class="switch-thumb"></span>
+        </span>
+      </button>
+      <button
+        class="nav-switch"
+        role="switch"
+        :aria-checked="locale === 'en'"
+        @click="toggleLang"
+      >
+        <span class="switch-track" :class="{ on: locale === 'en' }">
+          <span class="switch-icon left" aria-hidden="true">中</span>
+          <span class="switch-icon right" aria-hidden="true">EN</span>
+          <span class="switch-thumb"></span>
+        </span>
+      </button>
     </div>
   </nav>
 </template>
@@ -133,33 +144,10 @@ function toggleLang() {
 .sidebar-top {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 8px;
+  justify-content: center;
   padding: 16px 16px 14px;
   border-bottom: 1px solid var(--glass-border);
 }
-
-.nav-back {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 34px;
-  height: 34px;
-  background: var(--glass-highlight);
-  border: 1px solid var(--glass-border);
-  border-radius: 10px;
-  color: var(--text-secondary);
-  cursor: pointer;
-  flex-shrink: 0;
-  transition: all var(--transition-duration);
-}
-.nav-back:hover {
-  background: var(--accent-dim);
-  border-color: var(--accent);
-  color: var(--accent);
-  transform: scale(1.05);
-}
-.nav-back:active { transform: scale(0.95); }
 
 .sidebar-tabs {
   flex: 1;
@@ -197,72 +185,81 @@ function toggleLang() {
   flex-shrink: 0;
 }
 
+/* ── 底部 switch 控件 ── */
 .sidebar-controls {
   display: flex;
   align-items: center;
-  gap: 8px;
+  justify-content: center;
+  gap: 12px;
   padding: 14px 16px;
   border-top: 1px solid var(--glass-border);
 }
-.sidebar-controls .nav-select {
-  flex: 1;
-  min-width: 0;
-}
 
-.nav-select {
-  padding: 6px 10px;
-  border: 1px solid var(--glass-border);
-  border-radius: 8px;
-  background: var(--glass-highlight);
-  color: var(--text-primary);
-  font-size: 12px;
+.nav-switch {
+  background: none;
+  border: none;
+  padding: 0;
   cursor: pointer;
   font-family: inherit;
-  font-weight: 500;
-  transition: border-color var(--transition-duration), box-shadow var(--transition-duration);
-}
-.nav-select:focus {
-  outline: none;
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px var(--accent-dim);
+  line-height: 0;
 }
 
-.nav-lang-btn {
+.switch-track {
+  position: relative;
+  display: inline-block;
+  width: 52px;
+  height: 28px;
+  border-radius: 999px;
   background: var(--glass-highlight);
   border: 1px solid var(--glass-border);
-  color: var(--text-primary);
-  padding: 6px 12px;
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 12px;
-  font-weight: 600;
-  font-family: inherit;
-  min-width: 36px;
-  text-align: center;
-  flex-shrink: 0;
-  transition: all var(--transition-duration);
+  transition: background 0.2s ease, border-color 0.2s ease;
 }
-.nav-lang-btn:hover {
-  background: var(--accent-dim);
+.switch-track.on {
+  background: var(--accent);
   border-color: var(--accent);
-  color: var(--accent);
-  transform: scale(1.05);
 }
-.nav-lang-btn:active { transform: scale(0.95); }
 
-/* 中屏：收窄为纯图标列 */
+.switch-thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+  transition: transform 0.2s ease;
+  z-index: 2;
+}
+.switch-track.on .switch-thumb {
+  transform: translateX(24px);
+}
+
+.switch-icon {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 11px;
+  line-height: 1;
+  color: var(--text-secondary);
+  z-index: 1;
+  pointer-events: none;
+}
+.switch-icon.left { left: 8px; }
+.switch-icon.right { right: 8px; }
+.switch-track.on .switch-icon {
+  color: #fff;
+}
+
+/* 中屏：收窄为纯图标列，控件纵向排列 */
 @media (max-width: 900px) {
   .mgmt-nav {
     width: 64px;
   }
   .sidebar-top {
-    justify-content: center;
     padding: 14px 0;
   }
   .sidebar-top :deep(.branding-title) {
-    display: none;
-  }
-  .nav-back {
     display: none;
   }
   .sidebar-tabs {
@@ -277,11 +274,23 @@ function toggleLang() {
     display: none;
   }
   .sidebar-controls {
-    justify-content: center;
+    flex-direction: column;
+    gap: 12px;
     padding: 14px 0;
   }
-  .sidebar-controls .nav-select {
-    display: none;
+  .switch-track {
+    width: 44px;
+    height: 24px;
+  }
+  .switch-thumb {
+    width: 18px;
+    height: 18px;
+  }
+  .switch-track.on .switch-thumb {
+    transform: translateX(20px);
+  }
+  .switch-icon {
+    font-size: 9px;
   }
 }
 

@@ -221,10 +221,10 @@ function formatMs(ms: number): string {
 }
 
 .metrics-main {
-  max-width: 1160px;
+  max-width: 1380px; /* 1160 + 220 sidebar */
   width: 100%;
   margin: 0 auto;
-  padding: 24px 16px 48px;
+  padding: 24px 32px 48px 252px; /* 220 sidebar + 32 gap */
 }
 
 .metrics-toolbar {
@@ -434,5 +434,26 @@ function formatMs(ms: number): string {
   padding: 40px;
   text-align: center;
   color: var(--text-secondary);
+}
+
+/* 与 mgmt-page-content 一致的侧边栏让位 */
+@media (max-width: 900px) {
+  .metrics-main {
+    max-width: 1256px;
+    padding-left: 96px;
+  }
+}
+
+@media (max-width: 768px) {
+  .metrics-main {
+    padding: 20px 14px 48px 96px;
+  }
+}
+
+@media (max-width: 600px) {
+  .metrics-main {
+    padding: 108px 14px 48px;
+    max-width: none;
+  }
 }
 </style>
