@@ -301,21 +301,18 @@ export const useChatStore = defineStore("chat", () => {
         break
 
       case SSE_EVENTS.AGENT_END:
-        if (data.error) {
-          error.value = data.error
-        }
+        // AgentStart/AgentEnd 由 Controller 原样透传（多轮时每轮一次）。
+        // 收束统一由 ControllerEnd 负责，这里只做工具状态清理，不 finalize。
         for (let i = 0; i < p.toolCalls.length; i++) {
           if (p.toolCalls[i].status === "running") {
             p.toolCalls[i].status = "error"
             p.toolCalls[i].result = p.toolCalls[i].result || "Agent completed before tool finished"
           }
         }
-        flushImmediately(sid)
-        finalizeStream(sid)
         break
 
       case SSE_EVENTS.CONTROLLER_START:
-        // 多轮编排开始——外层已有 ControllerStart，AgentStart 不再透传
+        // 多轮编排开始——AgentStart/AgentEnd 仍透传，收束看 ControllerEnd
         break
 
       case SSE_EVENTS.CONTROLLER_CONTINUE:
