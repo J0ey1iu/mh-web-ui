@@ -61,89 +61,90 @@ function toggleLang() {
 
 <template>
   <nav class="mgmt-nav">
-    <div class="mgmt-nav-inner">
+    <div class="sidebar-top">
       <BrandingHeader />
       <button class="nav-back" @click="router.back()" :title="t('mgmt_back')">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M19 12H5M12 19l-7-7 7-7"/>
         </svg>
       </button>
-
-      <div class="nav-controls">
-        <SearchSelect v-model="currentTheme" :options="themeOptions" :searchable="false" />
-        <button class="nav-lang-btn" @click="toggleLang">{{ locale === "zh" ? "EN" : "中" }}</button>
-      </div>
     </div>
 
-    <aside class="mgmt-sidebar">
-      <div class="sidebar-tabs">
-        <router-link v-if="hasMetricsPermission" to="/manage/metrics" class="sidebar-tab" :class="{ active: isActive('/manage/metrics') }">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/>
-          </svg>
-          <span>{{ t("mgmt_metrics") }}</span>
-        </router-link>
-        <router-link v-if="hasScenePermission" to="/manage/scenes" class="sidebar-tab" :class="{ active: isActive('/manage/scenes') }">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>
-          </svg>
-          <span>{{ t("mgmt_scenes") }}</span>
-        </router-link>
-        <router-link v-if="hasAgentPermission" to="/manage/agents" class="sidebar-tab" :class="{ active: isActive('/manage/agents') }">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
-          </svg>
-          <span>{{ t("mgmt_agents") }}</span>
-        </router-link>
-        <router-link v-if="hasToolPermission" to="/manage/tools" class="sidebar-tab" :class="{ active: isActive('/manage/tools') }">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
-          </svg>
-          <span>{{ t("mgmt_tools") }}</span>
-        </router-link>
-        <router-link v-if="hasFeedbackPermission" to="/manage/feedback" class="sidebar-tab" :class="{ active: isActive('/manage/feedback') }">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-          </svg>
-          <span>{{ t("feedback_management") }}</span>
-        </router-link>
-        <router-link v-if="hasAgentPermission" to="/manage/providers" class="sidebar-tab" :class="{ active: isActive('/manage/providers') }">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>
-          </svg>
-          <span>{{ t("mgmt_providers") }}</span>
-        </router-link>
-      </div>
-    </aside>
+    <div class="sidebar-tabs">
+      <router-link v-if="hasMetricsPermission" to="/manage/metrics" class="sidebar-tab" :class="{ active: isActive('/manage/metrics') }">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/>
+        </svg>
+        <span>{{ t("mgmt_metrics") }}</span>
+      </router-link>
+      <router-link v-if="hasScenePermission" to="/manage/scenes" class="sidebar-tab" :class="{ active: isActive('/manage/scenes') }">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>
+        </svg>
+        <span>{{ t("mgmt_scenes") }}</span>
+      </router-link>
+      <router-link v-if="hasAgentPermission" to="/manage/agents" class="sidebar-tab" :class="{ active: isActive('/manage/agents') }">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+        </svg>
+        <span>{{ t("mgmt_agents") }}</span>
+      </router-link>
+      <router-link v-if="hasToolPermission" to="/manage/tools" class="sidebar-tab" :class="{ active: isActive('/manage/tools') }">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
+        </svg>
+        <span>{{ t("mgmt_tools") }}</span>
+      </router-link>
+      <router-link v-if="hasFeedbackPermission" to="/manage/feedback" class="sidebar-tab" :class="{ active: isActive('/manage/feedback') }">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+        </svg>
+        <span>{{ t("feedback_management") }}</span>
+      </router-link>
+      <router-link v-if="hasAgentPermission" to="/manage/providers" class="sidebar-tab" :class="{ active: isActive('/manage/providers') }">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>
+        </svg>
+        <span>{{ t("mgmt_providers") }}</span>
+      </router-link>
+    </div>
+
+    <div class="sidebar-controls">
+      <SearchSelect v-model="currentTheme" :options="themeOptions" :searchable="false" />
+      <button class="nav-lang-btn" @click="toggleLang">{{ locale === "zh" ? "EN" : "中" }}</button>
+    </div>
   </nav>
 </template>
 
 <style scoped>
 .mgmt-nav {
-  position: sticky;
+  position: fixed;
   top: 0;
+  left: 0;
+  bottom: 0;
+  width: 220px;
+  display: flex;
+  flex-direction: column;
+  background: var(--page-bg);
+  border-right: 1px solid var(--glass-border);
   z-index: 200;
-  background: var(--glass-bg);
-  border-bottom: 1px solid var(--glass-border);
-  flex-shrink: 0;
 }
 
-.mgmt-nav-inner {
-  max-width: 1160px;
-  margin: 0 auto;
+.sidebar-top {
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 10px 16px;
-  height: 56px;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 16px 16px 14px;
+  border-bottom: 1px solid var(--glass-border);
 }
 
 .nav-back {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
+  width: 34px;
+  height: 34px;
   background: var(--glass-highlight);
   border: 1px solid var(--glass-border);
   border-radius: 10px;
@@ -160,25 +161,14 @@ function toggleLang() {
 }
 .nav-back:active { transform: scale(0.95); }
 
-/* ── Sidebar ── */
-.mgmt-sidebar {
-  position: fixed;
-  top: 56px;
-  left: 0;
-  bottom: 0;
-  width: 220px;
-  background: var(--page-bg);
-  border-right: 1px solid var(--glass-border);
-  padding: 16px 12px;
-  overflow-y: auto;
-  scrollbar-width: thin;
-  z-index: 150;
-}
-
 .sidebar-tabs {
+  flex: 1;
   display: flex;
   flex-direction: column;
   gap: 4px;
+  padding: 16px 12px;
+  overflow-y: auto;
+  scrollbar-width: thin;
 }
 
 .sidebar-tab {
@@ -207,11 +197,16 @@ function toggleLang() {
   flex-shrink: 0;
 }
 
-.nav-controls {
+.sidebar-controls {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-left: auto;
+  padding: 14px 16px;
+  border-top: 1px solid var(--glass-border);
+}
+.sidebar-controls .nav-select {
+  flex: 1;
+  min-width: 0;
 }
 
 .nav-select {
@@ -244,6 +239,7 @@ function toggleLang() {
   font-family: inherit;
   min-width: 36px;
   text-align: center;
+  flex-shrink: 0;
   transition: all var(--transition-duration);
 }
 .nav-lang-btn:hover {
@@ -254,11 +250,23 @@ function toggleLang() {
 }
 .nav-lang-btn:active { transform: scale(0.95); }
 
-/* 中屏：收窄为图标列 */
+/* 中屏：收窄为纯图标列 */
 @media (max-width: 900px) {
-  .mgmt-sidebar {
+  .mgmt-nav {
     width: 64px;
-    padding: 16px 8px;
+  }
+  .sidebar-top {
+    justify-content: center;
+    padding: 14px 0;
+  }
+  .sidebar-top :deep(.branding-title) {
+    display: none;
+  }
+  .nav-back {
+    display: none;
+  }
+  .sidebar-tabs {
+    padding: 12px 8px;
   }
   .sidebar-tab {
     justify-content: center;
@@ -268,31 +276,40 @@ function toggleLang() {
   .sidebar-tab span {
     display: none;
   }
+  .sidebar-controls {
+    justify-content: center;
+    padding: 14px 0;
+  }
+  .sidebar-controls .nav-select {
+    display: none;
+  }
 }
 
-/* 窄屏：侧栏折叠为顶部横排药丸 */
+/* 窄屏：折叠为顶部横条（品牌 + 横排药丸 tab） */
 @media (max-width: 600px) {
-  .mgmt-sidebar {
+  .mgmt-nav {
     position: fixed;
-    top: 56px;
+    top: 0;
     left: 0;
     right: 0;
     bottom: auto;
     width: auto;
     height: auto;
-    display: flex;
-    padding: 8px 12px;
-    overflow-x: auto;
-    scrollbar-width: none;
     border-right: none;
     border-bottom: 1px solid var(--glass-border);
   }
-  .mgmt-sidebar::-webkit-scrollbar {
-    display: none;
+  .sidebar-top {
+    padding: 10px 12px;
   }
   .sidebar-tabs {
     flex-direction: row;
     gap: 4px;
+    padding: 0 12px 10px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .mgmt-nav ::-webkit-scrollbar {
+    display: none;
   }
   .sidebar-tab {
     padding: 8px 14px;
@@ -300,6 +317,9 @@ function toggleLang() {
   }
   .sidebar-tab span {
     display: inline;
+  }
+  .sidebar-controls {
+    display: none;
   }
 }
 </style>
