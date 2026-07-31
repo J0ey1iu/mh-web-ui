@@ -110,9 +110,11 @@ function formatMs(ms: number): string {
           <div class="metric-card">
             <div class="metric-label">{{ t("metrics_entities") }}</div>
             <div class="metric-value entity-counts">
-              <span>{{ data.entity_counts.scenes }}</span>
-              <span>{{ data.entity_counts.agents }}</span>
-              <span>{{ data.entity_counts.tools }}</span>
+              <span class="entity-count">{{ data.entity_counts.scenes }}</span>
+              <span class="entity-sep">/</span>
+              <span class="entity-count">{{ data.entity_counts.agents }}</span>
+              <span class="entity-sep">/</span>
+              <span class="entity-count">{{ data.entity_counts.tools }}</span>
             </div>
             <div class="metric-sub">
               {{ t("metrics_scenes") }} / {{ t("metrics_agents") }} /
@@ -308,8 +310,16 @@ function formatMs(ms: number): string {
   font-variant-numeric: tabular-nums;
 }
 
-.entity-counts span {
-  margin-right: 14px;
+.entity-counts {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.entity-sep {
+  font-size: 16px;
+  color: var(--text-tertiary, var(--text-secondary));
+  font-weight: 400;
 }
 
 .metric-sub {
@@ -411,7 +421,7 @@ function formatMs(ms: number): string {
 }
 
 .model-name {
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-family: var(--font-sans);
 }
 
 .empty {
