@@ -45,7 +45,7 @@ onMounted(() => {
     const el = bubbleRef.value
     if (!el) return
     const label = el.querySelector<HTMLElement>(".auto-msg-label")
-    const scan = el.querySelector<HTMLElement>(".auto-scan")
+    const shine = el.querySelector<HTMLElement>(".auto-shine")
 
     // 读取主题变量为实际色值（gsap 无法插值 var()）
     const cs = getComputedStyle(document.documentElement)
@@ -63,21 +63,18 @@ onMounted(() => {
       0,
     )
 
-    // 扫描光：accent 渐变色带从左到右扫过气泡，来回两次。光带自身是
-    // 横向透明度+颜色渐变（transparent → accent → transparent），
-    // 扫过时文字表面被依次点亮。
-    if (scan) {
+    // 文字流光：accent 渐变只裁剪到文字形状（background-clip: text），
+    // 容器背景不变色。background-position 从 200% 扫到 -100% 为从左到右，
+    // 再来回一次，然后停在左侧外 → 顶层透明，露出底层 muted 文字。
+    if (shine) {
       tl.fromTo(
-        scan,
-        { xPercent: -100, opacity: 0 },
-        { xPercent: 100, opacity: 0.6, duration: 0.8, ease: "power2.inOut" },
+        shine,
+        { backgroundPosition: "200% 0" },
+        { backgroundPosition: "-100% 0", duration: 0.85, ease: "power2.inOut" },
         0.15,
       )
         // 第 2 次：从右回扫到左
-        .to(scan, { xPercent: -100, opacity: 0.6, duration: 0.8, ease: "power2.inOut" }, 0.95)
-        // 结束：淡出并移除
-        .to(scan, { opacity: 0, duration: 0.45, ease: "power2.out" }, 1.75)
-        .add(() => scan.remove(), 2.25)
+        .to(shine, { backgroundPosition: "200% 0", duration: 0.85, ease: "power2.inOut" }, 1.0)
     }
 
     // 徽章：accent 色渐变回静默玻璃色
@@ -292,7 +289,19 @@ async function copy(text: string) {
       </div>
       <div ref="bubbleRef" :class="['bubble', { 'auto-msg': message.auto }]">
         <span v-if="message.auto" class="auto-msg-label">{{ t("auto_message_label") }}</span>
-        <template v-if="message.orderedItems">
+        <template v-if="message.auto">
+          <!-- 自动指令：纯文本双层——底层 muted 文字 + 上层 accent 流光（只染字） -->
+          <div class="content-segment auto-content">
+            <span class="auto-text">{{ message.content }}</span>
+            <span
+              v-if="message.freshlyStreamed"
+              class="auto-shine"
+              aria-hidden="true"
+              >{{ message.content }}</span
+            >
+          </div>
+        </template>
+        <template v-else-if="message.orderedItems">
           <template v-for="(item, i) in message.orderedItems" :key="i">
             <ReasoningBlock
               v-if="item.type === 'reasoning'"
@@ -372,11 +381,6 @@ async function copy(text: string) {
         >
           <span class="dot-pulse"></span>
         </div>
-        <span
-          v-if="message.auto && message.freshlyStreamed"
-          class="auto-scan"
-          aria-hidden="true"
-        ></span>
       </div>
     </template>
   </div>
@@ -429,29 +433,37 @@ async function copy(text: string) {
 }
 .message.user .bubble.auto-msg {
   position: relative;
-  overflow: hidden; /* 扫描光在气泡内扫过 */
   background: transparent;
   border-style: dashed;
   color: var(--text-muted);
   font-size: 13px;
   padding: 6px 12px;
 }
-.auto-scan {
+.auto-content {
+  position: relative;
+}
+.auto-text {
+  color: var(--text-muted);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.auto-shine {
   position: absolute;
-  top: 0;
-  bottom: 0;
-  left: 0;
-  width: 100%;
-  pointer-events: none;
+  inset: 0;
+  color: transparent;
   background: linear-gradient(
     90deg,
     transparent 0%,
     var(--accent) 50%,
     transparent 100%
   );
-  opacity: 0;
-  transform: translateX(-100%);
-  will-change: transform, opacity;
+  background-size: 200% 100%;
+  background-position: 200% 0;
+  -webkit-background-clip: text;
+  background-clip: text;
+  white-space: pre-wrap;
+  word-break: break-word;
+  pointer-events: none;
 }
 .auto-msg-label {
   display: inline-block;
