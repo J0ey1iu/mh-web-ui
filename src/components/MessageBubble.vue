@@ -45,92 +45,53 @@ onMounted(() => {
     const el = bubbleRef.value
     if (!el) return
     const label = el.querySelector<HTMLElement>(".auto-msg-label")
-    const injectBar = el.querySelector<HTMLElement>(".auto-inject-bar")
+    const scan = el.querySelector<HTMLElement>(".auto-scan")
 
     // 读取主题变量为实际色值（gsap 无法插值 var()）
     const cs = getComputedStyle(document.documentElement)
     const accent = cs.getPropertyValue("--accent").trim()
-    const accentDim = cs.getPropertyValue("--accent-dim").trim()
     const glassBorder = cs.getPropertyValue("--glass-border").trim()
     const textMuted = cs.getPropertyValue("--text-muted").trim()
 
     const tl = gsap.timeline({ defaults: { ease: "power2.out" } })
 
-    // 1) 左侧注入能量条：自顶部生长，随后淡出（代表"系统注入"过程）
-    if (injectBar) {
-      tl.fromTo(
-        injectBar,
-        { scaleY: 0, opacity: 0.9 },
-        { scaleY: 1, duration: 0.45, ease: "power3.out" },
-        0,
-      )
-        .to(injectBar, { opacity: 0, duration: 0.9, ease: "power2.out" }, 0.4)
-        .add(() => injectBar.remove(), 1.35)
-    }
-
-    // 2) 气泡主体：透明度和位置上移入场，背景/边框从 accent 渐变到玻璃色
+    // 气泡基础入场：快速淡入 + 轻微上移
     tl.fromTo(
       el,
-      {
-        opacity: 0,
-        y: 18,
-        scale: 0.95,
-        backgroundColor: accentDim,
-        borderColor: accent,
-      },
-      {
-        opacity: 1,
-        y: 0,
-        scale: 1,
-        backgroundColor: "transparent",
-        borderColor: glassBorder,
-        duration: 0.85,
-        ease: "power3.out",
-      },
+      { opacity: 0, y: 10 },
+      { opacity: 1, y: 0, duration: 0.3, ease: "power2.out" },
       0,
     )
 
-    // 3) 光环呼吸：微光扩散 → 收敛 → 再扩散 → 归零（透明度与颜色双重渐变）
-    tl.fromTo(
-      el,
-      { boxShadow: `0 0 0px ${accentDim}` },
-      { boxShadow: `0 0 24px ${accentDim}`, duration: 0.7, ease: "sine.out" },
-      0.35,
-    )
-      .to(el, { boxShadow: `0 0 4px ${accentDim}`, duration: 0.5, ease: "sine.inOut" }, 1.05)
-      .to(el, { boxShadow: `0 0 16px ${accentDim}`, duration: 0.5, ease: "sine.inOut" }, 1.45)
-      .to(
-        el,
-        {
-          boxShadow: "0 0 0px transparent",
-          duration: 0.5,
-          ease: "power2.out",
-          clearProps: "boxShadow,backgroundColor,borderColor",
-        },
-        1.85,
+    // 扫描光：accent 渐变色带从左到右扫过气泡，来回两次。光带自身是
+    // 横向透明度+颜色渐变（transparent → accent → transparent），
+    // 扫过时文字表面被依次点亮。
+    if (scan) {
+      tl.fromTo(
+        scan,
+        { xPercent: -100, opacity: 0 },
+        { xPercent: 100, opacity: 0.6, duration: 0.8, ease: "power2.inOut" },
+        0.15,
       )
+        // 第 2 次：从右回扫到左
+        .to(scan, { xPercent: -100, opacity: 0.6, duration: 0.8, ease: "power2.inOut" }, 0.95)
+        // 结束：淡出并移除
+        .to(scan, { opacity: 0, duration: 0.45, ease: "power2.out" }, 1.75)
+        .add(() => scan.remove(), 2.25)
+    }
 
-    // 4) 徽章流彩：白字 + accent 实心胶囊 → 渐隐为 muted 玻璃色，微缩放
+    // 徽章：accent 色渐变回静默玻璃色
     if (label) {
       tl.fromTo(
         label,
-        {
-          color: "#ffffff",
-          backgroundColor: accent,
-          borderColor: accent,
-          boxShadow: `0 0 14px ${accentDim}`,
-          scale: 1.08,
-        },
+        { color: accent, borderColor: accent, backgroundColor: "transparent" },
         {
           color: textMuted,
-          backgroundColor: "transparent",
           borderColor: glassBorder,
-          boxShadow: "0 0 0px transparent",
-          scale: 1,
-          duration: 1.2,
+          duration: 0.9,
           ease: "power2.out",
         },
-        0.15,
+        0.3,
       )
     }
 
@@ -330,11 +291,6 @@ async function copy(text: string) {
         {{ message.role === "user" ? "U" : "A" }}
       </div>
       <div ref="bubbleRef" :class="['bubble', { 'auto-msg': message.auto }]">
-        <span
-          v-if="message.auto && message.freshlyStreamed"
-          class="auto-inject-bar"
-          aria-hidden="true"
-        ></span>
         <span v-if="message.auto" class="auto-msg-label">{{ t("auto_message_label") }}</span>
         <template v-if="message.orderedItems">
           <template v-for="(item, i) in message.orderedItems" :key="i">
@@ -416,6 +372,11 @@ async function copy(text: string) {
         >
           <span class="dot-pulse"></span>
         </div>
+        <span
+          v-if="message.auto && message.freshlyStreamed"
+          class="auto-scan"
+          aria-hidden="true"
+        ></span>
       </div>
     </template>
   </div>
@@ -468,21 +429,29 @@ async function copy(text: string) {
 }
 .message.user .bubble.auto-msg {
   position: relative;
+  overflow: hidden; /* 扫描光在气泡内扫过 */
   background: transparent;
   border-style: dashed;
   color: var(--text-muted);
   font-size: 13px;
   padding: 6px 12px;
 }
-.auto-inject-bar {
+.auto-scan {
   position: absolute;
-  left: -5px;
-  top: 5px;
-  bottom: 5px;
-  width: 3px;
-  border-radius: 2px;
-  background: linear-gradient(180deg, var(--accent), transparent);
-  transform-origin: center top;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  pointer-events: none;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    var(--accent) 50%,
+    transparent 100%
+  );
+  opacity: 0;
+  transform: translateX(-100%);
+  will-change: transform, opacity;
 }
 .auto-msg-label {
   display: inline-block;
