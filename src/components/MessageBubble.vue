@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { provide, ref, computed, onUnmounted, watch } from "vue"
+import { provide, ref, computed, onMounted, onUnmounted, watch } from "vue"
+import gsap from "gsap"
 import type { Message } from "../types"
 // @ts-ignore used in template
 import FeedbackWidget from "./FeedbackWidget.vue"
@@ -33,6 +34,50 @@ function getFeedback(key: string): { feedback_type: "thumbs_up" | "thumbs_down";
   if (!fb) return null
   return { feedback_type: fb.feedback_type as "thumbs_up" | "thumbs_down", feedback_id: fb.feedback_id }
 }
+
+const bubbleRef = ref<HTMLElement | null>(null)
+
+onMounted(() => {
+  // 系统自动指令的实时入场动画：只对实时插入（freshlyStreamed）的 auto
+  // 消息生效；刷新/重载后消息来自 API 还原，无 fresh 标记 → 无动画。
+  if (props.message.auto && props.message.freshlyStreamed) {
+    const el = bubbleRef.value
+    if (el) {
+      gsap.fromTo(
+        el,
+        { opacity: 0, y: 16, scale: 0.96 },
+        {
+          opacity: 1,
+          y: 0,
+          scale: 1,
+          duration: 0.55,
+          ease: "power3.out",
+          delay: 0.05,
+        },
+      )
+      // 徽章一次 accent 高亮脉冲，强化"系统智能注入"感知
+      const label = el.querySelector<HTMLElement>(".auto-msg-label")
+      if (label) {
+        gsap.fromTo(
+          label,
+          {
+            color: "var(--accent)",
+            borderColor: "var(--accent)",
+            boxShadow: "0 0 12px var(--accent-dim)",
+          },
+          {
+            color: "var(--text-muted)",
+            borderColor: "var(--glass-border)",
+            boxShadow: "0 0 0px transparent",
+            duration: 1.4,
+            delay: 0.4,
+            ease: "power2.out",
+          },
+        )
+      }
+    }
+  }
+})
 
 // @ts-ignore used in template
 const hasNoContent = computed(() => {
@@ -223,7 +268,7 @@ async function copy(text: string) {
       <div class="avatar">
         {{ message.role === "user" ? "U" : "A" }}
       </div>
-      <div :class="['bubble', { 'auto-msg': message.auto }]">
+      <div ref="bubbleRef" :class="['bubble', { 'auto-msg': message.auto }]">
         <span v-if="message.auto" class="auto-msg-label">{{ t("auto_message_label") }}</span>
         <template v-if="message.orderedItems">
           <template v-for="(item, i) in message.orderedItems" :key="i">

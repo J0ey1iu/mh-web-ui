@@ -334,6 +334,7 @@ export const useChatStore = defineStore("chat", () => {
           role: "user",
           content: data.next_prompt,
           auto: true,
+          freshlyStreamed: true, // 实时插入标记：驱动入场动画；刷新/重载后无此标记
           orderedItems: [{ type: "content", text: data.next_prompt }],
         }
         sessionMessagesMap[sid].push(autoMsg)
