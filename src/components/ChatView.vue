@@ -532,7 +532,7 @@ watch(input, (val) => {
   color: var(--accent);
 }
 .mode-btn:disabled {
-  opacity: 0.6;
+  color: var(--text-muted);
   cursor: not-allowed;
 }
 .mode-pop {
@@ -599,7 +599,7 @@ watch(input, (val) => {
   font-family: inherit;
 }
 .controller-duration:disabled {
-  opacity: 0.6;
+  color: var(--text-muted);
   cursor: not-allowed;
 }
 .capsule-input {
@@ -647,7 +647,10 @@ watch(input, (val) => {
   box-shadow: 0 2px 16px var(--accent-dim);
 }
 .capsule-send:disabled {
-  opacity: 0.4;
+  /* 实心禁用态：用暗底色 + muted 文字，不用 opacity 避免半透明 */
+  background: var(--surface-alt);
+  color: var(--text-muted);
+  box-shadow: none;
   cursor: not-allowed;
 }
 .btn-cancel {
