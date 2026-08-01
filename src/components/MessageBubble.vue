@@ -223,7 +223,7 @@ async function copy(text: string) {
       <div class="avatar">
         {{ message.role === "user" ? "U" : "A" }}
       </div>
-      <div class="bubble">
+      <div :class="['bubble', { 'auto-msg': message.auto }]">
         <template v-if="message.orderedItems">
           <template v-for="(item, i) in message.orderedItems" :key="i">
             <ReasoningBlock
@@ -353,6 +353,13 @@ async function copy(text: string) {
   color: var(--text-primary);
   border-bottom-right-radius: 4px;
   border: 1px solid var(--glass-border);
+}
+.message.user .bubble.auto-msg {
+  background: transparent;
+  border-style: dashed;
+  color: var(--text-muted);
+  font-size: 13px;
+  padding: 6px 12px;
 }
 .message.assistant .bubble {
   background: var(--glass-bg);

@@ -29,6 +29,7 @@ export default defineConfig(({ mode }) => {
         apiManagementTools: isProd ? "{wcm_api_management_tools}" : `${apiPrefix}/api/v1/management/tools`,
         apiManagementTool: isProd ? "{wcm_api_management_tool}" : `${apiPrefix}/api/v1/management/tools/{name}`,
         apiManagementAgentTypes: isProd ? "{wcm_api_management_agent_types}" : `${apiPrefix}/api/v1/management/agent-types`,
+        apiManagementControllers: isProd ? "{wcm_api_management_controllers}" : `${apiPrefix}/api/v1/management/controllers`,
         apiManagementProviders: isProd ? "{wcm_api_management_providers}" : `${apiPrefix}/api/v1/management/providers`,
         apiManagementProviderConfigs: isProd ? "{wcm_api_management_provider_configs}" : `${apiPrefix}/api/v1/management/provider-configs`,
         apiManagementProviderConfig: isProd ? "{wcm_api_management_provider_config}" : `${apiPrefix}/api/v1/management/provider-configs/{name}`,

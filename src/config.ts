@@ -26,6 +26,7 @@ export interface AppConfig {
   apiManagementProviderConfigs: string
   apiManagementProviderConfig: string
   apiManagementAgentTypes: string
+  apiManagementControllers: string
   apiManagementMetrics: string
 }
 

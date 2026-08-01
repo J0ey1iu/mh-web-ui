@@ -50,6 +50,8 @@ export interface Message {
   freshlyStreamed?: boolean
   compactBoundary?: boolean
   compactStats?: CompactStats
+  /** Controller 自动生成的下一轮 prompt（ControllerContinue 事件） */
+  auto?: boolean
 }
 
 export interface ToolCallDisplay {
@@ -83,6 +85,9 @@ export const SSE_EVENTS = {
   COMPACTION_START: "CompactionStart",
   COMPACTION_CHUNK: "CompactionChunk",
   COMPACTION_END: "CompactionEnd",
+  CONTROLLER_START: "ControllerStart",
+  CONTROLLER_CONTINUE: "ControllerContinue",
+  CONTROLLER_END: "ControllerEnd",
 } as const
 
 export type SSEEventName = typeof SSE_EVENTS[keyof typeof SSE_EVENTS]
@@ -106,6 +111,19 @@ export interface CompactionEnd {
   new_offset: number
   duration: number
   error: string | null
+}
+
+export interface ControllerInfo {
+  value: string
+  display_name: string
+  display_name_zh: string
+  description?: string
+  settings?: Array<{
+    key: string
+    type: "number" | "string"
+    default: string | number
+    placeholder?: string
+  }>
 }
 
 export interface SlashCommand {

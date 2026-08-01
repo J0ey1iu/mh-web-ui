@@ -1,4 +1,4 @@
-import type { AgentInfo, FetchListParams, FeedbackSubmitRequest, FeedbackResponse, ManageAgent, ManageFeedbackItem, FeedbackSessionResponse, FeedbackStateItem, ManageProvider, ManageScenario, ManageTool, MessagesResponse, MetricsQuery, MetricsSummary, PaginatedResponse, ProviderModel, ScenarioDetail, ScenarioInfo, SessionInfo, UserInfo, SSEEventName } from "../types"
+import type { AgentInfo, FetchListParams, FeedbackSubmitRequest, FeedbackResponse, ManageAgent, ManageFeedbackItem, FeedbackSessionResponse, FeedbackStateItem, ManageProvider, ManageScenario, ManageTool, MessagesResponse, MetricsQuery, MetricsSummary, PaginatedResponse, ProviderModel, ScenarioDetail, ScenarioInfo, SessionInfo, UserInfo, SSEEventName, ControllerInfo } from "../types"
 import { appConfig } from "../config"
 
 function fillUrl(template: string, params?: Record<string, string>): string {
@@ -134,16 +134,28 @@ async function consumeSSE(response: Response, onLine: (line: string) => void): P
 
 export type SSEEventCallback = (event: SSEEventName, data: any) => void
 
-export function streamChat(memoryId: string, message: string, onEvent: SSEEventCallback, onDone: () => void, onError: (err: Error) => void): AbortController {
+export function streamChat(
+  memoryId: string,
+  message: string,
+  onEvent: SSEEventCallback,
+  onDone: () => void,
+  onError: (err: Error) => void,
+  controllerRequest?: { type: string; config: Record<string, unknown> },
+): AbortController {
   const controller = new AbortController()
   const headers: Record<string, string> = { "Content-Type": "application/json", "Accept-Language": getLocale() }
   let eventName = ""
+  const body: Record<string, unknown> = { message }
+  if (controllerRequest?.type) {
+    body.controller = controllerRequest.type
+    body.controller_config = controllerRequest.config ?? {}
+  }
 
   fetch(fillUrl(appConfig.apiChat, { id: memoryId }), {
     method: "POST",
     credentials: "include",
     headers,
-    body: JSON.stringify({ message }),
+    body: JSON.stringify(body),
     signal: controller.signal,
   })
     .then(async (res) => {
@@ -237,6 +249,15 @@ export async function deleteManageAgent(name: string): Promise<void> {
 
 export async function fetchAgentTypes(): Promise<any[]> {
   return request<any[]>(appConfig.apiManagementAgentTypes)
+}
+
+export async function fetchControllers(): Promise<ControllerInfo[]> {
+  try {
+    return await request<ControllerInfo[]>(appConfig.apiManagementControllers)
+  } catch {
+    // 目录接口不可用（旧版后端）时降级为默认 Controller
+    return [{ value: "default", display_name: "Standard", display_name_zh: "标准模式" }]
+  }
 }
 
 export async function fetchProviders(): Promise<string[]> {
