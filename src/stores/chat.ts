@@ -710,7 +710,13 @@ export const useChatStore = defineStore("chat", () => {
     while (i < apiMessages.length) {
       const msg = apiMessages[i]
       if (msg.role === "user") {
-        result.push({ id: msg.id, role: "user", content: msg.content, compactBoundary: msg.compact_boundary })
+        result.push({
+          id: msg.id,
+          role: "user",
+          content: msg.content,
+          compactBoundary: msg.compact_boundary,
+          auto: msg.auto === true,
+        })
         i++
         continue
       }
