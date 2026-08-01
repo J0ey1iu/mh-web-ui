@@ -146,6 +146,8 @@ export interface MessageItem {
   progress?: string[]
   meta?: string
   compact_boundary?: boolean
+  /** 系统（goal/timer 控制器）自动生成的 user 消息 */
+  auto?: boolean
 }
 
 export interface StreamingState {

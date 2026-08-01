@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { provide, ref, computed, onUnmounted, watch } from "vue"
+import { provide, ref, computed, onMounted, onUnmounted, watch } from "vue"
+import gsap from "gsap"
 import type { Message } from "../types"
 // @ts-ignore used in template
 import FeedbackWidget from "./FeedbackWidget.vue"
@@ -34,6 +35,67 @@ function getFeedback(key: string): { feedback_type: "thumbs_up" | "thumbs_down";
   return { feedback_type: fb.feedback_type as "thumbs_up" | "thumbs_down", feedback_id: fb.feedback_id }
 }
 
+const bubbleRef = ref<HTMLElement | null>(null)
+let autoTimeline: gsap.core.Timeline | null = null
+
+onMounted(() => {
+  // 系统自动指令的实时入场动画：只对实时插入（freshlyStreamed）的 auto
+  // 消息生效；刷新/重载后消息来自 API 还原，无 fresh 标记 → 无动画。
+  if (props.message.auto && props.message.freshlyStreamed) {
+    const el = bubbleRef.value
+    if (!el) return
+    const label = el.querySelector<HTMLElement>(".auto-msg-label")
+    const shine = el.querySelector<HTMLElement>(".auto-shine")
+
+    // 读取主题变量为实际色值（gsap 无法插值 var()）
+    const cs = getComputedStyle(document.documentElement)
+    const accent = cs.getPropertyValue("--accent").trim()
+    const glassBorder = cs.getPropertyValue("--glass-border").trim()
+    const textMuted = cs.getPropertyValue("--text-muted").trim()
+
+    const tl = gsap.timeline({ defaults: { ease: "power2.out" } })
+
+    // 气泡基础入场：快速淡入 + 轻微上移
+    tl.fromTo(
+      el,
+      { opacity: 0, y: 10 },
+      { opacity: 1, y: 0, duration: 0.3, ease: "power2.out" },
+      0,
+    )
+
+    // 文字流光：accent 渐变只裁剪到文字形状（background-clip: text），
+    // 容器背景不变色。background-position 从 200% 扫到 -100% 为从左到右，
+    // 再来回一次，然后停在左侧外 → 顶层透明，露出底层 muted 文字。
+    if (shine) {
+      tl.fromTo(
+        shine,
+        { backgroundPosition: "200% 0" },
+        { backgroundPosition: "-100% 0", duration: 0.85, ease: "power2.inOut" },
+        0.15,
+      )
+        // 第 2 次：从右回扫到左
+        .to(shine, { backgroundPosition: "200% 0", duration: 0.85, ease: "power2.inOut" }, 1.0)
+    }
+
+    // 徽章：accent 色渐变回静默玻璃色
+    if (label) {
+      tl.fromTo(
+        label,
+        { color: accent, borderColor: accent, backgroundColor: "transparent" },
+        {
+          color: textMuted,
+          borderColor: glassBorder,
+          duration: 0.9,
+          ease: "power2.out",
+        },
+        0.3,
+      )
+    }
+
+    autoTimeline = tl
+  }
+})
+
 // @ts-ignore used in template
 const hasNoContent = computed(() => {
   if (props.message.orderedItems?.length) return false
@@ -67,6 +129,8 @@ if (props.message.compactBoundary && props.message.freshlyStreamed) {
 
 onUnmounted(() => {
   if (collapseTimer) clearTimeout(collapseTimer)
+  autoTimeline?.kill()
+  autoTimeline = null
 })
 
 provide(FOLDABLE_COLLAPSED_KEY, collapsed)
@@ -223,8 +287,21 @@ async function copy(text: string) {
       <div class="avatar">
         {{ message.role === "user" ? "U" : "A" }}
       </div>
-      <div :class="['bubble', { 'auto-msg': message.auto }]">
-        <template v-if="message.orderedItems">
+      <div ref="bubbleRef" :class="['bubble', { 'auto-msg': message.auto }]">
+        <span v-if="message.auto" class="auto-msg-label">{{ t("auto_message_label") }}</span>
+        <template v-if="message.auto">
+          <!-- 自动指令：纯文本双层——底层 muted 文字 + 上层 accent 流光（只染字） -->
+          <div class="content-segment auto-content">
+            <span class="auto-text">{{ message.content }}</span>
+            <span
+              v-if="message.freshlyStreamed"
+              class="auto-shine"
+              aria-hidden="true"
+              >{{ message.content }}</span
+            >
+          </div>
+        </template>
+        <template v-else-if="message.orderedItems">
           <template v-for="(item, i) in message.orderedItems" :key="i">
             <ReasoningBlock
               v-if="item.type === 'reasoning'"
@@ -355,11 +432,48 @@ async function copy(text: string) {
   border: 1px solid var(--glass-border);
 }
 .message.user .bubble.auto-msg {
+  position: relative;
   background: transparent;
   border-style: dashed;
   color: var(--text-muted);
   font-size: 13px;
   padding: 6px 12px;
+}
+.auto-content {
+  position: relative;
+}
+.auto-text {
+  color: var(--text-muted);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.auto-shine {
+  position: absolute;
+  inset: 0;
+  color: transparent;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    var(--accent) 50%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  background-position: 200% 0;
+  -webkit-background-clip: text;
+  background-clip: text;
+  white-space: pre-wrap;
+  word-break: break-word;
+  pointer-events: none;
+}
+.auto-msg-label {
+  display: inline-block;
+  margin-bottom: 4px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--glass-bg);
+  border: 1px dashed var(--glass-border);
+  font-size: 11px;
+  color: var(--text-muted);
 }
 .message.assistant .bubble {
   background: var(--glass-bg);
