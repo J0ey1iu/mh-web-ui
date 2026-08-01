@@ -36,46 +36,105 @@ function getFeedback(key: string): { feedback_type: "thumbs_up" | "thumbs_down";
 }
 
 const bubbleRef = ref<HTMLElement | null>(null)
+let autoTimeline: gsap.core.Timeline | null = null
 
 onMounted(() => {
   // 系统自动指令的实时入场动画：只对实时插入（freshlyStreamed）的 auto
   // 消息生效；刷新/重载后消息来自 API 还原，无 fresh 标记 → 无动画。
   if (props.message.auto && props.message.freshlyStreamed) {
     const el = bubbleRef.value
-    if (el) {
-      gsap.fromTo(
-        el,
-        { opacity: 0, y: 16, scale: 0.96 },
-        {
-          opacity: 1,
-          y: 0,
-          scale: 1,
-          duration: 0.55,
-          ease: "power3.out",
-          delay: 0.05,
-        },
+    if (!el) return
+    const label = el.querySelector<HTMLElement>(".auto-msg-label")
+    const injectBar = el.querySelector<HTMLElement>(".auto-inject-bar")
+
+    // 读取主题变量为实际色值（gsap 无法插值 var()）
+    const cs = getComputedStyle(document.documentElement)
+    const accent = cs.getPropertyValue("--accent").trim()
+    const accentDim = cs.getPropertyValue("--accent-dim").trim()
+    const glassBorder = cs.getPropertyValue("--glass-border").trim()
+    const textMuted = cs.getPropertyValue("--text-muted").trim()
+
+    const tl = gsap.timeline({ defaults: { ease: "power2.out" } })
+
+    // 1) 左侧注入能量条：自顶部生长，随后淡出（代表"系统注入"过程）
+    if (injectBar) {
+      tl.fromTo(
+        injectBar,
+        { scaleY: 0, opacity: 0.9 },
+        { scaleY: 1, duration: 0.45, ease: "power3.out" },
+        0,
       )
-      // 徽章一次 accent 高亮脉冲，强化"系统智能注入"感知
-      const label = el.querySelector<HTMLElement>(".auto-msg-label")
-      if (label) {
-        gsap.fromTo(
-          label,
-          {
-            color: "var(--accent)",
-            borderColor: "var(--accent)",
-            boxShadow: "0 0 12px var(--accent-dim)",
-          },
-          {
-            color: "var(--text-muted)",
-            borderColor: "var(--glass-border)",
-            boxShadow: "0 0 0px transparent",
-            duration: 1.4,
-            delay: 0.4,
-            ease: "power2.out",
-          },
-        )
-      }
+        .to(injectBar, { opacity: 0, duration: 0.9, ease: "power2.out" }, 0.4)
+        .add(() => injectBar.remove(), 1.35)
     }
+
+    // 2) 气泡主体：透明度和位置上移入场，背景/边框从 accent 渐变到玻璃色
+    tl.fromTo(
+      el,
+      {
+        opacity: 0,
+        y: 18,
+        scale: 0.95,
+        backgroundColor: accentDim,
+        borderColor: accent,
+      },
+      {
+        opacity: 1,
+        y: 0,
+        scale: 1,
+        backgroundColor: "transparent",
+        borderColor: glassBorder,
+        duration: 0.85,
+        ease: "power3.out",
+      },
+      0,
+    )
+
+    // 3) 光环呼吸：微光扩散 → 收敛 → 再扩散 → 归零（透明度与颜色双重渐变）
+    tl.fromTo(
+      el,
+      { boxShadow: `0 0 0px ${accentDim}` },
+      { boxShadow: `0 0 24px ${accentDim}`, duration: 0.7, ease: "sine.out" },
+      0.35,
+    )
+      .to(el, { boxShadow: `0 0 4px ${accentDim}`, duration: 0.5, ease: "sine.inOut" }, 1.05)
+      .to(el, { boxShadow: `0 0 16px ${accentDim}`, duration: 0.5, ease: "sine.inOut" }, 1.45)
+      .to(
+        el,
+        {
+          boxShadow: "0 0 0px transparent",
+          duration: 0.5,
+          ease: "power2.out",
+          clearProps: "boxShadow,backgroundColor,borderColor",
+        },
+        1.85,
+      )
+
+    // 4) 徽章流彩：白字 + accent 实心胶囊 → 渐隐为 muted 玻璃色，微缩放
+    if (label) {
+      tl.fromTo(
+        label,
+        {
+          color: "#ffffff",
+          backgroundColor: accent,
+          borderColor: accent,
+          boxShadow: `0 0 14px ${accentDim}`,
+          scale: 1.08,
+        },
+        {
+          color: textMuted,
+          backgroundColor: "transparent",
+          borderColor: glassBorder,
+          boxShadow: "0 0 0px transparent",
+          scale: 1,
+          duration: 1.2,
+          ease: "power2.out",
+        },
+        0.15,
+      )
+    }
+
+    autoTimeline = tl
   }
 })
 
@@ -112,6 +171,8 @@ if (props.message.compactBoundary && props.message.freshlyStreamed) {
 
 onUnmounted(() => {
   if (collapseTimer) clearTimeout(collapseTimer)
+  autoTimeline?.kill()
+  autoTimeline = null
 })
 
 provide(FOLDABLE_COLLAPSED_KEY, collapsed)
@@ -269,6 +330,11 @@ async function copy(text: string) {
         {{ message.role === "user" ? "U" : "A" }}
       </div>
       <div ref="bubbleRef" :class="['bubble', { 'auto-msg': message.auto }]">
+        <span
+          v-if="message.auto && message.freshlyStreamed"
+          class="auto-inject-bar"
+          aria-hidden="true"
+        ></span>
         <span v-if="message.auto" class="auto-msg-label">{{ t("auto_message_label") }}</span>
         <template v-if="message.orderedItems">
           <template v-for="(item, i) in message.orderedItems" :key="i">
@@ -401,11 +467,22 @@ async function copy(text: string) {
   border: 1px solid var(--glass-border);
 }
 .message.user .bubble.auto-msg {
+  position: relative;
   background: transparent;
   border-style: dashed;
   color: var(--text-muted);
   font-size: 13px;
   padding: 6px 12px;
+}
+.auto-inject-bar {
+  position: absolute;
+  left: -5px;
+  top: 5px;
+  bottom: 5px;
+  width: 3px;
+  border-radius: 2px;
+  background: linear-gradient(180deg, var(--accent), transparent);
+  transform-origin: center top;
 }
 .auto-msg-label {
   display: inline-block;
