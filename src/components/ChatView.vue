@@ -491,8 +491,9 @@ watch(input, (val) => {
   justify-content: center;
   flex-shrink: 0;
   border-radius: 999px;
-  border: 1px solid var(--glass-border);
-  background: var(--glass-highlight);
+  border: 1px solid var(--border);
+  /* 实心背景：避免历史消息从半透明玻璃底下透上来 */
+  background: var(--surface-bg);
   color: var(--text-primary);
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.12);
   transition: border-color var(--transition-duration), box-shadow var(--transition-duration);
@@ -555,8 +556,8 @@ watch(input, (val) => {
   height: 42px;
   padding: 0;
   border-radius: 999px;
-  border: 1px solid var(--glass-border);
-  background: var(--glass-bg);
+  border: 1px solid var(--border);
+  background: var(--surface-bg);
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.12);
   color: var(--text-primary);
   font-size: 13px;
@@ -575,8 +576,8 @@ watch(input, (val) => {
   top: 50%;
   padding: 4px 10px;
   border-radius: 999px;
-  background: var(--glass-bg);
-  border: 1px solid var(--glass-border);
+  background: var(--surface-bg);
+  border: 1px solid var(--border);
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.12);
   color: var(--text-primary);
   font-size: 13px;
@@ -662,8 +663,8 @@ watch(input, (val) => {
   width: 100%;
   height: 22px;
   border-radius: 999px;
-  background: var(--glass-highlight);
-  border: 1px solid var(--glass-border);
+  background: var(--surface-bg);
+  border: 1px solid var(--border);
   overflow: hidden;
 }
 .context-bar-fill {
