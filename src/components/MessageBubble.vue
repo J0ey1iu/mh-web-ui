@@ -383,7 +383,7 @@ async function copy(text: string) {
 
 .segment-actions {
   position: absolute;
-  top: 4px;
+  bottom: 4px;
   right: 4px;
   display: flex;
   align-items: center;

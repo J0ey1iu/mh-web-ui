@@ -60,33 +60,31 @@ onErrorCaptured((err) => {
           <span class="tool-name">{{ (tool as any).displayName || tool.name }}</span>
           <span v-if="tool.status === 'running'" class="tool-spinner" />
         </div>
-        <div
-          v-show="toolHovered && tool.status !== 'running'"
-          class="fb-header-wrap"
-        >
-          <FeedbackWidget
-            :session-id="chatStore.currentSessionId ?? ''"
-            target-type="tool_call"
-            :target-id="tool.id"
-            :existing-feedback-type="(chatStore.feedbackState[`tool_call:${props.tool.id}`]?.feedback_type as 'thumbs_up' | 'thumbs_down' | undefined)"
-            :existing-feedback-id="chatStore.feedbackState[`tool_call:${props.tool.id}`]?.feedback_id"
-          />
-        </div>
       </template>
       <component v-if="component" :is="component" :tool="tool" />
       <template v-else>
         <div v-if="tool.progress" class="tool-progress">{{ tool.progress }}</div>
         <div v-if="tool.result" class="tool-result">{{ tool.result }}</div>
       </template>
+      <div
+        v-show="toolHovered && tool.status !== 'running'"
+        class="fb-footer-wrap"
+      >
+        <FeedbackWidget
+          :session-id="chatStore.currentSessionId ?? ''"
+          target-type="tool_call"
+          :target-id="tool.id"
+          :existing-feedback-type="(chatStore.feedbackState[`tool_call:${props.tool.id}`]?.feedback_type as 'thumbs_up' | 'thumbs_down' | undefined)"
+          :existing-feedback-id="chatStore.feedbackState[`tool_call:${props.tool.id}`]?.feedback_id"
+        />
+      </div>
     </BaseToolCard>
   </div>
 </template>
 
 <style>
 .tc-wrapper .tool-header {
-  justify-content: space-between;
   flex: 1;
-  position: relative;
 }
 </style>
 
@@ -98,17 +96,13 @@ onErrorCaptured((err) => {
   min-width: 0;
 }
 
-.fb-header-wrap {
-  position: absolute;
-  right: 0;
-  top: 0;
-  bottom: 0;
+.fb-footer-wrap {
   display: flex;
-  align-items: center;
-  z-index: 1;
+  justify-content: flex-end;
+  margin-top: 6px;
 }
 
-.fb-header-wrap .feedback-widget {
+.fb-footer-wrap .feedback-widget {
   margin-top: 0;
 }
 </style>

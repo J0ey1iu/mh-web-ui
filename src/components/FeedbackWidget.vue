@@ -115,8 +115,10 @@ function reset() {
       </button>
     </div>
 
-    <!-- Feedback form overlay -->
-    <div v-if="showForm" class="fb-overlay" @click.self="closeForm">
+    <!-- Feedback form overlay: teleported to body so hover-v-show parents and
+         clickable foldable headers can't hide it or catch its clicks -->
+    <Teleport to="body">
+      <div v-if="showForm" class="fb-overlay" @click.self="closeForm">
       <div class="fb-form-dialog">
         <div class="fb-form-header">
           <span class="fb-form-type" :class="selectedType">
@@ -154,7 +156,8 @@ function reset() {
           </button>
         </div>
       </div>
-    </div>
+      </div>
+    </Teleport>
   </div>
 </template>
 
