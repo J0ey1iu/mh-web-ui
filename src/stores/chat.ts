@@ -316,7 +316,18 @@ export const useChatStore = defineStore("chat", () => {
         break
 
       case SSE_EVENTS.CONTROLLER_CONTINUE:
-        // Controller 自动生成的下一轮 prompt：以灰显 user 消息呈现
+        // 系统自动指令要打断当前轮次的 Agent 气泡：先把本轮的流式回答
+        // 定型成一条 assistant 消息，再插入自动指令，后续 LLMChunk 开启
+        // 新一轮气泡 —— 与持久化后的消息顺序（用户 → 回答 → 自动指令 →
+        // 回答 → …）保持一致。
+        flushImmediately(sid)
+        if (p.content || p.reasoning || p.toolCalls.length > 0) {
+          finalizeStream(sid)
+        }
+        // finalize 后 pending 被重置，但整个会话仍在流式（还有后续轮次）
+        p.isStreaming = true
+        flush(sid)
+        scheduleFlush(sid)
         if (!sessionMessagesMap[sid]) sessionMessagesMap[sid] = []
         const autoMsg: Message = {
           id: `msg-auto-${Date.now()}-${sessionMessagesMap[sid].length}`,
