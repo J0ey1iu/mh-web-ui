@@ -1,6 +1,5 @@
 <script setup lang="ts">
-import { ref, watch, nextTick } from "vue"
-import gsap from "gsap"
+import { ref, watch } from "vue"
 import type { SlashCommand } from "../types"
 import { useI18nStore } from "../stores/i18n"
 
@@ -23,17 +22,6 @@ watch(() => props.selectedIndex, (idx) => {
   if (!panelRef.value) return
   const items = panelRef.value.querySelectorAll<HTMLDivElement>(".slash-item")
   items[idx]?.scrollIntoView({ block: "nearest" })
-})
-
-watch(() => props.visible, (show) => {
-  if (show) {
-    nextTick(() => {
-      gsap.fromTo(panelRef.value,
-        { opacity: 0, y: -8, scaleY: 0.95 },
-        { opacity: 1, y: 0, scaleY: 1, duration: 0.15, ease: "power2.out" },
-      )
-    })
-  }
 })
 
 function onClick(cmd: SlashCommand) {
@@ -76,6 +64,18 @@ function onClick(cmd: SlashCommand) {
   z-index: 100;
   max-height: 200px;
   overflow-y: auto;
+  animation: slash-panel-in 0.15s ease-out;
+}
+
+@keyframes slash-panel-in {
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scaleY(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scaleY(1);
+  }
 }
 .slash-panel-header {
   padding: 6px 12px;

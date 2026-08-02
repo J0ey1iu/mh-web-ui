@@ -1,6 +1,5 @@
 <script setup lang="ts">
-import { ref, watch, nextTick, computed, onMounted } from "vue"
-import gsap from "gsap"
+import { ref, watch, nextTick, computed, onMounted, onUnmounted } from "vue"
 import type { Message, StreamingState, SlashCommand, ControllerInfo } from "../types"
 import MessageBubble from "./MessageBubble.vue"
 import SkeletonBlock from "./SkeletonBlock.vue"
@@ -116,24 +115,10 @@ function modeIcon(value: string): string {
 }
 
 const modeOpen = ref(false)
-const modePopupRef = ref<HTMLElement | null>(null)
 
-function onModeEnter() {
+function onModeToggle() {
   if (props.streaming.isStreaming || props.disabled || controllerCatalog.value.length === 0) return
-  modeOpen.value = true
-  nextTick(() => {
-    if (modePopupRef.value) {
-      gsap.fromTo(
-        modePopupRef.value,
-        { opacity: 0, y: 8, xPercent: -50 },
-        { opacity: 1, y: 0, xPercent: -50, duration: 0.18, ease: "power2.out" },
-      )
-    }
-  })
-}
-
-function onModeLeave() {
-  modeOpen.value = false
+  modeOpen.value = !modeOpen.value
 }
 
 function selectMode(value: string) {
@@ -142,29 +127,31 @@ function selectMode(value: string) {
   modeOpen.value = false
 }
 
-function onOptionEnter(e: MouseEvent) {
-  const label = (e.currentTarget as HTMLElement).querySelector<HTMLElement>(".mode-label")
-  if (label) {
-    gsap.to(label, { opacity: 1, x: 0, yPercent: -50, duration: 0.2, ease: "power2.out" })
+// 点击外部或 Esc 关闭模式弹层（click 开关保证触屏/键盘可用）
+function onDocPointerDown(e: PointerEvent) {
+  if (!(e.target as HTMLElement).closest(".capsule-mode-switcher")) {
+    modeOpen.value = false
   }
 }
 
-function onOptionLeave(e: MouseEvent) {
-  const label = (e.currentTarget as HTMLElement).querySelector<HTMLElement>(".mode-label")
-  if (label) {
-    gsap.to(label, { opacity: 0, x: -6, yPercent: -50, duration: 0.15, ease: "power2.out" })
-  }
+function onDocKeydown(e: KeyboardEvent) {
+  if (e.key === "Escape") modeOpen.value = false
 }
 
 onMounted(async () => {
   await chatStore.loadControllers()
   controllerCatalog.value = chatStore.controllerCatalog
   applyController()
+  document.addEventListener("pointerdown", onDocPointerDown)
+  document.addEventListener("keydown", onDocKeydown)
 })
 
-const showScrollBtn = computed(
-  () => !isAtBottom.value && props.streaming.isStreaming
-)
+onUnmounted(() => {
+  document.removeEventListener("pointerdown", onDocPointerDown)
+  document.removeEventListener("keydown", onDocKeydown)
+})
+
+const showScrollBtn = computed(() => !isAtBottom.value)
 
 const streamingMessage = computed<Message | null>(() => {
   if (!props.streaming.isStreaming) return null
@@ -180,10 +167,15 @@ const streamingMessage = computed<Message | null>(() => {
   }
 })
 
+let scrollRaf = 0
 function onScroll() {
-  if (!listRef.value) return
-  const { scrollTop, scrollHeight, clientHeight } = listRef.value
-  isAtBottom.value = scrollTop + clientHeight >= scrollHeight - 20
+  if (scrollRaf) return
+  scrollRaf = requestAnimationFrame(() => {
+    scrollRaf = 0
+    if (!listRef.value) return
+    const { scrollTop, scrollHeight, clientHeight } = listRef.value
+    isAtBottom.value = scrollTop + clientHeight >= scrollHeight - 20
+  })
 }
 
 function scrollToBottom() {
@@ -205,7 +197,6 @@ watch(
       listRef.value.scrollTop = listRef.value.scrollHeight
     }
   },
-  { deep: true },
 )
 
 function closeSlashPanel() {
@@ -354,13 +345,14 @@ watch(input, (val) => {
         <div
           v-if="controllerCatalog.length > 0"
           class="capsule capsule-mode-switcher"
-          @mouseenter="onModeEnter"
-          @mouseleave="onModeLeave"
         >
           <button
             class="mode-btn"
             :title="selectedController?.description"
             :disabled="streaming.isStreaming || disabled"
+            :aria-expanded="modeOpen"
+            aria-haspopup="menu"
+            @click="onModeToggle"
           >
             <svg
               width="18"
@@ -376,7 +368,6 @@ watch(input, (val) => {
           </button>
           <div
             v-if="modeOpen"
-            ref="modePopupRef"
             class="mode-pop"
           >
             <button
@@ -384,8 +375,6 @@ watch(input, (val) => {
               :key="c.value"
               class="mode-option"
               :class="{ active: c.value === controllerType }"
-              @mouseenter="onOptionEnter"
-              @mouseleave="onOptionLeave"
               @click="selectMode(c.value)"
             >
               <svg
@@ -546,6 +535,19 @@ watch(input, (val) => {
   align-items: center;
   gap: 6px;
   z-index: 30;
+  transform: translateX(-50%);
+  animation: mode-pop-in 0.18s ease-out;
+}
+
+@keyframes mode-pop-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) translateX(-50%);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) translateX(-50%);
+  }
 }
 .mode-option {
   position: relative;
@@ -583,7 +585,13 @@ watch(input, (val) => {
   font-size: 13px;
   white-space: nowrap;
   opacity: 0;
+  transform: translate(-6px, -50%);
   pointer-events: none;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+.mode-option:hover .mode-label {
+  opacity: 1;
+  transform: translate(0, -50%);
 }
 .capsule-duration {
   height: 42px;
@@ -623,9 +631,15 @@ watch(input, (val) => {
   font-family: inherit;
   resize: none;
   overflow-y: auto;
+  height: 42px; /* field-sizing 不支持的浏览器回退：固定高度 + 内部滚动 */
   field-sizing: content;
   max-height: calc(1.5em * 4 + 20px);
   padding: 10px 0;
+}
+@supports (field-sizing: content) {
+  .capsule-input textarea {
+    height: auto;
+  }
 }
 .capsule-input textarea::placeholder {
   color: var(--text-muted);
@@ -733,5 +747,14 @@ watch(input, (val) => {
 .skeleton-msg-assistant {
   justify-content: flex-start;
   flex-direction: column;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mode-pop {
+    animation: none;
+  }
+  .mode-label {
+    transition: none;
+  }
 }
 </style>

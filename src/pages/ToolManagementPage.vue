@@ -221,7 +221,7 @@ async function remove(name: string) {
 const showUpload = ref(false)
 const uploadFiles = ref<File[]>([])
 const uploading = ref(false)
-const fileInput = ref<HTMLInputElement>()
+const fileInput = ref<HTMLInputElement | null>(null)
 
 function openUpload() {
   uploadFiles.value = []
@@ -261,7 +261,7 @@ async function doUpload() {
     const created = resp.created?.length ?? 0
     const errors = resp.errors?.length ?? 0
     if (created > 0) {
-      alertStore.show(t("mgmt_upload_success", { count: created }))
+      alertStore.show(t("mgmt_upload_success", { count: String(created) }))
     }
     if (errors > 0) {
       const msg = resp.errors?.map(e => `${e.filename}: ${e.error}`).join("; ") ?? ""
@@ -448,7 +448,7 @@ onMounted(load)
                 class="upload-drop-area"
                 @drop.prevent="onDrop"
                 @dragover.prevent
-                @click="$refs.fileInput?.click()"
+                @click="fileInput?.click()"
               >
                 <input ref="fileInput" type="file" accept=".py" multiple
                        @change="onFilesSelected" style="display:none" />

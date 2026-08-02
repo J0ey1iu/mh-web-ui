@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, onMounted, watch, provide } from "vue"
+import { computed, ref, onMounted, onUnmounted, watch, nextTick, provide } from "vue"
 import { useRoute, useRouter } from "vue-router"
 import { storeToRefs } from "pinia"
 import { useChatStore } from "../stores/chat"
@@ -77,6 +77,29 @@ const drawerOpen = ref(false)
 const menuOpen = ref(false)
 const theme = ref(localStorage.getItem("theme") || "light")
 
+const sessionsBtnRef = ref<HTMLButtonElement | null>(null)
+const drawerCloseBtnRef = ref<HTMLButtonElement | null>(null)
+const menuBtnRef = ref<HTMLButtonElement | null>(null)
+
+// 抽屉打开时把焦点移入，Esc 关闭并归还焦点
+watch(drawerOpen, (open) => {
+  if (open) nextTick(() => drawerCloseBtnRef.value?.focus())
+})
+
+function onKeydown(e: KeyboardEvent) {
+  if (e.key !== "Escape") return
+  if (drawerOpen.value) {
+    drawerOpen.value = false
+    sessionsBtnRef.value?.focus()
+  } else if (menuOpen.value) {
+    menuOpen.value = false
+    menuBtnRef.value?.focus()
+  }
+}
+
+onMounted(() => document.addEventListener("keydown", onKeydown))
+onUnmounted(() => document.removeEventListener("keydown", onKeydown))
+
 const showAgentSelector = ref(false)
 const skipUrlWatch = ref(false)
 const pageLoading = ref(true)
@@ -130,8 +153,13 @@ function handleAgentSelect(agentName: string) {
 
 onMounted(async () => {
   skipUrlWatch.value = true
-  await checkAuth()
-  ensureComponentsLoaded()
+  // 认证与场景列表无依赖，并行拉取
+  await Promise.all([checkAuth(), loadScenarios()])
+  // tool 组件 bundle 延后到空闲时加载，避免抢占首屏
+  const idle = (window as any).requestIdleCallback
+    ? (cb: () => void) => (window as any).requestIdleCallback(cb)
+    : (cb: () => void) => setTimeout(cb, 200)
+  idle(() => ensureComponentsLoaded())
 
   registerSlashCommand({
     name: "compact",
@@ -248,7 +276,7 @@ async function handleLogout() {
       <BrandingHeader :active="streaming.isStreaming || compacting" />
 
       <div class="spacer"></div>
-      <button class="header-btn" @click="drawerOpen = true" aria-label="Sessions">
+      <button ref="sessionsBtnRef" class="header-btn" @click="drawerOpen = true" aria-label="Sessions">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
         </svg>
@@ -273,7 +301,7 @@ async function handleLogout() {
         {{ locale === 'zh' ? 'EN' : '中文' }}
       </button>
       <div class="hamburger-wrap">
-        <button class="header-btn" @click="menuOpen = !menuOpen" aria-label="Menu">
+        <button ref="menuBtnRef" class="header-btn" @click="menuOpen = !menuOpen" aria-label="Menu">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <line x1="3" y1="6" x2="21" y2="6"/>
             <line x1="3" y1="12" x2="21" y2="12"/>
@@ -324,7 +352,7 @@ async function handleLogout() {
     <aside class="drawer" :class="{ open: drawerOpen }">
       <div class="drawer-header">
         <h2>{{ t("sessions") }}</h2>
-        <button class="btn-close" @click="drawerOpen = false">&times;</button>
+        <button ref="drawerCloseBtnRef" class="btn-close" @click="drawerOpen = false">&times;</button>
       </div>
       <div class="session-list">
         <template v-if="sessionsLoading">

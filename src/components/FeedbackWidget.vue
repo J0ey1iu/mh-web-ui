@@ -22,9 +22,21 @@ const submitting = ref(false)
 
 const quickTags = computed(() => {
   if (selectedType.value === "thumbs_up") {
-    return ["准确", "有用", "快速", "清晰", "完整"]
+    return [
+      t("feedback_tag_accurate"),
+      t("feedback_tag_useful"),
+      t("feedback_tag_fast"),
+      t("feedback_tag_clear"),
+      t("feedback_tag_complete"),
+    ]
   }
-  return ["不准确", "不清楚", "不完整", "太慢", "错误"]
+  return [
+    t("feedback_tag_inaccurate"),
+    t("feedback_tag_unclear"),
+    t("feedback_tag_incomplete"),
+    t("feedback_tag_slow"),
+    t("feedback_tag_error"),
+  ]
 })
 
 function openForm(fbType: "thumbs_up" | "thumbs_down") {

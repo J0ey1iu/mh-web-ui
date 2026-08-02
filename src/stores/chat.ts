@@ -77,6 +77,35 @@ export const useChatStore = defineStore("chat", () => {
   const sessionAbortMap: Record<string, AbortController> = {}
   const sessionFlushTimers: Record<string, ReturnType<typeof setTimeout> | null> = {}
 
+  // 已加载会话的消息缓存上限：超出后逐出最久未用的非当前、非流式会话（重新选中会再拉取）。
+  // ponytail: 简单 FIFO 上限，够用即可；需要更精细策略时再换 LRU。
+  const MAX_CACHED_SESSIONS = 20
+  const sessionCacheOrder: string[] = []
+
+  function touchSessionCache(sid: string) {
+    const i = sessionCacheOrder.indexOf(sid)
+    if (i >= 0) sessionCacheOrder.splice(i, 1)
+    sessionCacheOrder.push(sid)
+    while (sessionCacheOrder.length > MAX_CACHED_SESSIONS) {
+      const oldest = sessionCacheOrder[0]
+      if (oldest === currentSessionId.value || sessionPendingMap[oldest]?.isStreaming) break
+      sessionCacheOrder.shift()
+      delete sessionMessagesMap[oldest]
+      delete sessionStreamingMap.value[oldest]
+      delete sessionContextCache[oldest]
+      delete sessionPendingMap[oldest]
+    }
+  }
+
+  // 把常见后端错误映射为 i18n 文案，其余原样展示
+  function friendlyError(e: unknown): string {
+    const msg = e instanceof Error ? e.message : String(e)
+    const i18n = useI18nStore()
+    if (msg.includes("Forbidden") || msg.includes("permission denied")) return i18n.t("permission_denied")
+    if (msg === "Backend is not available") return i18n.t("offline_banner")
+    return msg
+  }
+
   function saveCurrentSession() {
     const sid = currentSessionId.value
     if (!sid) return
@@ -374,7 +403,7 @@ export const useChatStore = defineStore("chat", () => {
         streaming.value.isStreaming = false
       }
     }
-    error.value = err.message
+    error.value = friendlyError(err)
   }
 
   async function loadSessions(scenarioId?: string) {
@@ -405,9 +434,10 @@ export const useChatStore = defineStore("chat", () => {
       contextUsage.value = { ...sessionContextCache[session.memory_id] }
       const i18n = useI18nStore()
       sessions.value = [{ ...session, title: i18n.t("new_chat_title", { time: formatTime() }), message_count: 1 }, ...sessions.value.filter((s) => s.memory_id !== session.memory_id)]
+      touchSessionCache(session.memory_id)
       await router.replace({ query: { ...router.currentRoute.value.query, session: session.memory_id, agent: undefined } })
     } catch (e) {
-      error.value = String(e)
+      error.value = friendlyError(e)
     }
   }
 
@@ -432,7 +462,7 @@ export const useChatStore = defineStore("chat", () => {
         await router.replace({ query })
       }
     } catch (e) {
-      error.value = String(e)
+      error.value = friendlyError(e)
     }
   }
 
@@ -450,30 +480,28 @@ export const useChatStore = defineStore("chat", () => {
     } else {
       messages.value = []
       messagesLoading.value = true
+      // 消息与反馈无依赖，并行拉取
+      const fbPromise = fetchSessionFeedback(memoryId).catch(() => [] as FeedbackStateItem[])
       try {
-      const msgResp = await fetchMessages(memoryId)
-      sessionContextCache[memoryId] = { totalTokens: msgResp.total_tokens, maxContext: msgResp.max_context }
-      contextUsage.value = { ...sessionContextCache[memoryId] }
-      const transformed = transformMessages(msgResp.items)
-      sessionMessagesMap[memoryId] = transformed
-      messages.value = [...transformed]
+        const msgResp = await fetchMessages(memoryId)
+        sessionContextCache[memoryId] = { totalTokens: msgResp.total_tokens, maxContext: msgResp.max_context }
+        contextUsage.value = { ...sessionContextCache[memoryId] }
+        const transformed = transformMessages(msgResp.items)
+        sessionMessagesMap[memoryId] = transformed
+        messages.value = [...transformed]
       } catch (e) {
-        error.value = String(e)
+        error.value = friendlyError(e)
       } finally {
         messagesLoading.value = false
       }
-    }
-    // load feedback state for this session
-    try {
-      const fbItems = await fetchSessionFeedback(memoryId)
+      const fbItems = await fbPromise
       const map: Record<string, FeedbackStateItem> = {}
       for (const fb of fbItems) {
         map[`${fb.target_type}:${fb.target_id}`] = fb
       }
       feedbackState.value = map
-    } catch {
-      feedbackState.value = {}
     }
+    touchSessionCache(memoryId)
     await router.replace({ query: { ...router.currentRoute.value.query, session: memoryId, agent: undefined } })
   }
 
@@ -492,9 +520,10 @@ export const useChatStore = defineStore("chat", () => {
         contextUsage.value = { ...sessionContextCache[session.memory_id] }
         const i18n = useI18nStore()
         sessions.value = [{ ...session, title: i18n.t("new_chat_title", { time: formatTime() }), message_count: 1 }, ...sessions.value.filter((s) => s.memory_id !== session.memory_id)]
+        touchSessionCache(session.memory_id)
         await router.replace({ query: { ...router.currentRoute.value.query, session: session.memory_id, agent: undefined } })
       } catch (e) {
-        error.value = String(e)
+        error.value = friendlyError(e)
         await router.replace({ query: { ...router.currentRoute.value.query, agent: undefined } })
         return
       } finally {
@@ -542,19 +571,23 @@ export const useChatStore = defineStore("chat", () => {
     const found = availableScenarios.value.find((s) => s.id === scenarioId)
     if (!found) return
     currentScenario.value = found
-    try {
-      const detail = await fetchScenarioDetail(scenarioId)
-      availableAgents.value = detail.agents
-      const map: Record<string, string> = {}
-      for (const a of detail.agents) {
-        for (const t of a.tools) map[t.name] = t.display_name || t.name
-      }
-      toolDisplayNames.value = map
-    } catch { /* */ }
     currentSessionId.value = null
     pendingAgent.value = null
     messages.value = []
-    await loadSessions(scenarioId)
+    // 场景详情与会话列表无依赖，并行拉取
+    await Promise.all([
+      fetchScenarioDetail(scenarioId)
+        .then((detail) => {
+          availableAgents.value = detail.agents
+          const map: Record<string, string> = {}
+          for (const a of detail.agents) {
+            for (const t of a.tools) map[t.name] = t.display_name || t.name
+          }
+          toolDisplayNames.value = map
+        })
+        .catch(() => { /* */ }),
+      loadSessions(scenarioId),
+    ])
     await router.replace({ query: { ...router.currentRoute.value.query, scene: scenarioId, session: undefined, agent: undefined } })
   }
 
@@ -738,10 +771,11 @@ export const useChatStore = defineStore("chat", () => {
       let hasCompactBoundary = !!msg.compact_boundary
       const orderedItems: ResponseItem[] = []
       const toolCalls: ToolCallDisplay[] = []
+      const groupStart = i
       while (i < apiMessages.length) {
         const m = apiMessages[i]
         if (m.role === "user") break
-        if (m.compact_boundary && i > apiMessages.indexOf(msg)) break
+        if (m.compact_boundary && i > groupStart) break
         if (m.role === "reasoning") {
           orderedItems.push({ type: "reasoning", text: m.content })
           if (m.compact_boundary) hasCompactBoundary = true
